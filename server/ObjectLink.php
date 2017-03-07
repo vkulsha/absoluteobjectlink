@@ -86,7 +86,7 @@ class ObjectLink {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			
-			$ret = $this->sql->sT(["link", "id", "and ((o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1')) ", "", ""]);
+			$ret = $this->sql->sT(["link", "id", "and ((o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1')) ", "", "limit 1"]);
 			return $ret ? $ret[0][0] : null;
 			
 		} catch (Exception $e) {

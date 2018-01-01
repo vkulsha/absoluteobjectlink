@@ -27,8 +27,17 @@ function openWindow(url, title, params) {
 	return w;
 }
 
-function getXmlHttpReq(uri, data, async, getpost, isjson, func, funcError, funcFinnaly) {
+function orm(fName, fParams, func){
+	var ret;
+	if (!func) func = function(data){ ret = data; };
+	getXmlHttpReq(func,"orm.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.oid}, !func);
+	return ret;
+}
+
+function getXmlHttpReq(func, uri, postdata, async, isjson, funcError, funcFinnaly) {
 	if (async === undefined) async = true;
+	if (isjson === undefined) isjson = true;
+	var getpost = (uri.indexOf("?")>=0 && !postdata) ? "get" : "post";
 	
 	var req = null;
 	if (window.XMLHttpRequest) {
@@ -47,9 +56,9 @@ function getXmlHttpReq(uri, data, async, getpost, isjson, func, funcError, funcF
 
 	if (req) {
 		var formData = new FormData();
-		if (data){
-			for ( var key in data ) {
-				formData.append(key, data[key]);
+		if (postdata){
+			for ( var key in postdata ) {
+				formData.append(key, postdata[key]);
 			}
 		}
 		req.open(getpost, encodeURI(uri), async);
@@ -72,6 +81,75 @@ function getXmlHttpReq(uri, data, async, getpost, isjson, func, funcError, funcF
 	}
 	
 }
+
+function TForm (zIndex,parentDom,width,height,left,top,visible){
+	var that = this;
+	var dom = cDom("DIV");
+	parentDom = parentDom || document.body;
+	if (parentDom) parentDom.appendChild(dom);
+	dom.style.display = visible ? "block" : "none";
+	dom.style.position = "fixed";
+	dom.style.zIndex = zIndex || 200000;
+	dom.style.left = 0;
+	dom.style.top = 0;
+	dom.style.width = "100%";
+	dom.style.height = "100%";
+	dom.style.overflow = "hidden";
+	dom.style.backgroundColor = "rgba(0,0,0,0.8)";
+	dom.style.overflowY = "scroll";
+
+	var body = dom.appendChild(cDom("DIV"));
+	body.style.position = "relative";
+	body.style.backgroundColor = "#000";
+	body.style.margin = "auto";
+	body.style.padding = "5px 5px 20px 5px";
+	body.style.left = left || 0;
+	body.style.top = top || 0;
+	body.style.width = width || "99%";
+	body.style.height = height || body.style.height;
+	body.style.boxShadow = "0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)";
+	
+	var head = cDom("DIV");
+	head.style.color = "#fff";
+	head.style.float = "right";
+	head.style.fontSize = "28px";
+	head.style.fontWeight = "bold";
+	head.style.cursor = "pointer";
+	head.style.padding = "0px 5px";
+	var span = head.appendChild(cDom("SPAN"));
+	span.innerHTML = "&times";
+	span.onclick = function() {	that.setVisible(false);	}
+	
+	var data = cDom("DIV");
+	data.style.color = "#fff";
+	data.style.fontSize = "14px";
+	data.style.cursor = "pointer";
+	data.style.padding = "0px 5px";
+	
+	var foot = cDom("DIV");
+
+	body.innerHTML = "";
+	body.appendChild(head);
+	var br = cDom("BR");
+	body.appendChild(br);
+	body.appendChild(data);
+	body.appendChild(foot);
+	
+	this.setBody = function(val) {
+		data.appendChild(val);
+	}
+	
+	this.setVisible = function(val) { dom.style.display = val ? "block" : "none"; }
+	this.getDom = function() { return dom; }
+	this.getBody = function() { return data; }
+	this.setWidth = function(val) {	body.style.width = val; }
+	this.setHeight = function(val) { body.style.height = val; }
+	this.setTop = function(val) { body.style.top = val; }
+	this.setLeft = function(val) { body.style.left = val; }
+	this.setZIndex = function(val) { dom.style.zIndex = val; }
+	
+}	
+
 
 /***	
 	return object or array from query-resultset depending on the @query and @type
@@ -358,11 +436,11 @@ function isDOM(val) {
 	return isObject(val) && val.toString().indexOf('HTML') > 0;
 }
 
-function windowHeight(){
+function getWindowHeight(){
    return window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
 }	
 
-function windowWidth(){
+function getWindowWidth(){
    return window.innerWidth||document.documentElement.clientWidth||document.body.clientWidth||0;
 }	
 

@@ -18,7 +18,7 @@ $arr = array(
 
 $host = $_SERVER['SERVER_NAME'];
 $prefix = getDbPrefix($arr, $host);
-$conn = new DB("localhost",$prefix."expl",$prefix."root","Rekmif1983",0);;
+$conn = new DB("localhost",$prefix."absoluteobjectlink",$prefix."root","Rekmif1983",0);;
 $explDb = $conn->db;
 $explDbType = $explDb->getAttribute(PDO::ATTR_DRIVER_NAME);
 $sql = new SQL($explDb);

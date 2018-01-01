@@ -20,7 +20,12 @@
 "use strict";
 
 QUnit.test( "test", function( a ) {
-	a.ok( true == true, "true" );
+	var f = function(d){a.ok( d == "Класс", "getXmlHttpReq")};
+	getXmlHttpReq(f,"orm.php?f=gN&p=[1]",null,false);
+	getXmlHttpReq(f,"orm.php",{"f":"gN","p":"[1]"},false);
+	a.ok( orm("gN",[1]) == "Класс", "orm");
+	var f = function(d){a.ok( d == "Класс", "orm async")};
+	orm("gN",[1], f);
 	
 });	
 	

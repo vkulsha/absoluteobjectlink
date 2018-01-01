@@ -99,7 +99,7 @@ class SQL {
 			$prop = $params[1];
 
 			$table = ($this->perfixDB).$table;
-			$sth = $this->db->prepare("create table if not exists $table ($prop)");  
+			$sth = $this->db->prepare("create table if not exists $table $prop");  
 			$sth->execute();
 			return $sth->rowCount();
 			

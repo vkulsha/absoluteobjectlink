@@ -7,22 +7,218 @@
 		<link rel="shortcut icon" href="/images/logo.png" type="image/png">
 
 		<link rel="stylesheet" href="modules/leaflet/leaflet_1.2.0.css" />
+		<link rel="stylesheet" type="text/css" href="main.css">
 
 		<script src="modules/jquery/jquery-3.2.1.min.js"></script>
 		<script src="modules/leaflet/leaflet_1.2.0.js"></script>
 		<script src="modules/leafletEditable/Leaflet.Editable.js"></script>
+		<script src="modules/md5/md5.js"></script>
 		<script src="service.js"></script>
 
 	</head>
 	<body>
+		<div id="map" style="position:absolute; width:100%; height:100%"></div>
+		<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.93); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:20%; background-position: center center' id='pLoginMain'>
+			<br><br><br>
+			<h1 align="middle" style="color:#fff">АНАЛИТИЧЕСКАЯ ИНФОРМАЦИОННАЯ СИСТЕМА</h1>
+			<!--<h2 align="middle" style="color:#ffdd00">УПРАВЛЕНИЕ ЭКСПЛУАТАЦИИ ИМУЩЕСТВА</h2>-->
+			
+			<div id='pLogin' style='background-color:rgba(255,255,255,0.1);' class="centered">
+				<form name="fLogin" onsubmit='return false;' id='fLogin'>
+				<table cellpadding="5" cellspacing="5">
+					<tr><td>Логин:</td><td> <input type='text' style='opacity:0.8; border:1px solid #000' id='eUser' autofocus></td></tr>
+					<tr><td>Пароль:</td><td> <input type='password' style='opacity:0.8;  border:1px solid #000' id='ePassword' name='ePassword'></td></tr>
+					<tr><td colspan=2 align='center'><button id='bLogin'>Войти</button></td></tr>
+				</table>
+				</form>
+			</div>
+		</div>
+		<div id='logo' style='cursor:pointer; position:absolute; left:90%; top:10px; width:100px; z-index:100000; background-color:rgba(0,0,0,0.5); text-align:center; border-radius:5px'>
+			<img src='images/logo.png' width='64'/><br>
+			<label>База Данных</label>
+		</div>
+	
 <script lang="javascript">
-var frm = new TForm();
-frm.setVisible(true);
-var b = cDom("DIV");
-//b.innerHTML = "111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111";//orm("gAnd",JSON.stringify([[1]]));
-frm.setBody(b);
-//frm.setHeight("99%");
+var classes_;
+var classes;
+var classes2 = [];
+var map;
+var frmData = new Form();
+map = L.map('map', {editable: true});
+L.tileLayer('//mt{s}.googleapis.com/vt?lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom: 18, subdomains: [0,1,2,3]}).addTo(map);
+map.setView([65, 100], 3);
+//var frmMapData = new Form(!"isModal");
+
+gDom("logo").onclick = function(){ frmData.setVisible(true); };
+
+gDom("bLogin").onclick = function(){
+	var auth = false;
+	var eUser = document.fLogin.eUser.value;;
+	var password = document.fLogin.ePassword.value;
+
+	var openview = function() {
+		classes_ = orm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
+		classes = hash4arr(classes_);
+		var arr = orm("gAnd",[[1],"id"]);
+		for (var i=0; i < arr.length; i++) classes2.push(arr[i][0]);
+		console.log("classes count: "+classes_.length);
+		gDom("pLoginMain").hidden = true;
+		///
+		loadData(currentUser.oid, currentUser.cid, frmData);
+		frmData.setVisible(true);
+		//frmMapData.setZIndex(190000);frmMapData.setVisible(true);frmMapData.getBody().innerHTML = "111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>";
+		///
+	}
+	
+	var getLDAP = function() {
+		getXmlHttpReq(function(responce) {
+			var resp = JSON.parse(responce);
+			if (resp) {
+				openview();
+			} else {
+			}
+		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
+	}
+	
+	var auth = orm("getLogin",[eUser, md5(password)]);
+	if (auth && auth.uid) {
+		currentUser = auth;
+		if (auth.auth) {
+			openview();
+		} else {
+			getLDAP();
+		}
+	}
+
+}
+	
+function loadData(oid_, cid_, frm, hist){
+	var bback = frm.getBack();
+	var bfront = frm.getFront();
+	bback.hidden = true;
+	bfront.hidden = true;
+	if (hist) {
+		var back = hist.back;
+		if (back && back.length) {
+			bback.hidden = false;
+			bback.hist = hist;
+			bback.frm = frm;
+			bback.oid = oid_;
+			bback.cid = cid_;
+			frm.setBack(function(){
+				var oid = hist.back[hist.back.length-1].oid;
+				var cid = hist.back[hist.back.length-1].cid;
+				this.hist.back.splice(-1);
+				this.hist.front.push({"oid":this.oid, "cid":this.cid});
+				loadData(this.isClass ? 0 : oid, cid, this.frm, this.hist); 
+			});
+		}
+		/*///вперед тоже работает. убрал, т.к. пока лишнее
+		var front = hist.front;
+			...
+			frm.setFront(function(){
+				...
+		*/
+	}
+	
+	var cnt = frm.getBody();
+	cnt.innerHTML = "";
+	var fs = 11;
+	var isFile = false;
+	var isClass = false;
+	var getClasses = function(ids){return orm("gAnd",[ids,"id,n",false," order by c desc, n ",false,true])};
+	var getObjects = function(ids){return orm("gAnd",[ids,"id,n",true," order by c desc, n ",false,false])};
+	var arrCls = parseInt(cid_) ? getClasses([cid_]) : [[classes[cid_], cid_]];
+	if (!arrCls.length) return false;
+
+	var fillCard = function(data, cell, frm, cid){
+		cell.id = data[0];
+		cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;
+		cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
+		cell.cid = cell.isClass ? cell.id : cid;
+		cell.style.width = "100%"; cell.style.textAlign = "left"; 
+		cell.style.fontWeight = cell.isClass ? "bold" : "";
+		cell.style.color = cell.isClass ? "#ffdd00" : "#fff";
+		cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
+		cell.isFile = !cell.isClass && (cell.cid == classes["Файлы"] || cell.cid == classes["Фото"]);
+
+		cell.onclick = function(){ 
+			if (this.cid == classes["Объект"]) {
+				location.href = mainHtmlPage+"#oid="+this.id;
+			}
+			if (!hist) hist = {"back":[],"front":[]};
+			hist.back.push({"oid":oid_, "cid":cid_});
+			hist.front = [];
+			loadData(this.isClass ? 0 : this.id, this.cid, frm, hist); 
+		}
 		
+		if (cell.isFile && !cell.isClass) {
+			var txt = {value: orm("gN",[cell.id])};
+			var img = new Image();
+			var fn = txt.value;
+
+			var arr = fn.split(".");
+			var arrIm = ['jpg','bmp','png','gif','tif','JPG','BMP','PNG','GIF','TIF'];
+			var ext = arr[arr.length-1];
+
+			img.fn = fn;
+			cell.fn = fn;
+			var cap = (fn) ? fn.split("/")[fn.split("/").length-1] : "";
+
+			if (arr && arr.length && ~arrIm.indexOf(ext)) {
+				img.src = domain+url2cp1251(fn);
+				img.width = 32;
+				cap = "";
+			} else {
+				var iconFile = getIconFile(fn);
+				img.src = domain+iconFile;
+				img.width = 16;
+			}
+
+			
+			cell.innerHTML = cap;
+			img.style.cursor = "pointer";
+			cell.onclick = function(){
+				openWindow(domain+url2cp1251(this.fn));
+			}
+			cell.appendChild(img);
+		}
+			
+		cell.oncontextmenu = function(e){
+			if (this.isClass) {
+				var n = prompt("Добавить запись в класс: ["+this.innerHTML+"]?","");
+				var cid = this.id;
+				var newoid = n ? orm("cO",[n, cid]) : 0;
+				var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+				if (newoid) loadData(oid_, cid_, frm, polylines_);	
+				return false;
+			}
+		}
+	}
+
+	var tb = cnt.appendChild(cDom("TABLE"));
+	tb.style.width = '100%';
+	for (var i=0; i < arrCls.length; i++){
+		var tr = tb.appendChild(cDom("TR"));
+		var td = tr.appendChild(cDom("TD"));
+		
+		var cell1 = td.appendChild(cDom("BUTTON"));
+		fillCard(arrCls[i], cell1, frm, cid_);
+
+		var arr = [cell1.id];
+		if (oid_) arr.push(oid_);
+		var arrObj = getObjects(arr);
+		for (var j=0; j < arrObj.length; j++){
+			var tr = tb.appendChild(cDom("TR"));
+			var td = tr.appendChild(cDom("TD"));
+			var cell2 = td.appendChild(cDom("BUTTON"));
+			fillCard(arrObj[j], cell2, frm, cell1.id);
+		
+		}
+	}
+	
+}
+	
 </script>
 	</body>
 </html>

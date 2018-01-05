@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
@@ -6,78 +7,83 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 	
 	<script src="modules/jquery/jquery-3.2.1.min.js"></script>
-	<script src="uService.js"></script>
-	<script src="objectlink.js"></script>
-	<script src="md5.js"></script>
+	<script src="service.js"></script>
+	<script src="modules/md5/md5.js"></script>
+</head>
 <body>
-<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.9)' id='mainContainer'>
-	<div id='pLogin' style='position:fixed; left:500px; top:400px; background-color:rgba(0,0,0,0.5)'>
-		<form name="fLogin" onsubmit='return false;' id='fLogin'>
-		<table cellpadding="5" cellspacing="5">
-			<tr><td>Логин:</td><td> <input type='text' id='eUser' autofocus></td></tr>
-			<tr><td>Пароль:</td><td> <input type='password' id='ePassword' name='ePassword'></td></tr>
-			<tr><td colspan=2 align='center'><button id='bLogin'>Войти</button></td></tr>
-		</table>
-		</form>
-	</div>
-</div>
-
-<div id='terminalRow' style='position:absolute; top:100; left:300' hidden><textarea id='terminal' cols=100 rows=40></textarea></div>
-
-<table id="tbData" width="100%" hidden>
-	<tr>
-		<td class="highlight">
-			<table>
-				<tr><td>
-					<button id='bHome'>/</button>
-					<button id='bCO'>cO</button>
-					<button id='bCL'>cL</button>
-					<button id='bEO'>eO</button>
-					<button id='bEL'>eL</button>
-					<input type='checkbox' id='chAdd2query'/>
-					<button id='bGC'>gC</button>
-					<!--<input type='checkbox' id='chQueryLinkParent'/>-->
-					<button id='bTable'>t</button>
-					<button id='bTable2'>T</button>
-					<!--<button id='bFontSizePlus'>+</button>-->
-					<button id='bOrderBy'>n</button>
-					<button id='bEdit'>[..]</button>
-					<button id='bAddCard'>+</button>
-					<br><label id="lCount" style='font-size:10px'>0</label>
-				</td></tr>
-				<tr><td>
-					<input type='checkbox' id='link'/>
-					<label id='stat' style='font-size:10px'>...</label>
-				</td></tr>
-				<tr><td><table id='edit' width='100%' border=0 hidden><tr>
-					<td width='100%'><textarea id='txt' rows=2 style='width:100%'></textarea></td>
-					<td><button id='bSave'>ok</button></td>
-					<td><button id='bFile' onclick='document.getElementById("selectFile").hidden = !document.getElementById("selectFile").hidden'>></button></td>
-					<!--<td id='selectFile' hidden><input id='files' name='files[]' type='file' multiple /></td>-->
-					</tr></table>
-				</td></tr>
-				<tr><td>
-					<div id='selectFile' hidden>
-					<form enctype='multipart/form-data' action='upload2.php' method='POST'>
-					<input type='hidden' name='MAX_FILE_SIZE' value='0' />
-					<input type='hidden' name='uploadPath' value='' id='selectFileUploadPath'/>
-					<input type='hidden' name='uploadId' value='' id='selectFileUploadId'/>Загрузить фото: 
-					<input name='userfile[]' type='file' multiple /><br><br>
-					<input type='submit' value='Загрузить' />
-					</form>
-					</div>
-				</td></tr>
+	<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(255,255,255,1); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:20%; background-position: center center' id='pLoginMain'>
+		<br><br><br>
+		<h1 align="middle" style="color:#000">АНАЛИТИЧЕСКАЯ ИНФОРМАЦИОННАЯ СИСТЕМА</h1>
+		<h2 align="middle" style="color:#999">СИСТЕМА УПРАВЛЕНИЯ БАЗЫ ДАННЫХ</h2>
+		
+		<div id='pLogin' style='background-color:rgba(0,0,0,0.7); position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);'>
+			<form name="fLogin" onsubmit='return false;' id='fLogin'>
+			<table cellpadding="5" cellspacing="5">
+				<tr><td>Логин:</td><td> <input type='text' id='eUser' autofocus></td></tr>
+				<tr><td>Пароль:</td><td> <input type='password' id='ePassword' name='ePassword'></td></tr>
+				<tr><td colspan=2 align='center'><button id='bLogin'>Войти</button></td></tr>
+				<tr><td colspan=2 align='center'><progress id="progressBar" hidden></progress></td></tr>
 			</table>
-		</td>
-	</tr>
-	<tr><td><table><tr>
-		<td valign='top'><table id='lQuery'></table></td>
-		<td valign='top' id='tQuery' hidden></td>
-	</tr></table></td></tr>
-	<tr><td><div style='overflow-y:auto' id='divContainer'><table id='dataContainer' cellpadding=1 style='width:100%'></table></div></td></tr>
-</table>
+			</form>
+		</div>
+	</div>
 
-<script>
+	<div id='terminalRow' style='position:absolute; top:100; left:300' hidden><textarea id='terminal' cols=100 rows=40></textarea></div>
+
+	<table id="tbData" width="100%" hidden>
+		<tr>
+			<td class="highlight">
+				<table>
+					<tr><td>
+						<button id='bHome'>/</button>
+						<button id='bCO'>cO</button>
+						<button id='bCL'>cL</button>
+						<button id='bEO'>eO</button>
+						<button id='bEL'>eL</button>
+						<input type='checkbox' id='chAdd2query'/>
+						<button id='bGC'>gC</button>
+						<!--<input type='checkbox' id='chQueryLinkParent'/>-->
+						<button id='bTable'>t</button>
+						<button id='bTable2'>T</button>
+						<!--<button id='bFontSizePlus'>+</button>-->
+						<button id='bOrderBy'>n</button>
+						<button id='bEdit'>[..]</button>
+						<button id='bAddCard'>+</button>
+						<br><label id="lCount" style='font-size:10px'>0</label>
+					</td></tr>
+					<tr><td>
+						<input type='checkbox' id='link'/>
+						<label id='stat' style='font-size:10px'>...</label>
+					</td></tr>
+					<tr><td><table id='edit' width='100%' border=0 hidden><tr>
+						<td width='100%'><textarea id='txt' rows=2 style='width:100%'></textarea></td>
+						<td><button id='bSave'>ok</button></td>
+						<td><button id='bFile' onclick='document.getElementById("selectFile").hidden = !document.getElementById("selectFile").hidden'>></button></td>
+						<!--<td id='selectFile' hidden><input id='files' name='files[]' type='file' multiple /></td>-->
+						</tr></table>
+					</td></tr>
+					<tr><td>
+						<div id='selectFile' hidden>
+						<form enctype='multipart/form-data' action='upload2.php' method='POST'>
+						<input type='hidden' name='MAX_FILE_SIZE' value='0' />
+						<input type='hidden' name='uploadPath' value='' id='selectFileUploadPath'/>
+						<input type='hidden' name='uploadId' value='' id='selectFileUploadId'/>Загрузить фото: 
+						<input name='userfile[]' type='file' multiple /><br><br>
+						<input type='submit' value='Загрузить' />
+						</form>
+						</div>
+					</td></tr>
+				</table>
+			</td>
+		</tr>
+		<tr><td><table><tr>
+			<td valign='top'><table id='lQuery'></table></td>
+			<td valign='top' id='tQuery' hidden></td>
+		</tr></table></td></tr>
+		<tr><td><div style='overflow-y:auto' id='divContainer'><table id='dataContainer' cellpadding=1 style='width:100%'></table></div></td></tr>
+	</table>
+
+<script lang="javascript">
 	var classes_;
 	var classes;
 	var classes2 = [];
@@ -118,46 +124,46 @@
 	var ORDER = " order by c desc, o1 desc, t desc ";
 	var order = ORDER;
 	var dopcond = "";
-	divContainer.style.height = windowHeight()-105+"px";
-
-	var pLogin = gDom("pLogin");
-	pLogin.style.left = Math.round(windowWidth()/2) - 100 + "px";
-	pLogin.style.top = Math.round(windowHeight()/2) - 50 + "px";
-	var bLogin = gDom("bLogin");
+	divContainer.style.height = getWindowHeight()-105+"px";
 	
-	bLogin.onclick = function(){
-		var auth = false;
-		var eUser = $("#eUser").val();
-		var password = document.fLogin.ePassword.value;
+gDom("bLogin").onclick = function(){
+	var auth = false;
+	var eUser = document.fLogin.eUser.value;;
+	var password = document.fLogin.ePassword.value;
 
-		var openview = function() {
-			classes_ = objectlink.gOrm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
-			classes = hash4arr(classes_);
-			var arr = objectlink.gOrm("gAnd",[[1],"id"]);
-			for (var i=0; i < arr.length; i++) classes2.push(arr[i][0]);
-			gDom("mainContainer").hidden = true;
-			gDom("tbData").hidden = false;
-		}
-		
-		var getLDAP = function() {
-			getHttp("ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru", function(responce) {
-				var resp = JSON.parse(responce);
-				if (resp) {
-					openview();
-				} else {
-				}
-			}, false);
-		}
-		
-		var auth = objectlink.gOrm("gLogin",[eUser, md5(password)]);
-		currentUser.oid = auth.u;
-		if (auth.key) {
+	var openview = function() {
+		classes_ = orm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
+		classes = hash4arr(classes_);
+		var arr = orm("gAnd",[[1],"id"]);
+		for (var i=0; i < arr.length; i++) classes2.push(arr[i][0]);
+		console.log("classes count: "+classes_.length);
+		gDom("pLoginMain").hidden = true;
+		///
+		gDom("tbData").hidden = false;
+		hashchange();
+		///
+	}
+	
+	var getLDAP = function() {
+		getXmlHttpReq(function(responce) {
+			var resp = JSON.parse(responce);
+			if (resp) {
+				openview();
+			} else {
+			}
+		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
+	}
+	
+	var auth = orm("getLogin",[eUser, md5(password)]);
+	if (auth && auth.uid) {
+		currentUser = auth;
+		if (auth.auth) {
 			openview();
 		} else {
 			getLDAP();
 		}
-		reload();
 	}
+}
 
 	
 	if (location.hash == "#."+oid) {
@@ -168,7 +174,7 @@
 	
 	function load(where_, order_, currentUserId){
 		//var result = orm(query+where_+" "+order_, "all2array");
-		var result = getOrmObject({columns:["1","2","3","4","5"],data:objectlink.gOrm("iii", [where_, order_])}, "all2array");
+		var result = getOrmObject({columns:["1","2","3","4","5"],data:orm("iii", [where_, order_])}, "all2array");
 		var data = result;
 		if (!data.length) return false;
 		
@@ -197,7 +203,7 @@
 			bSave.onclick = function(){
 				var oid = this.oid;
 				var val = txt.value;
-				objectlink.gOrm("uO",[oid, val]);
+				orm("uO",[oid, val]);
 				hashchange();
 
 			}
@@ -263,13 +269,14 @@
 	}
 	
 	function hashchange(){
+		if (!currentUser.uid) return;
 		$(bHome).focus();
 		var hash = location.hash.split(".");
 		isFile = false;
 		oid = hash[1];
 		isClass = hash[2];
 
-		var n = objectlink.gOrm("gN",[oid]);
+		var n = orm("gN",[oid]);
 		txt.value = n;
 
 		if (link.checked){
@@ -312,11 +319,11 @@
 	bTable.onclick = function(){
 		tQuery.hidden = !tQuery.hidden;
 		if (!tQuery.hidden) {
-			var domtable = getOrmObject({columns:arrQuery[0], data:objectlink.gOrm("gT2",arrQuery)}, "all2domtable");
+			var domtable = getOrmObject({columns:arrQuery[0], data:orm("gT2",arrQuery)}, "all2domtable");
 			domtable.setAttribute("border",1);
 			tQuery.innerHTML = "";
 			var div = tQuery.appendChild(document.createElement("DIV"));
-			div.style.height = windowHeight() - 150 + "px";
+			div.style.height = getWindowHeight() - 150 + "px";
 			div.style.width = "100%";
 			div.style.overflow = "auto";
 			div.appendChild(domtable);
@@ -326,11 +333,11 @@
 	bTable2.onclick = function(){
 		tQuery.hidden = !tQuery.hidden;
 		if (!tQuery.hidden) {
-			var domtable = getOrmObject({columns:arrQuery[0], data:objectlink.gOrm("gT3",[arrQuery[0]])}, "all2domtable");
+			var domtable = getOrmObject({columns:arrQuery[0], data:orm("gT3",[arrQuery[0]])}, "all2domtable");
 			domtable.setAttribute("border",1);
 			tQuery.innerHTML = "";
 			var div = tQuery.appendChild(document.createElement("DIV"));
-			div.style.height = windowHeight() - 150 + "px";
+			div.style.height = getWindowHeight() - 150 + "px";
 			div.style.width = "100%";
 			div.style.overflow = "auto";
 			div.appendChild(domtable);
@@ -380,15 +387,15 @@
 
 	bEdit.onclick = function(){
 		edit.hidden = !edit.hidden;
-		divContainer.style.height = windowHeight()-(document.getElementById("edit").hidden ? 105 : 145)+"px";
+		divContainer.style.height = getWindowHeight()-(document.getElementById("edit").hidden ? 105 : 145)+"px";
  	}
 
 	var bCO = document.getElementById("bCO");
 	bCO.onclick = function(){
 		result = prompt("cO(n); cL(o1,"+oid+")", txt.value+" "+(countObjects+1));
 		if (result) {
-			var o1 = objectlink.gOrm("cO",[result, oid]);
-			//if (oid) objectlink.gOrm("cL",[o1, oid]);
+			var o1 = orm("cO",[result, oid]);
+			//if (oid) orm("cL",[o1, oid]);
 			reload();
 		} else {
 			alert("Недопустимое значение объекта!");
@@ -401,7 +408,7 @@
 		if (result) {
 			var arr = result.split(",");
 			if (arr && arr.length && arr[0] && arr[1] && arr[0] != arr[1]) {
-				objectlink.gOrm("cL",[arr[0],arr[1]]);
+				orm("cL",[arr[0],arr[1]]);
 				reload();
 			} else {
 				alert("Недопустимое значение oid1 или oid2!");
@@ -441,10 +448,10 @@
 	var bEO = document.getElementById("bEO");
 	bEO.onclick = function(){
 		var fn = undefined;
-		if (isFile) fn = objectlink.gOrm("gN",[oid]);
+		if (isFile) fn = orm("gN",[oid]);
 		result = prompt("УДАЛИТЬ ОБЪЕКТ? eO (id) "+fn, oid);
 		if (result) {
-			objectlink.gOrm("nO",[result,fn]);
+			orm("nO",[result,fn]);
 			history.back();
 			//hashchange();
 			//goHome();
@@ -459,7 +466,7 @@
 		if (result) {
 			var arr = result.split(",");
 			if (arr && arr.length && arr[0] && arr[1] && arr[0] != arr[1]) {
-				objectlink.gOrm("eL",[arr[0],arr[1]]);
+				orm("eL",[arr[0],arr[1]]);
 				hashchange();
 				//goHome();
 			} else {
@@ -474,9 +481,9 @@
 	function createClass(){
 		result = prompt("cC(n)", txt.value+" "+(countObjects+1));
 		if (result) {
-			var o1 = objectlink.gOrm("cO",[result, 1]);
-			//if (oid) objectlink.gOrm("cL",[o1, oid]);
-			if (o1) objectlink.gOrm("cL",[o1, oid]);
+			var o1 = orm("cO",[result, 1]);
+			//if (oid) orm("cL",[o1, oid]);
+			if (o1) orm("cL",[o1, oid]);
 			reload();
 		} else {
 			alert("Недопустимое значение объекта!");
@@ -504,12 +511,12 @@
 		
 		if (event.keyCode == 113 && event.shiftKey) {
 			var n = prompt("gO(n) and open","");
-			var oid_ = objectlink.gOrm("gO",[n, true]);
+			var oid_ = orm("gO",[n, true]);
 			if (oid_) location.href = "#."+oid_+".class";
 		} else 
 		if (event.keyCode == 113) {
 			var n = prompt("gO(n)","");
-			if (n) window.alert(n+" oid: "+objectlink.gOrm("gO",[n]));
+			if (n) window.alert(n+" oid: "+orm("gO",[n]));
 
 		}
 	};
@@ -560,15 +567,15 @@
 			case "go":
 			case "выбрать":
 				if (objects[0]) {
-					location.href = "#."+objectlink.gOrm("gO",[objects[0], true]);//objectlink.gO(objects[0]);
+					location.href = "#."+orm("gO",[objects[0], true]);//objectlink.gO(objects[0]);
 				}
 			break;
 			case "create":
 			case "co":
 			case "создать":
 				if (objects[0]) {
-					var o1 = objectlink.gOrm("cO",[objects[0], oid]);
-					//if (oid) objectlink.gOrm("cL",[o1, oid]);
+					var o1 = orm("cO",[objects[0], oid]);
+					//if (oid) orm("cL",[o1, oid]);
 					reload();
 				}
 			break;
@@ -581,7 +588,7 @@
 					
 					for (var i=0; i < o1.length; i++){
 						for (var j=0; j < o2.length; j++){
-							objectlink.gOrm("cL",[objectlink.gOrm("gO",[o1[i]]), objectlink.gOrm("gO",[o2[j]])])
+							orm("cL",[orm("gO",[o1[i]]), orm("gO",[o2[j]])])
 							//console.log("link "+objectlink.gO(o1[i])+" "+objectlink.gO(o2[j])+"\n");
 						}
 					}
@@ -595,7 +602,7 @@
 				if (objects[0] && !objects[1]) {
 					var o1 = objects[0].split(",");
 					for (var i=0; i < o1.length; i++){
-						objectlink.gOrm("nO",[objectlink.gOrm("gO",[o1[i]])])
+						orm("nO",[orm("gO",[o1[i]])])
 						//console.log("eO "+objectlink.gO(o1[i]));
 					}
 					goHome();
@@ -605,7 +612,7 @@
 					
 					for (var i=0; i < o1.length; i++){
 						for (var j=0; j < o2.length; j++){
-							objectlink.gOrm("eL",[objectlink.gOrm("gO",[o1[i]]), objectlink.gOrm("gO",[o2[j]])])
+							orm("eL",[orm("gO",[o1[i]]), orm("gO",[o2[j]])])
 							//console.log("eL "+objectlink.gO(o1[i])+" "+objectlink.gO(o2[j])+"\n");
 						}
 					}
@@ -620,7 +627,7 @@
 	
 	bAddCard.onclick = function(){
 		if (!isClass) {
-			var cid = objectlink.gOrm("gCid",[oid]);
+			var cid = orm("gCid",[oid]);
 			if (cid && cid.length) {
 				openWindow("add.html#cid="+cid[0][0]+"&oid="+oid+"&u="+currentUser.oid);
 			}

@@ -9,6 +9,7 @@
 	<script src="modules/jquery/jquery-3.2.1.min.js"></script>
 	<script src="modules/leaflet/leaflet_1.2.0.js"></script>
 	<script src="modules/leafletEditable/Leaflet.Editable.js"></script>
+	<script src="modules/md5/md5.js"></script>
 	<script src="service.js"></script>
 
 <body>
@@ -21,11 +22,16 @@
 
 QUnit.test( "test", function( a ) {
 	var f = function(d){a.ok( d == "Класс", "getXmlHttpReq")};
-	getXmlHttpReq(f,"orm.php?f=gN&p=[1]",null,false);
-	getXmlHttpReq(f,"orm.php",{"f":"gN","p":"[1]"},false);
+	getXmlHttpReq(f,"php/olp.php?f=gN&p=[1]",null,false);
+	getXmlHttpReq(f,"php/olp.php",{"f":"gN","p":"[1]"},false);
 	a.ok( orm("gN",[1]) == "Класс", "orm");
 	var f = function(d){a.ok( d == "Класс", "orm async")};
 	orm("gN",[1], f);
+	
+	a.ok( md5('123') == '202cb962ac59075b964b07152d234b70', "md5");
+	
+	a.ok( orm("getLogin",["admin",md5("admin123")]), "getLogin +");
+	a.ok( !orm("getLogin",["admin",md5("123")]), "getLogin -");
 	
 });	
 	

@@ -1,3 +1,18 @@
+/*
+Navicat MySQL Data Transfer
+
+Source Server         : _localhost
+Source Server Version : 50720
+Source Host           : localhost:3306
+Source Database       : absoluteobjectlink
+
+Target Server Type    : MYSQL
+Target Server Version : 50720
+File Encoding         : 65001
+
+Date: 2018-01-05 16:41:13
+*/
+
 SET FOREIGN_KEY_CHECKS=0;
 
 -- ----------------------------
@@ -51,8 +66,8 @@ INSERT INTO `object` VALUES ('28', 'Логин пользователя сист
 INSERT INTO `object` VALUES ('29', 'admin', '2018-01-01 19:54:50', '1', '1');
 INSERT INTO `object` VALUES ('30', 'guest', '2018-01-01 19:56:06', '1', '1');
 INSERT INTO `object` VALUES ('31', 'Пароль пользователя системы', '2018-01-01 20:00:12', '1', '1');
-INSERT INTO `object` VALUES ('32', 'admin123', '2018-01-01 20:02:33', '1', '1');
-INSERT INTO `object` VALUES ('33', 'guest123', '2018-01-01 20:02:40', '1', '1');
+INSERT INTO `object` VALUES ('32', '0192023a7bbd73250516f069df18b500', '2018-01-05 11:12:10', '1', '1');
+INSERT INTO `object` VALUES ('33', 'fcf41657f02f88137a1bcf068a32c0a3', '2018-01-05 11:12:25', '1', '1');
 INSERT INTO `object` VALUES ('34', 'Данные', '2018-01-01 20:04:04', '1', '1');
 INSERT INTO `object` VALUES ('35', 'база данных', '2018-01-01 20:04:38', '1', '1');
 INSERT INTO `object` VALUES ('36', 'Корневой класс роли системы', '2018-01-01 20:06:22', '1', '1');

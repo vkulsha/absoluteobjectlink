@@ -1,3 +1,18 @@
+/*
+Navicat MySQL Data Transfer
+
+Source Server         : _localhost
+Source Server Version : 50720
+Source Host           : localhost:3306
+Source Database       : absoluteobjectlink
+
+Target Server Type    : MYSQL
+Target Server Version : 50720
+File Encoding         : 65001
+
+Date: 2018-01-05 16:41:05
+*/
+
 SET FOREIGN_KEY_CHECKS=0;
 
 -- ----------------------------
@@ -17,7 +32,7 @@ CREATE TABLE `link` (
   KEY `ic` (`c`) USING BTREE,
   KEY `id` (`d`) USING BTREE,
   KEY `iu` (`u`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=80 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 -- ----------------------------
 -- Records of link
@@ -101,3 +116,5 @@ INSERT INTO `link` VALUES ('76', '38', '34', '0', '2018-01-01 20:09:50', '1');
 INSERT INTO `link` VALUES ('77', '37', '3', '1', '2018-01-01 20:20:57', '1');
 INSERT INTO `link` VALUES ('78', '38', '4', '1', '2018-01-01 20:21:02', '1');
 INSERT INTO `link` VALUES ('79', '35', '38', '1', '2018-01-01 20:21:11', '1');
+INSERT INTO `link` VALUES ('80', '10', '6', '1', '2018-01-05 14:55:26', '1');
+INSERT INTO `link` VALUES ('81', '9', '6', '1', '2018-01-05 14:55:32', '1');

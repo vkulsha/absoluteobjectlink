@@ -3,7 +3,7 @@ var host = location.host;
 var domain = "http://"+host+"/";
 var objectsUri = "objectfiles"
 var imagesUri = "images"
-var currentUser = {oid:0};
+var currentUser = {uid:0, oid:0, cid:1};
 
 function getObjectsUri() {
 	return objectsUri;
@@ -30,7 +30,7 @@ function openWindow(url, title, params) {
 function orm(fName, fParams, func){
 	var ret;
 	if (!func) func = function(data){ ret = data; };
-	getXmlHttpReq(func,"orm.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.oid}, !func);
+	getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !func);
 	return ret;
 }
 
@@ -82,31 +82,125 @@ function getXmlHttpReq(func, uri, postdata, async, isjson, funcError, funcFinnal
 	
 }
 
-function TForm (zIndex,parentDom,width,height,left,top,visible){
+function Form (isModal, zIndex, visible, opacity){
+	var that = this;
+	this.isModal = isModal == null ? true : isModal;
+	this.zIndex = zIndex || 200000;
+	this.opacity = opacity || "0.7";
+	this.visible = visible;
+	
+	var parentDom = document.body;
+
+	var dom = parentDom.appendChild(cDom("DIV"));
+	dom.hidden = !visible;
+	dom.style.position = "absolute";
+	dom.style.zIndex = this.zIndex;
+	dom.style.left = 0;
+	dom.style.top = 0;
+	dom.style.width = this.isModal ? "100%" : "auto";
+	dom.style.height = "100%";
+	dom.style.backgroundColor = "rgba(0,0,0,"+this.opacity+")";
+	this.dom = dom;
+	
+
+	var frm = dom.appendChild(cDom("DIV"));
+	this.frm = frm;
+	frm.style.overflowY = "scroll";
+	frm.style.width = this.isModal ? "100%" : "auto";
+	frm.style.height = "100%";
+	var frmtb = frm.appendChild(cDom("TABLE"));
+	frmtb.style.width = "100%";
+	var tr = frmtb.appendChild(cDom("TR"));
+	var tdH = tr.appendChild(cDom("TD"));
+	var tb = tdH.appendChild(cDom("TABLE"));
+	var tr = tb.appendChild(cDom("TR"));
+	var td1 = tr.appendChild(cDom("TD"));
+	var td2 = tr.appendChild(cDom("TD"));
+	var td3 = tr.appendChild(cDom("TD"));
+	this.head = tdH;
+	
+	var bback = td1.appendChild(cDom("BUTTON"));
+	bback.innerHTML = "<<";
+	bback.hidden = true;
+	this.bback = bback;
+	var bfront = td1.appendChild(cDom("BUTTON"));
+	bfront.innerHTML = ">>";
+	bfront.hidden = true;
+	this.bfront = bfront;
+	
+	this.caption = td2.appendChild(cDom("H3"));
+	td2.style.width = "100%";
+	td2.style.textAlign = "center";
+
+	var bclose = td3.appendChild(cDom("BUTTON"));
+	bclose.innerHTML = "&times";
+	bclose.onclick = function() { that.setVisible(false); }
+
+	var bminmax = td3.appendChild(cDom("BUTTON"));
+	bminmax.innerHTML = "[]";
+	bminmax.onclick = function() { that.setIsModal(!that.isModal); }
+	
+	var tr = frmtb.appendChild(cDom("TR"));
+	var tdB = tr.appendChild(cDom("TD"));
+	this.body = tdB;
+	this.body.style.backgroundColor = "rgba(0,0,0,0)";
+	this.body.style.margin = "auto";
+	this.body.style.padding = "5px 5px 20px 5px";
+	this.body.width = "100%";
+	
+	var tr = frmtb.appendChild(cDom("TR"));
+	var tdF = tr.appendChild(cDom("TD"));
+	this.foot = tdF;
+	
+	this.setVisible = function(val) { that.visible = val; that.dom.hidden = !that.visible; }
+	this.getBody = function() { return that.body; }
+	this.setWidth = function(val) {	that.frm.style.width = val; }
+	this.setHeight = function(val) { that.frm.style.height = val; if (!this.isModal) that.dom.style.height = val; }
+	this.setTop = function(val) { that.frm.style.top = val; }
+	this.setLeft = function(val) { that.frm.style.left = val; }
+	this.setZIndex = function(val) { that.dom.style.zIndex = val; }
+	this.setBack = function(val) { bback.onclick = val; }
+	this.getBack = function(val) { return bback; }
+	this.setFront = function(val) { bfront.onclick = val; }
+	this.getFront = function(val) { return bfront;  }
+	this.setIsModal = function(val) { 
+		that.isModal = val; 
+		that.dom.style.width = that.isModal ? "100%" : "auto"; 
+		that.dom.style.height = "100%"; 
+		that.frm.style.width = that.isModal ? "100%" : "auto"; 
+		that.frm.style.height = "100%"; 
+	}
+	this.setCaption = function(val) { that.caption.innerHTML = val; }
+
+	
+}
+
+function OldForm (isModal, zIndex, parentDom, width_, height_, left_, top_, visible){
 	var that = this;
 	var dom = cDom("DIV");
+	isModal = isModal == null ? true : isModal;
 	parentDom = parentDom || document.body;
 	if (parentDom) parentDom.appendChild(dom);
 	dom.style.display = visible ? "block" : "none";
-	dom.style.position = "fixed";
+	dom.style.position = "absolute";
 	dom.style.zIndex = zIndex || 200000;
-	dom.style.left = 0;
-	dom.style.top = 0;
-	dom.style.width = "100%";
-	dom.style.height = "100%";
-	dom.style.overflow = "hidden";
-	dom.style.backgroundColor = "rgba(0,0,0,0.8)";
-	dom.style.overflowY = "scroll";
+	dom.style.left = isModal ? 0 : left_ || 0;;
+	dom.style.top = isModal ? 0 : top_ || 0;;
+	dom.style.width = isModal ? "100%" : width_ || "auto";
+	dom.style.height = isModal ? "100%" : height_ || "auto";
+	dom.style.backgroundColor = "rgba(0,0,0,0.7)";
+	//dom.style.overflow = "hidden";
+	//dom.style.overflowY = "scroll";
 
 	var body = dom.appendChild(cDom("DIV"));
 	body.style.position = "relative";
-	body.style.backgroundColor = "#000";
+	body.style.backgroundColor = "rgba(0,0,0,0.1)";
 	body.style.margin = "auto";
 	body.style.padding = "5px 5px 20px 5px";
-	body.style.left = left || 0;
-	body.style.top = top || 0;
-	body.style.width = width || "99%";
-	body.style.height = height || body.style.height;
+	body.style.left = left_ || 0;
+	body.style.top = top_ || 0;
+	body.style.width = width_ || "99%";
+	body.style.height = height_ || body.style.height;
 	body.style.boxShadow = "0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)";
 	
 	var head = cDom("DIV");
@@ -116,15 +210,27 @@ function TForm (zIndex,parentDom,width,height,left,top,visible){
 	head.style.fontWeight = "bold";
 	head.style.cursor = "pointer";
 	head.style.padding = "0px 5px";
-	var span = head.appendChild(cDom("SPAN"));
-	span.innerHTML = "&times";
-	span.onclick = function() {	that.setVisible(false);	}
+	var bback = head.appendChild(cDom("BUTTON"));
+	bback.innerHTML = "<<&nbsp&nbsp&nbsp";
+	bback.hidden = true;
+	var bfront = head.appendChild(cDom("BUTTON"));
+	bfront.innerHTML = ">>";
+	bfront.hidden = true;
+	var fminmax = head.appendChild(cDom("BUTTON"));
+	fminmax.innerHTML = "[]";
+	fminmax.onclick = function() { that.setIsModal(!isModal); }
+	var fclose = head.appendChild(cDom("SPAN"));
+	fclose.innerHTML = "&times";
+	fclose.onclick = function() { that.setVisible(false); }
 	
 	var data = cDom("DIV");
 	data.style.color = "#fff";
 	data.style.fontSize = "14px";
 	data.style.cursor = "pointer";
 	data.style.padding = "0px 5px";
+	data.style.backgroundColor = "rgba(0,0,0,0.1)";
+	data.style.overflow = "hidden";
+	data.style.overflowY = "scroll";
 	
 	var foot = cDom("DIV");
 
@@ -135,10 +241,6 @@ function TForm (zIndex,parentDom,width,height,left,top,visible){
 	body.appendChild(data);
 	body.appendChild(foot);
 	
-	this.setBody = function(val) {
-		data.appendChild(val);
-	}
-	
 	this.setVisible = function(val) { dom.style.display = val ? "block" : "none"; }
 	this.getDom = function() { return dom; }
 	this.getBody = function() { return data; }
@@ -147,6 +249,11 @@ function TForm (zIndex,parentDom,width,height,left,top,visible){
 	this.setTop = function(val) { body.style.top = val; }
 	this.setLeft = function(val) { body.style.left = val; }
 	this.setZIndex = function(val) { dom.style.zIndex = val; }
+	this.setBack = function(val) { bback.onclick = val; }
+	this.getBack = function(val) { return bback; }
+	this.setFront = function(val) { bfront.onclick = val; }
+	this.getFront = function(val) { return bfront;  }
+	this.setIsModal = function(val) { isModal = val; dom.style.width = isModal ? "100%" : "auto"; dom.style.height = isModal ? "100%" : "auto"; }
 	
 }	
 

@@ -9,8 +9,8 @@ class ObjectLink {
 
 	public function cD(){//create database
 		try {
-			$sqlObject = file_get_contents("php/object.sql");
-			$sqlLink = file_get_contents("php/link.sql");
+			$sqlObject = file_get_contents("object.sql");
+			$sqlLink = file_get_contents("link.sql");
 			if ($sqlObject) $retO = $this->sql->sql([$sqlObject]);
 			if ($sqlLink) $retL = $this->sql->sql([$sqlLink]);
 			
@@ -22,8 +22,8 @@ class ObjectLink {
 	}
 	
 	public function cO($params){//create object and link
-		//$func = debug_backtrace()[0]['function'];
-		//if (!$this->policy([$this->u, [$func, "iii"]])) return 0;
+		$func = debug_backtrace()[0]['function'];
+		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
@@ -57,8 +57,8 @@ class ObjectLink {
 	}
 
 	public function cL($params){//link objects
-		//$func = debug_backtrace()[0]['function'];
-		//if (!$this->policy([$this->u, [$func, "iii"]])) return 0;
+		$func = debug_backtrace()[0]['function'];
+		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 
 		$ret = 0;
 		try {
@@ -83,8 +83,6 @@ class ObjectLink {
 	}
 
 	public function gO($params){//get object id by name
-//		$func = debug_backtrace()[0]['function'];
-//		if (!$this->policy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$n = $params[0];
 			$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from link where o2 = 1) " : "";
@@ -131,6 +129,8 @@ class ObjectLink {
 	}
 	
 	public function uO($params){//update object name by id
+		$func = debug_backtrace()[0]['function'];
+		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$id = $params[0];
 			$n = $params[1];
@@ -147,26 +147,8 @@ class ObjectLink {
 	}
 	
 	public function eO($params){//erase object from database
-		/*try {
-			$id = $params[0];
-			$fn = isset($params[1]) ? $params[1] : null;
-			
-			if ($fn) {
-				try {
-					$path = mb_convert_encoding($fn, "cp1251", "UTF-8");
-					unlink($path);
-				} catch(Exception $e) {
-				}
-			}
-			
-			$ret = $this->sql->dT(["link", "and (o1=$id or o2=$id)"]);  
-			$ret = $this->sql->dT(["object", "and id=$id"]);  
-			
-		} catch (Exception $e) {
-			print($e);
-			$ret = null;
-		}
-		return $ret;*/
+		$func = debug_backtrace()[0]['function'];
+		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		return $this->nO($params);
 	}
 	
@@ -212,184 +194,13 @@ class ObjectLink {
 	}
 		
 	public function eL($params){//erase link from database
-		/*try {
-			$o1 = $params[0];
-			$o2 = $params[1];
-			
-			$ret = $this->sql->dT(["link", "and ((o1=$o1 and o2=$o2) or (o2=$o1 and o1=$o2))"]);  
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			$ret = null;
-		}
-		return $ret;*/
+		$func = debug_backtrace()[0]['function'];
+		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		return $this->nL($params);
-		
 	}
-	
-	public function gC($params, $notPolicy=false){//get class object fields
-		if (!$notPolicy && !$this->policyLazy()) return [];
-		try {
-			$id = $params[0];
-			$fields = isset($params[1]) ? $params[1] : "*";
-			
-			$ret = $this->sql->sT(["object",$fields,"and id in (select o2 from link where o2 in (select o1 from link where o2 = 1) and o1 = $id)"]);
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			$ret = null;
-		}
-		return $ret;
-	}
-
-	public function gCn($params){//get class object names
-		try {
-			$id = $params[0];
-			
-			$ret = $this->gC([$id, "n"]);  
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			$ret = null;
-		}
-		return $ret;
-	}
-
-	public function gCid($params){//get class object ids
-		try {
-			$id = $params[0];
-			
-			$ret = $this->gC([$id, "id"]);  
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			$ret = null;
-		}
-		return $ret;
-	}
-
-	public function getTableQuery($params, $notPolicy=false){//[{id:1331, n:"ик", parentCol:0, linkParent:false, inClass:false}]
-		if (!$notPolicy && !$this->policyLazy()) return null;
-		try {
-			$paramsArr = $params[0];
-			$groupbyind = isset($params[1]) ? $params[1] : "0";
-			
-			$result = [];
-			$head = [];
-			$body = [];
-			$foot = [];
-			$i = -1;
-			foreach ($paramsArr as $cc){
-				$i++;
-				if (isset($cc["n"])) {
-					//i++;
-					$id = isset($cc["id"]) ? $cc["id"] : null;
-					$col = isset($cc["n"]) ? $cc["n"] : null;
-					$plink = isset($cc["linkParent"]) ? $cc["linkParent"] : null;
-					$pcol = isset($cc["parentCol"]) ? $cc["parentCol"] : null;
-					$inClass = isset($cc["inClass"]) ? $cc["inClass"] : null;
-					if ($i==0){
-						$h = "select o".$i.".id `id_".$col."`, o".$i.".n `".$col."` \n";
-						$l = $id ? $id : "(select id from object where n='".$col."' limit 1)";
-						$b = 
-							"from (\n".
-							"	select id, n from object where id in ( \n".
-							"		select o1 from link where c>0 and o2 = ".$l." \n".
-							($inClass ? "" : "and o1 not in (select o1 from link where o2 = 1) \n").
-							"	) \n".
-							"	group by id \n".
-							")o".$i." \n";
-						$head[] = $h;
-						$body[] = $b;
-					} else {
-						$h = "";
-						if ($groupbyind !== false) {
-							$h = ",case when count(distinct o".$i.".id) <= 1 then group_concat(distinct o".$i.".id) else concat(o".$i.".id,'..') end `id_".$col."` ".
-								",case when count(distinct o".$i.".id) <= 1 then group_concat(distinct o".$i.".n)  else concat(o".$i.".n,'..')  end `".$col."` ".
-								",count(distinct o".$i.".id) `кол-во ".$col."` \n";
-						} else {
-							$h = ",o".$i.".id `id_".$col."` ".
-								",o".$i.".n `".$col."` ";
-						}
-						$l = $id ? $id : "(select id from object where n='".$col."' limit 1)";
-						$selecto1o2 = $plink ? "select o1 o2, o2 o1 from link where c>0 and o2 in (" : "select o1, o2 from link where c>0 and o1 in (";
-						$parentCol = $pcol ? $pcol : 0;
-						$b = 
-							"left join ( \n".
-							"	".$selecto1o2." \n".
-							"		select o1 from link where c>0 and o2 = ".$l." \n".
-							($inClass ? "" : "and o1 not in (select o1 from link where o2 = 1) \n").
-							"	) \n".
-							"	group by o1, o2 \n".
-							")l".$i." on l".$i.".o2 = o".$parentCol.".id left join object o".$i." on o".$i.".id = l".$i.".o1 \n";
-						
-						$head[] = $h;
-						$body[] = $b;
-					}
-				}
-			}
-			
-			if ($groupbyind !== false) {
-				$foot[] = "group by o".$groupbyind.".id having 1=1 \n\n";
-			}
-			$result = join("",$head).join("",$body).join("",$foot);
-			return $result;
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}
-	
-	public function gTq($params){//["a","b","c"], [[1,0],[2,0],[3,1]], [1,2], [1], false
-		try {
-			$nArr = isset($params[0]) ? $params[0] : [];
-			$parentColArr = isset($params[1]) ? $params[1] : [];
-			$linkParentArr = isset($params[2]) ? $params[2] : [];
-			$inClassArr = isset($params[3]) ? $params[3] : [];
-			$groupByInd = isset($params[4]) ? $params[4] : false;
-
-			$opts = [];
-			for ($i=0; $i < count($nArr); $i++){
-				$opts[] = array("n"=>$nArr[$i], "parentCol"=>0, "linkParent"=>false);
-			}
-			for ($i=0; $i < count($parentColArr); $i++){
-				$opts[$parentColArr[$i][0]]["parentCol"] = $parentColArr[$i][1];
-			}
-			for ($i=0; $i < count($linkParentArr); $i++){
-				$opts[$linkParentArr[$i]]["linkParent"] = true;
-			}
-			for ($i=0; $i < count($inClassArr); $i++){
-				$opts[$inClassArr[$i]]["inClass"] = true;
-			}
-			return $this->getTableQuery([$opts, $groupByInd]);
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}	
-	
-	public function gT($params){//["a","b","c"], [[1,0],[2,0],[3,1]], [1,2], [1], false, "*", "and a = 115"
-		try {
-			$fields = isset($params[5]) ? $params[5] : "*";
-			$cond = isset($params[6]) ? $params[6] : "";
-			
-			$sel = $this->gTq($params);
-			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}	
 
 	public function getTableQuery2($params, $notPolicy=false){//[{id:1331, n:"ик", parentCol:0, inClass:false}]
-		if (!$notPolicy && !$this->policyLazy()) return null;
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$paramsArr = $params[0];
 			$groupbyind = isset($params[1]) ? $params[1] : "0";
@@ -477,7 +288,7 @@ class ObjectLink {
 		}
 	}
 
-	public function gTq2($params){//["a","b","c"], [[1,0],[2,0],[3,1]], [1], false
+	public function gTq2($params, $notPolicy=false){//["a","b","c"], [[1,0],[2,0],[3,1]], [1], false
 		try {
 			$nArr = isset($params[0]) ? $params[0] : [];
 			$parentColArr = isset($params[1]) ? $params[1] : [];
@@ -498,7 +309,7 @@ class ObjectLink {
 			for ($i=0; $i < count($inClassArr); $i++){
 				$opts[$inClassArr[$i]]["inClass"] = true;
 			}
-			return $this->getTableQuery2([$opts, $groupByInd, $includeLinkDate]);
+			return $this->getTableQuery2([$opts, $groupByInd, $includeLinkDate], true);
 			
 		} catch (Exception $e){
 			print($e);
@@ -506,7 +317,7 @@ class ObjectLink {
 		}
 	}	
 	
-	public function gT2($params){//["a","b","c"], [[1,0],[2,0],[3,1]], [1], false, ["f1","f2"], "and a = 115"
+	public function gT2($params, $notPolicy=false){//["a","b","c"], [[1,0],[2,0],[3,1]], [1], false, ["f1","f2"], "and a = 115"
 		try {
 			$fields = isset($params[4]) ? join(",", $params[4]) : "*";
 			$cond = isset($params[5]) ? $params[5] : "";
@@ -516,7 +327,7 @@ class ObjectLink {
 			//$func1 = $funcarr[0]['function'];
 			//$func2 = count($funcarr)>1 ? $funcarr[1]['function'] : "";
 			//if ($this->u>=1 || $func2 == "policy" || $this->policy([$this->u, ["iii"]])) {
-			$sel = $this->gTq2($params);
+			$sel = $this->gTq2($params, true);
 			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
 			
 		} catch (Exception $e){
@@ -525,7 +336,7 @@ class ObjectLink {
 		}
 	}	
 
-	public function gTq3($params){//["a","b","c"], [1], false
+	public function gTq3($params, $notPolicy=false){//["a","b","c"], [1], false
 		try {
 			$nArr = isset($params[0]) ? $params[0] : [];
 			$level = isset($params[1]) ? $params[1] : 3;
@@ -580,13 +391,13 @@ class ObjectLink {
 		}
 	}	
 	
-	public function gT3($params){//["a","b","c"], [1], false, "*", "and a = 115"
+	public function gT3($params, $notPolicy=false){//["a","b","c"], [1], false, "*", "and a = 115"
 		try {
 			$nArr = isset($params[0]) ? $params[0] : [];
 			$fields = isset($params[5]) ? join(",", $params[5]) : "`".join("`,`", $nArr)."`";
 			$cond = isset($params[6]) ? $params[6] : "";
 			
-			$sel = $this->gTq3($params);
+			$sel = $this->gTq3($params, true);
 			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
 			
 		} catch (Exception $e){
@@ -596,7 +407,7 @@ class ObjectLink {
 	}	
 	
 	public function gAnd($params, $notPolicy=false){
-		if (!$notPolicy && !$this->policyLazy()) return [];
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$objects = join(",",$params[0]);
 			$count = count($params[0]);
@@ -626,21 +437,77 @@ class ObjectLink {
 			return null;
 		}
 	}
-	
-	public function gLogin($params){
+ 
+	public function getLogin($params){
 		try {
 			$login = isset($params[0]) ? $params[0] : "";
 			$pass = isset($params[1]) ? $params[1] : "";
+			$userClassName = isset($params[2]) ? $params[2] : "Пользователи системы";
+			$loginClassName = isset($params[3]) ? $params[3] : "Логин пользователя системы";
+			$passClassName = isset($params[4]) ? $params[4] : "Пароль пользователя системы";
 			
-			$u = $this->gAnd([[1576],"id",false,"and n='$login'"],true);
-			$u = $u && count($u) && count($u[0]) ? $u[0][0] : 0;
-			$p = $this->gAnd([[1579],"id",false,"and n='$pass'"],true);
+			$loginclass = $this->gO([$loginClassName]);
+			$l = $this->gAnd([[$loginclass],"id",false,"and n='$login'"],true);
+			$l = $l && count($l) && count($l[0]) ? $l[0][0] : 0;
+			$passclass = $this->gO([$passClassName]);
+			$p = $this->gAnd([[$passclass],"id",false,"and n='$pass'"],true);
 			$p = $p && count($p) && count($p[0]) ? $p[0][0] : 0;
-			$k = $this->gAnd([[$u, $p, 1596],"id"],true);
-			$k = $k && count($k) && count($k[0]) ? $k[0][0] : 0;
+			$userclass = $this->gO([$userClassName]);
+			$u = $this->gAnd([[$l, $p, $userclass],"id"],true);
+			$u = $u && count($u) && count($u[0]) ? $u[0][0] : 0;
+			$u2 = $this->gAnd([[$l, $userclass],"id"],true);
+			$u2 = $u2 && count($u2) && count($u2[0]) ? $u2[0][0] : 0;
+			$auth = !!$u;
+			if (!$u && $u2) { $u = $u2; };
+			if ($u) {
+				$res = $this->gT2([["Роли системы","Корневой класс роли системы","Пользователи системы"],
+					[],[],false,null,"and `id_Пользователи системы` = $u"],true);
+
+				$root = $res && count($res) ? $res[0][2] : 0;
+				$rootobject = $this->gAnd([[$root],"id,n",true," order by c desc, n ",false,false],true);
+				$rootobject = $rootobject && count($rootobject) && count($rootobject[0]) ? $rootobject[0][0] : 0;
+				$rootclass = $this->gAnd([[$rootobject],"id,n",false," order by c desc, n ",true,true],true);
+				$rootclass = $rootclass && count($rootclass) && count($rootclass[0]) ? $rootclass[0][0] : 1;
+				return Array("uid"=>$u, "auth"=>$auth, "cid"=>$rootclass, "oid"=>0);//"oid"=> $rootobject? $root : 0
+			} else {
+				return null;
+			}
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}
+
+	public function getPolicy($params){
+		$user = isset($params[0]) ? $params[0] : 0;
+		$func = isset($params[1]) ? $params[1] : [""];
+		
+		$func = "('".(join("','", $func))."')";
+		$res = $this->gT2([["Роли системы","Корневой класс роли системы","Пользователи системы","Правила группы функций системы","Функции системы"],[[4,3]],[],false,null,"and `id_Пользователи системы`=$user and `Функции системы` in $func"],true);
+		return $res && count($res);
+	}
+	
+	public function getPolicyLazy(){
+		return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u]); 
+	}
+	
+	public function iii($params, $notPolicy=false){
+		$func = debug_backtrace()[0]['function'];
+		if (!$this->getPolicy([$this->u, [$func,"eO"]])) return [];
+
+		try {
+			$where = isset($params[0]) ? $params[0] : "";
+			$order = isset($params[1]) ? $params[1] : "";
 			
-			//return Array("u"=>$u, "key"=>$k);
-			return Array("u"=>1, "key"=>1);
+			$query = "select * from ( ".
+			"	select distinct link.o1, object.n, link.o2, null c, link.t, object.c c_ from ( ".
+			"		select o1, o2, 'child' t from link where c>0 $where union all select o1, o2, t from (select o2 o1, o1 o2, 'parent' t from link where c>0)l where 1=1 $where ".
+			"	)link ".
+			"	join object on object.id = link.o1 ".
+			")x where 1=1 and c_>0 and (o1 <> o2 or (o1 = o2 and t='parent')) ";
+			
+			return $this->sql->sT(["(".$query.")x", "*", "", $order, ""]);
+			
 		} catch (Exception $e){
 			print($e);
 			return null;
@@ -652,7 +519,7 @@ class ObjectLink {
 	}
 	
 	public function objectsFromText($params, $notPolicy=false){
-		if (!$notPolicy && !$this->policyLazy()) return [];
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		$pid = $params[0];
 		$structIdent = isset($params[1]) ? $params[1] : "	";//TAB
 		if ($pid) {
@@ -672,7 +539,7 @@ class ObjectLink {
 	}
 	
 	public function createPolygonObject($params, $notPolicy=false){
-		if (!$notPolicy && !$this->policyLazy()) return [];
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$coords = $params[0];
 			$oid = $params[1];
@@ -701,7 +568,7 @@ class ObjectLink {
 	}
 	
 	public function getObjectLikeName($params, $notPolicy=false){
-		if (!$notPolicy && !$this->policyLazy()) return [];
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$n = $params[0];
 			return $this->sql->sT(["object", "id, n", " and n like '%$n%' and id not in (select o1 from link where o2 = 1)", "order by id", ""]);
@@ -770,46 +637,8 @@ class ObjectLink {
 		}
 	}
 
-	public function policy($params){
-		$user = isset($params[0]) ? $params[0] : 0;
-		$func = isset($params[1]) ? $params[1] : [""];
-		
-		$func = "('".(join("','", $func))."')";
-		//$res = $this->gT2([["Роль системы","Правило роли системы","Функция системы","Пользователи"],[[2,1]],[],false,null,"and `id_Пользователи`=$user and `Функция системы` in $func"],true);
-		//return $res && count($res);
-		return true;
-	}
-	
-	public function policyLazy(){
-		//return $this->u>1 && $this->gL([1576,$this->u]); 
-		return true;
-	}
-	
-	public function iii($params){
-		$func = debug_backtrace()[0]['function'];
-		if (!$this->policy([$this->u, [$func]])) return [];
-
-		try {
-			$where = isset($params[0]) ? $params[0] : "";
-			$order = isset($params[1]) ? $params[1] : "";
-			
-			$query = "select * from ( ".
-			"	select distinct link.o1, object.n, link.o2, null c, link.t, object.c c_ from ( ".
-			"		select o1, o2, 'child' t from link where c>0 $where union all select o1, o2, t from (select o2 o1, o1 o2, 'parent' t from link where c>0)l where 1=1 $where ".
-			"	)link ".
-			"	join object on object.id = link.o1 ".
-			")x where 1=1 and c_>0 and (o1 <> o2 or (o1 = o2 and t='parent')) ";
-			
-			return $this->sql->sT(["(".$query.")x", "*", "", $order, ""]);
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}
-
 	public function sql($params, $notPolicy=false){
-		if (!$notPolicy && !$this->policyLazy()) return [];
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$table = $params[0];
 			$fields = isset($params[1]) ? $params[1] : "*";
@@ -865,6 +694,30 @@ class ObjectLink {
 			$q = $this->gOCQ([$cid]);
 			$ret = $this->sql->sT(["(select id from ($q)x where 1=1 and n='$n')x","*"]);
 			
+			return $ret;
+			
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}
+	
+	public function getObject($params){
+		try {
+			$cond = isset($params[0]) ? $params[0] : "";
+			$ret = $this->sql->sT(["object","*",$cond]);
+			return $ret;
+			
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}
+	
+	public function getLink($params){
+		try {
+			$cond = isset($params[0]) ? $params[0] : "";
+			$ret = $this->sql->sT(["link","*",$cond]);
 			return $ret;
 			
 		} catch (Exception $e){
@@ -935,58 +788,6 @@ class ObjectLink {
 			}
 			
 			return array($objArr, $lnkArr);
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}
-	
-	public function setCall($params){
-		try {
-			$u1 = $params[0];
-			$u2 = $params[1];
-			$txt = isset($params[2]) ? $params[2] : "Подойди...";
-			$ret = $this->sql->iT(["calls", "u1,u2,txt", "'$u1','$u2','$txt'"]);  
-
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}
-	
-	public function getCall($params){
-		try {
-			$u = $params[0];
-			$ret = $this->sql->sT(["calls", "u1,txt", "and u2 = '$u' and status is null"]);
-			$this->sql->uT(["calls", "status = CURRENT_TIMESTAMP", "and u2 = '$u' and status is null"]);
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}
-	
-	public function getObject($params){
-		try {
-			$cond = isset($params[0]) ? $params[0] : "";
-			$ret = $this->sql->sT(["object","*",$cond]);
-			return $ret;
-			
-		} catch (Exception $e){
-			print($e);
-			return null;
-		}
-	}
-	
-	public function getLink($params){
-		try {
-			$cond = isset($params[0]) ? $params[0] : "";
-			$ret = $this->sql->sT(["link","*",$cond]);
-			return $ret;
 			
 		} catch (Exception $e){
 			print($e);

@@ -149,7 +149,10 @@ function loadData(oid_, cid_, frm, hist){
 			if (!hist) hist = {"back":[],"front":[]};
 			hist.back.push({"oid":oid_, "cid":cid_});
 			hist.front = [];
-			loadData(this.isClass ? 0 : this.id, this.cid, frm, hist); 
+			if (this.isClass)
+				loadData(0, orm("gN",[this.id]), frm, hist)
+			else
+				loadData(this.isClass ? 0 : this.id, this.cid, frm, hist); 
 		}
 		
 		if (cell.isFile && !cell.isClass) {

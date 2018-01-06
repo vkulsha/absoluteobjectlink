@@ -42,12 +42,14 @@
 var classes_;
 var classes;
 var classes2 = [];
+var classes3 = function(cid){ return findObjVal(classes,cid)};
 var map;
+var fs = 11;
 var frmData = new Form();
+var frmFilter = new Form(!"isModal");
 map = L.map('map', {editable: true});
 L.tileLayer('//mt{s}.googleapis.com/vt?lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom: 18, subdomains: [0,1,2,3]}).addTo(map);
 map.setView([65, 100], 3);
-//var frmMapData = new Form(!"isModal");
 
 gDom("logo").onclick = function(){ frmData.setVisible(true); };
 
@@ -66,7 +68,9 @@ gDom("bLogin").onclick = function(){
 		///
 		loadData(currentUser.oid, currentUser.cid, frmData);
 		frmData.setVisible(true);
-		//frmMapData.setZIndex(190000);frmMapData.setVisible(true);frmMapData.getBody().innerHTML = "111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>111<br>";
+		var eFilter = cInp("EDIT");
+		frmData.setCaption(eFilter);
+		enableFilterEdit(eFilter, frmData, frmFilter);
 		///
 	}
 	
@@ -93,6 +97,9 @@ gDom("bLogin").onclick = function(){
 }
 	
 function loadData(oid_, cid_, frm, hist){
+	frm.oid = oid_;
+	frm.cid = cid_;
+	frm.hist = hist;
 	var bback = frm.getBack();
 	var bfront = frm.getFront();
 	bback.hidden = true;
@@ -123,7 +130,6 @@ function loadData(oid_, cid_, frm, hist){
 	
 	var cnt = frm.getBody();
 	cnt.innerHTML = "";
-	var fs = 11;
 	var isFile = false;
 	var isClass = false;
 	var getClasses = function(ids){return orm("gAnd",[ids,"id,n",false," order by c desc, n ",false,true])};
@@ -131,73 +137,6 @@ function loadData(oid_, cid_, frm, hist){
 	var arrCls = parseInt(cid_) ? getClasses([cid_]) : [[classes[cid_], cid_]];
 	if (!arrCls.length) return false;
 
-	var fillCard = function(data, cell, frm, cid){
-		cell.id = data[0];
-		cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;
-		cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
-		cell.cid = cell.isClass ? cell.id : cid;
-		cell.style.width = "100%"; cell.style.textAlign = "left"; 
-		cell.style.fontWeight = cell.isClass ? "bold" : "";
-		cell.style.color = cell.isClass ? "#ffdd00" : "#fff";
-		cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
-		cell.isFile = !cell.isClass && (cell.cid == classes["Файлы"] || cell.cid == classes["Фото"]);
-
-		cell.onclick = function(){ 
-			if (this.cid == classes["Объект"]) {
-				location.href = mainHtmlPage+"#oid="+this.id;
-			}
-			if (!hist) hist = {"back":[],"front":[]};
-			hist.back.push({"oid":oid_, "cid":cid_});
-			hist.front = [];
-			if (this.isClass)
-				loadData(0, orm("gN",[this.id]), frm, hist)
-			else
-				loadData(this.isClass ? 0 : this.id, this.cid, frm, hist); 
-		}
-		
-		if (cell.isFile && !cell.isClass) {
-			var txt = {value: orm("gN",[cell.id])};
-			var img = new Image();
-			var fn = txt.value;
-
-			var arr = fn.split(".");
-			var arrIm = ['jpg','bmp','png','gif','tif','JPG','BMP','PNG','GIF','TIF'];
-			var ext = arr[arr.length-1];
-
-			img.fn = fn;
-			cell.fn = fn;
-			var cap = (fn) ? fn.split("/")[fn.split("/").length-1] : "";
-
-			if (arr && arr.length && ~arrIm.indexOf(ext)) {
-				img.src = domain+url2cp1251(fn);
-				img.width = 32;
-				cap = "";
-			} else {
-				var iconFile = getIconFile(fn);
-				img.src = domain+iconFile;
-				img.width = 16;
-			}
-
-			
-			cell.innerHTML = cap;
-			img.style.cursor = "pointer";
-			cell.onclick = function(){
-				openWindow(domain+url2cp1251(this.fn));
-			}
-			cell.appendChild(img);
-		}
-			
-		cell.oncontextmenu = function(e){
-			if (this.isClass) {
-				var n = prompt("Добавить запись в класс: ["+this.innerHTML+"]?","");
-				var cid = this.id;
-				var newoid = n ? orm("cO",[n, cid]) : 0;
-				var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-				if (newoid) loadData(oid_, cid_, frm, polylines_);	
-				return false;
-			}
-		}
-	}
 
 	var tb = cnt.appendChild(cDom("TABLE"));
 	tb.style.width = '100%';
@@ -206,7 +145,7 @@ function loadData(oid_, cid_, frm, hist){
 		var td = tr.appendChild(cDom("TD"));
 		
 		var cell1 = td.appendChild(cDom("BUTTON"));
-		fillCard(arrCls[i], cell1, frm, cid_);
+		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":cid_, "hist":hist});
 
 		var arr = [cell1.id];
 		if (oid_) arr.push(oid_);
@@ -215,13 +154,130 @@ function loadData(oid_, cid_, frm, hist){
 			var tr = tb.appendChild(cDom("TR"));
 			var td = tr.appendChild(cDom("TD"));
 			var cell2 = td.appendChild(cDom("BUTTON"));
-			fillCard(arrObj[j], cell2, frm, cell1.id);
+			fillCard({"data":arrObj[j], "cell":cell2, "frm":frm, "cid":cell1.id, "hist":hist});
 		
 		}
 	}
 	
 }
+
+function enableFilterEdit(eFilter, frmData, frmFilter){	
+	var frmFilter = this.frmFilter;
+	var frmData = this.frmData;
+	eFilter.style = "color:#fff; background-color:rgba(0,0,0,0.1);";
+	eFilter.placeholder = "фильтр по базе данных";
+	eFilter.parentElement.align = "left";
+	eFilter.frmFilter = frmFilter;
+	eFilter.frmData = frmData;
+	eFilter.onkeydown = function(e){
+		if (e.key == "Enter") {
+			if (this.value) {
+				var arr = orm("gO",[this.value, false, true]);
+				if (arr && arr.length){
+					frmFilter.setVisible(true);
+					frmFilter.setWidth("auto");
+					var frmbody = frmFilter.getBody();
+					frmbody.innerHTML = "";
+					var tb = cDom("TABLE");
+					frmbody.appendChild(tb);
+					for (var i=0; i < arr.length; i++){
+						var tr = cDom("TR",null,tb);
+						var td = cDom("TD",null,tr);
+						var id = arr[i][0];
+						var n = arr[i][1];
+						var cell = cDom("BUTTON");
+						fillCard({"data":arr[i], "cell":cell, "frm":this.frmData, "cid":null, "hist":this.frmData.hist})
+						td.appendChild(cell);
+					}
+					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
+				}
+			} else {
+				loadData(currentUser.oid, currentUser.cid, frmData);
+			}
+		}
+	}
+}
+
+function fillCard(params){
+	var data = params.data;
+	var cell = params.cell;
+	var frm  = params.frm;
+	var cid  = params.cid;
+	var hist = params.hist;
+
+	cell.id = data[0];
+	if (!cid) {
+		cid = orm("gAnd",[[cell.id],"id",false,null,true,true]);
+		cid = (cid && cid.length) ? cid[0][0] : 0;
+	}
+	cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;
+	cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
+	cell.cid = cell.isClass ? cell.id : cid;
+	cell.style.width = "100%"; 
+	cell.style.textAlign = "left"; 
+	cell.style.fontWeight = cell.isClass ? "bold" : "";
+	cell.style.color = cell.isClass ? "#ffdd00" : "#fff";
+	cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
+	cell.isFile = !cell.isClass && (cell.cid == classes["Файлы"] || cell.cid == classes["Фото"]);
+	cell.hist = hist;
+	cell.frm = frm;
+	cell.onclick = function(){ 
+		if (this.cid == classes["Объект"]) {
+			location.href = mainHtmlPage+"#oid="+this.id;
+		}
+		if (!this.hist) this.hist = {"back":[],"front":[]};
+		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
+		this.hist.front = [];
+		if (this.isClass)
+			loadData(0, classes3(this.id), this.frm, this.hist)
+		else
+			loadData(this.isClass ? 0 : this.id, this.cid, this.frm, this.hist); 
+	}
 	
+	if (cell.isFile && !cell.isClass) {
+		var txt = {value: orm("gN",[cell.id])};
+		var img = new Image();
+		var fn = txt.value;
+
+		var arr = fn.split(".");
+		var arrIm = ['jpg','bmp','png','gif','tif','JPG','BMP','PNG','GIF','TIF'];
+		var ext = arr[arr.length-1];
+
+		img.fn = fn;
+		cell.fn = fn;
+		var cap = (fn) ? fn.split("/")[fn.split("/").length-1] : "";
+
+		if (arr && arr.length && ~arrIm.indexOf(ext)) {
+			img.src = domain+url2cp1251(fn);
+			img.width = 32;
+			cap = "";
+		} else {
+			var iconFile = getIconFile(fn);
+			img.src = domain+iconFile;
+			img.width = 16;
+		}
+
+		
+		cell.innerHTML = cap;
+		img.style.cursor = "pointer";
+		cell.onclick = function(){
+			openWindow(domain+url2cp1251(this.fn));
+		}
+		cell.appendChild(img);
+	}
+		
+	/*cell.oncontextmenu = function(e){
+		if (this.isClass) {
+			var n = prompt("Добавить запись в класс: ["+this.innerHTML+"]?","");
+			var cid = this.id;
+			var newoid = n ? orm("cO",[n, cid]) : 0;
+			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+			if (newoid) loadData(oid_, cid_, frm, polylines_);	
+			return false;
+		}
+	}*/
+}
+
 </script>
 	</body>
 </html>

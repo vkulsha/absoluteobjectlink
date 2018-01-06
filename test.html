@@ -30,10 +30,10 @@ QUnit.test( "test", function( a ) {
 	
 	a.ok( md5('123') == '202cb962ac59075b964b07152d234b70', "md5");
 	
-	a.ok( orm("getLogin",["admin",md5("admin123")]), "getLogin +");
-	a.ok( !orm("getLogin",["admin",md5("123")]), "getLogin -");
+	a.ok( orm("getLogin",["admin",md5("admin123")]).auth, "getLogin +");
+	a.ok( !orm("getLogin",["admin",md5("123")]).auth, "getLogin -");
 	
-});	
+});
 	
 	</script>
 </body>

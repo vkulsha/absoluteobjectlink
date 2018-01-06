@@ -154,10 +154,14 @@ function Form (isModal, zIndex, visible, opacity){
 	
 	this.setVisible = function(val) { that.visible = val; that.dom.hidden = !that.visible; }
 	this.getBody = function() { return that.body; }
-	this.setWidth = function(val) {	that.frm.style.width = val; }
+	this.setWidth = function(val) {	that.frm.style.width = val; if (!this.isModal) that.dom.style.width = val; }
 	this.setHeight = function(val) { that.frm.style.height = val; if (!this.isModal) that.dom.style.height = val; }
-	this.setTop = function(val) { that.frm.style.top = val; }
-	this.setLeft = function(val) { that.frm.style.left = val; }
+	this.setTop = function(val) { that.frm.style.top = val; if (!this.isModal) that.dom.style.top = val; }
+	this.setLeft = function(val) { that.frm.style.left = val; if (!this.isModal) that.dom.style.left = val; }
+	this.getWidth = function(val) {	return (!this.isModal) ? that.dom.style.width : that.frm.style.width; }
+	this.getHeight = function(val) { return (!this.isModal) ? that.dom.style.height : that.frm.style.height; }
+	this.getTop = function(val) { return (!this.isModal) ? that.dom.style.top : that.frm.style.top; }
+	this.getLeft = function(val) { return (!this.isModal) ? that.dom.style.left : that.frm.style.left;  }
 	this.setZIndex = function(val) { that.dom.style.zIndex = val; }
 	this.setBack = function(val) { bback.onclick = val; }
 	this.getBack = function(val) { return bback; }
@@ -170,7 +174,7 @@ function Form (isModal, zIndex, visible, opacity){
 		that.frm.style.width = that.isModal ? "100%" : "auto"; 
 		that.frm.style.height = "100%"; 
 	}
-	this.setCaption = function(val) { that.caption.innerHTML = val; }
+	this.setCaption = function(val) { that.caption.appendChild(val); }
 
 	
 }
@@ -765,9 +769,24 @@ function innerTrim(str) {//10K=16ms !!!without defects full clean with first and
 	return s;
 }
 
+function findObjVal(obj,val){
+	for (var key in obj) {
+		if (obj[key] == val) return key;
+	}
+	
+}
 
-
-
+function objects2domButtonsTable(arr, func, params){
+	var tb = cDom("TABLE");
+	for (var i=0; i < arr.length; i++){
+		var tr = cDom("TR",null,tb);
+		var td = cDom("TD",null,tr);
+		var but = cDom("BUTTON");
+		td.appendChild(cell);
+		func(but, arr[i], params);
+	}
+	return tb;
+}
 
 
 

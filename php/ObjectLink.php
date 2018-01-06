@@ -86,11 +86,12 @@ class ObjectLink {
 		try {
 			$n = $params[0];
 			$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from link where o2 = 1) " : "";
-			$isLike = isset($params[2]) && $params[2] ? " and n like '%$n%' " : " and n = '$n' ";
+			$isLike = isset($params[2]) && $params[2];
+			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
 			//$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from link where o2 = ".$params[3]." and o1 not in (select o1 from link where o2 = 1) ) " : "";
 			$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from link where o2 = ".$params[3]." and o2 in (select o1 from link where o2 = 1) ) " : "";
-			$ret = $this->sql->sT(["object", "id", "$isLike $isClass $inClass", "order by c desc, d desc", "limit 1"]);
-			return $ret ? $ret[0][0] : null;
+			$ret = $this->sql->sT(["object", $isLike ? "id,n" : "id", "$isLikeTxt $isClass $inClass", $isLike ? "order by n" : "order by c desc, d desc", $isLike ? "" : "limit 1"]);
+			return $ret ? ($isLike ? $ret : $ret[0][0]) : null;
 			
 		} catch (Exception $e) {
 			print($e);

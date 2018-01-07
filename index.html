@@ -51,6 +51,73 @@ map = L.map('map', {editable: true});
 var mapProps = orm("getMapProps",["map"]);
 L.tileLayer(mapProps.tileLayer,mapProps.tileLayerParams).addTo(map);
 map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
+map.editTools.on('editable:drawing:end',function(e){
+	mapProps.mapFunctions.forEach(function(obj){
+		if (e.layer instanceof L[obj.drawFunc]){
+			var latlngs = e.layer[obj.getLatLngFunc]();
+			var ll = L[obj.drawFunc.toLowerCase()](latlngs);
+		}
+	})
+})
+
+L.EditControl = L.Control.extend({
+	options: {
+		position: 'topleft',
+		callback: null,
+		kind: '',
+		html: ''
+	},
+	onAdd: function (map) {
+		var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
+		var link = L.DomUtil.create('a', '', container);
+		link.href = '#';
+		link.title = 'Create a new ' + this.options.kind;
+		link.innerHTML = this.options.html;
+		L.DomEvent.on(link, 'click', L.DomEvent.stop)
+				  .on(link, 'click', function () {
+					window.LAYER = this.options.callback.call(map.editTools);
+				  }, this);
+		
+		return container;
+	}
+});
+L.NewLineControl = L.EditControl.extend({
+	options: {
+		position: 'topleft',
+		callback: map.editTools.startPolyline,
+		kind: 'line',
+		html: '\\/\\'
+	}
+});
+L.NewPolygonControl = L.EditControl.extend({
+	options: {
+		position: 'topleft',
+		callback: map.editTools.startPolygon,
+		kind: 'polygon',
+		html: '▰'
+	}
+});
+L.NewMarkerControl = L.EditControl.extend({
+	options: {
+		position: 'topleft',
+		callback: map.editTools.startMarker,
+		kind: 'marker',
+		html: '🖈'
+	}
+});
+L.NewCircleControl = L.EditControl.extend({
+	options: {
+		position: 'topleft',
+		callback: map.editTools.startCircle,
+		kind: 'circle',
+		html: '⬤'
+	}
+});
+map.addControl(new L.NewMarkerControl());
+map.addControl(new L.NewLineControl());
+map.addControl(new L.NewPolygonControl());
+map.addControl(new L.NewCircleControl());
+
 
 gDom("logo").onclick = function(){ frmData.setVisible(true); };
 
@@ -67,11 +134,14 @@ gDom("bLogin").onclick = function(){
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
+		var div = cDom("DIV");
+		var eFilter = div.appendChild(cInp("EDIT"));
+		var frmDataCaption = div.appendChild(cDom("LABEL"));
+		frmData.setCaption(div);
+		frmData.caption = frmDataCaption;
 		loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
-		frmData.setVisible(true);
-		var eFilter = cInp("EDIT");
-		frmData.setCaption(eFilter);
 		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
+		frmData.setVisible(true);
 		///
 	}
 	
@@ -102,7 +172,7 @@ function loadData(params){
 	var cid_ = params.cid;
 	var frm  = params.frm;
 	var hist = params.hist;
-	
+	frm.caption.innerHTML = "&nbsp;&nbsp;&nbsp;"+(orm("gN",[cid_]) || "") + ": " + (orm("gN",[oid_]) || "");
 	frm.oid = oid_;
 	frm.cid = cid_;
 	frm.hist = hist;
@@ -277,12 +347,12 @@ function fillCard(params){
 		
 	cell.oncontextmenu = function(e){
 		if (this.isClass) {
-			var n = prompt("Добавить запись в класс ["+this.innerHTML+"]:","");
 			var cid = this.id;
 			var frm = this.frm;
 			var oid_ = frm.oid;
 			var cid_ = frm.cid;
 			var hist = frm.hist;
+			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
 			if (newoid) loadData({"oid":oid_, "cid":cid_, "frm":frm, "hist":hist});	

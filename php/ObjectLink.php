@@ -835,12 +835,21 @@ class ObjectLink {
 			$cid = $this->gO(["setViewZoom", true]);
 			$setViewZoom = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
 			$setViewZoom = $setViewZoom && count($setViewZoom)? $setViewZoom[0][0] : "3";
-			
+
+			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"]]);
+			$mapFunctions = Array();
+			if ($mapFunctionsArr && count($mapFunctionsArr)){
+				foreach ($mapFunctionsArr as $obj){
+					$mapFunctions[] = Array("drawFunc" => $obj[1], "getLatLngFunc" => $obj[3]);
+				}
+			}
+
 			return array(
 				"tileLayer"=>$tileLayer, 
 				"tileLayerParams"=>json_decode($tileLayerParams), 
 				"setViewLatLng"=>json_decode($setViewLatLng), 
-				"setViewZoom"=>json_decode($setViewZoom)
+				"setViewZoom"=>json_decode($setViewZoom),
+				"mapFunctions"=>$mapFunctions
 			);
 			
 		} catch (Exception $e){

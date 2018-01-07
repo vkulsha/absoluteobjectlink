@@ -91,11 +91,37 @@ cD:
 	
 	
 	
+[Карта]
+	[tileLayer]
+	[tileLayerParams]
+	[setViewLatLng]
+	[setViewZoom]
 	
+	[Отрисовка на карте]
+		[Функция отрисовки]
+			"L.marker"
+			"L.polyline"
+			"L.polygon"
+			"L.cirlce"
+		[Параметры функции отрисовки]
+		[Координаты на карте]
 	
-	
-	
-	
+	map
+		"//mt{s}.googleapis.com/vt?lyrs=s,h&x={x}&y={y}&z={z}"
+		"{maxZoom: 18, subdomains: [0,1,2,3]}"
+		"[65, 100]"
+		"3"
+		
+		"отрисовка на карте 123"
+			"L.polyline"
+			"{color:#000, weight:1}"
+			"[[30.1,50.1],[31.2,51.2],[32.3,52.3]]"
+			
+		"отрисовка на карте 234"
+			"L.marker"
+			"{icon: L.icon({iconUrl: 'images/logo.png'})}"
+			"[30.1,50.1]"
+
 	
 	
 	

@@ -22,4 +22,4 @@ $conn = new DB("localhost",$prefix."absoluteobjectlink",$prefix."root","Rekmif19
 $explDb = $conn->db;
 $explDbType = $explDb->getAttribute(PDO::ATTR_DRIVER_NAME);
 $sql = new SQL($explDb);
-$objectlink = new ObjectLink($sql);
+$objectlink = new ObjectLink($sql, "object", "link");

@@ -48,8 +48,9 @@ var fs = 11;
 var frmData = new Form();
 var frmFilter = new Form(!"isModal");
 map = L.map('map', {editable: true});
-L.tileLayer('//mt{s}.googleapis.com/vt?lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom: 18, subdomains: [0,1,2,3]}).addTo(map);
-map.setView([65, 100], 3);
+var mapProps = orm("getMapProps",["map"]);
+L.tileLayer(mapProps.tileLayer,mapProps.tileLayerParams).addTo(map);
+map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
 
 gDom("logo").onclick = function(){ frmData.setVisible(true); };
 
@@ -66,11 +67,11 @@ gDom("bLogin").onclick = function(){
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
-		loadData(currentUser.oid, currentUser.cid, frmData);
+		loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
 		frmData.setVisible(true);
 		var eFilter = cInp("EDIT");
 		frmData.setCaption(eFilter);
-		enableFilterEdit(eFilter, frmData, frmFilter);
+		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
 		///
 	}
 	
@@ -96,7 +97,12 @@ gDom("bLogin").onclick = function(){
 
 }
 	
-function loadData(oid_, cid_, frm, hist){
+function loadData(params){
+	var oid_ = params.oid;
+	var cid_ = params.cid;
+	var frm  = params.frm;
+	var hist = params.hist;
+	
 	frm.oid = oid_;
 	frm.cid = cid_;
 	frm.hist = hist;
@@ -117,7 +123,7 @@ function loadData(oid_, cid_, frm, hist){
 				var cid = hist.back[hist.back.length-1].cid;
 				this.hist.back.splice(-1);
 				this.hist.front.push({"oid":this.oid, "cid":this.cid});
-				loadData(this.isClass ? 0 : oid, cid, this.frm, this.hist); 
+				loadData({"oid":oid, "cid":cid, "frm":this.frm, "hist":this.hist}); 
 			});
 		}
 		/*///вперед тоже работает. убрал, т.к. пока лишнее
@@ -134,9 +140,8 @@ function loadData(oid_, cid_, frm, hist){
 	var isClass = false;
 	var getClasses = function(ids){return orm("gAnd",[ids,"id,n",false," order by c desc, n ",false,true])};
 	var getObjects = function(ids){return orm("gAnd",[ids,"id,n",true," order by c desc, n ",false,false])};
-	var arrCls = parseInt(cid_) ? getClasses([cid_]) : [[classes[cid_], cid_]];
+	var arrCls = oid_ || cid_ == 1 ? getClasses([cid_]) : [[cid_, classes3(cid_)]];
 	if (!arrCls.length) return false;
-
 
 	var tb = cnt.appendChild(cDom("TABLE"));
 	tb.style.width = '100%';
@@ -161,7 +166,11 @@ function loadData(oid_, cid_, frm, hist){
 	
 }
 
-function enableFilterEdit(eFilter, frmData, frmFilter){	
+function enableFilterEdit(params){
+	var eFilter = params.filterEditBox;
+	var frmData = params.dataForm;
+	var frmFilter = params.filterForm;
+	
 	var frmFilter = this.frmFilter;
 	var frmData = this.frmData;
 	eFilter.style = "color:#fff; background-color:rgba(0,0,0,0.1);";
@@ -192,7 +201,7 @@ function enableFilterEdit(eFilter, frmData, frmFilter){
 					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
 				}
 			} else {
-				loadData(currentUser.oid, currentUser.cid, frmData);
+				loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
 			}
 		}
 	}
@@ -229,9 +238,9 @@ function fillCard(params){
 		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
 		this.hist.front = [];
 		if (this.isClass)
-			loadData(0, classes3(this.id), this.frm, this.hist)
+			loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
 		else
-			loadData(this.isClass ? 0 : this.id, this.cid, this.frm, this.hist); 
+			loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 
 	}
 	
 	if (cell.isFile && !cell.isClass) {
@@ -266,17 +275,23 @@ function fillCard(params){
 		cell.appendChild(img);
 	}
 		
-	/*cell.oncontextmenu = function(e){
+	cell.oncontextmenu = function(e){
 		if (this.isClass) {
-			var n = prompt("Добавить запись в класс: ["+this.innerHTML+"]?","");
+			var n = prompt("Добавить запись в класс ["+this.innerHTML+"]:","");
 			var cid = this.id;
+			var frm = this.frm;
+			var oid_ = frm.oid;
+			var cid_ = frm.cid;
+			var hist = frm.hist;
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-			if (newoid) loadData(oid_, cid_, frm, polylines_);	
+			if (newoid) loadData({"oid":oid_, "cid":cid_, "frm":frm, "hist":hist});	
 			return false;
 		}
-	}*/
+	}
 }
+
+
 
 </script>
 	</body>

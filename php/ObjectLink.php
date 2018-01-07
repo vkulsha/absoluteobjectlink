@@ -2,15 +2,19 @@
 class ObjectLink {
 	public $sql;
 	public $u;
+	public $object;
+	public $link;
 	
-    public function __construct(SQL &$sql){
+    public function __construct(SQL &$sql, $object, $link){
 		$this->sql = $sql;
+		$this->object = isset($object) ? $object : "object";
+		$this->link = isset($link) ? $link : "link";
     }
 
 	public function cD(){//create database
 		try {
-			$sqlObject = file_get_contents("object.sql");
-			$sqlLink = file_get_contents("link.sql");
+			$sqlObject = file_get_contents(($this->object).".sql");
+			$sqlLink = file_get_contents(($this->link).".sql");
 			if ($sqlObject) $retO = $this->sql->sql([$sqlObject]);
 			if ($sqlLink) $retL = $this->sql->sql([$sqlLink]);
 			
@@ -36,7 +40,7 @@ class ObjectLink {
 				}
 				
 				if (!$id) {
-					$id = $this->sql->iT(["object", "n,u", "'$n',$u"]);
+					$id = $this->sql->iT([$this->object, "n,u", "'$n',$u"]);
 					
 					if ($pid) {
 						$this->cL([$id, $pid, $u]);
@@ -66,13 +70,13 @@ class ObjectLink {
 			$o2 = $params[1];
 			$u = $this->u;//isset($params[2]) ? $params[2] : 1;
 			
-			$lid = $this->sql->sT(["link", "id", "and ( (o1 = $o1 and o2 = $o2) or (o1 = $o2 and o2 = $o1) )"]);  
+			$lid = $this->sql->sT([$this->link, "id", "and ( (o1 = $o1 and o2 = $o2) or (o1 = $o2 and o2 = $o1) )"]);  
 			$lid = $lid ? $lid[0][0] : null;
 			
 			if (!$lid) {
-				$ret = $this->sql->iT(["link", "o1, o2, u", "$o1,$o2,$u"]);  
+				$ret = $this->sql->iT([$this->link, "o1, o2, u", "$o1,$o2,$u"]);  
 			} else {
-				$ret = $this->sql->uT(["link", "d = CURRENT_TIMESTAMP, u = $u, c = 1", "and id = $lid"]);  
+				$ret = $this->sql->uT([$this->link, "d = CURRENT_TIMESTAMP, u = $u, c = 1", "and id = $lid"]);  
 			}
 			
 		} catch (Exception $e) {
@@ -84,13 +88,14 @@ class ObjectLink {
 
 	public function gO($params){//get object id by name
 		try {
+			$link = $this->link;
 			$n = $params[0];
-			$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from link where o2 = 1) " : "";
+			$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from $link where o2 = 1) " : "";
 			$isLike = isset($params[2]) && $params[2];
 			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
 			//$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from link where o2 = ".$params[3]." and o1 not in (select o1 from link where o2 = 1) ) " : "";
-			$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from link where o2 = ".$params[3]." and o2 in (select o1 from link where o2 = 1) ) " : "";
-			$ret = $this->sql->sT(["object", $isLike ? "id,n" : "id", "$isLikeTxt $isClass $inClass", $isLike ? "order by n" : "order by c desc, d desc", $isLike ? "" : "limit 1"]);
+			$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where o2 = ".$params[3]." and o2 in (select o1 from $link where o2 = 1) ) " : "";
+			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $isClass $inClass", $isLike ? "order by n" : "order by c desc, d desc", $isLike ? "" : "limit 1"]);
 			return $ret ? ($isLike ? $ret : $ret[0][0]) : null;
 			
 		} catch (Exception $e) {
@@ -104,7 +109,7 @@ class ObjectLink {
 		try {
 			$id = $params[0];
 			
-			$ret = $this->sql->sT(["object", "n", "and id = '$id'", "", "limit 1"]);
+			$ret = $this->sql->sT([$this->object, "n", "and id = '$id'", "", "limit 1"]);
 			return $ret ? $ret[0][0] : null;
 			
 		} catch (Exception $e) {
@@ -119,7 +124,7 @@ class ObjectLink {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			
-			$ret = $this->sql->sT(["link", "id", "and ((o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1')) ", "", ""]);
+			$ret = $this->sql->sT([$this->link, "id", "and ((o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1')) ", "", ""]);
 			return $ret ? $ret[0][0] : null;
 			
 		} catch (Exception $e) {
@@ -137,7 +142,7 @@ class ObjectLink {
 			$n = $params[1];
 			//$u = isset($params[2]) ? $params[2] : 1;
 			
-			$ret = $this->sql->uT(["object", "n='$n'", "and id=$id"]);  
+			$ret = $this->sql->uT([$this->object, "n='$n'", "and id=$id"]);  
 			return $ret;
 			
 		} catch (Exception $e) {
@@ -167,8 +172,8 @@ class ObjectLink {
 				}
 			}
 			
-			$ret = $this->sql->uT(["link", "c=0,u=".$u, "and (o1=$id or o2=$id)"]);
-			$ret = $this->sql->uT(["object", "c=0,u=".$u, "and id=$id"]);  
+			$ret = $this->sql->uT([$this->link, "c=0,u=".$u, "and (o1=$id or o2=$id)"]);
+			$ret = $this->sql->uT([$this->object, "c=0,u=".$u, "and id=$id"]);  
 			return $ret;
 			
 		} catch (Exception $e) {
@@ -184,7 +189,7 @@ class ObjectLink {
 			$o2 = $params[1];
 			$u = $this->u;//isset($params[2]) ? $params[2] : 1;
 			
-			$ret = $this->sql->uT(["link", "c=0,u=".$u, "and ((o1=$o1 and o2=$o2) or (o2=$o1 and o1=$o2))"]);  
+			$ret = $this->sql->uT([$this->link, "c=0,u=".$u, "and ((o1=$o1 and o2=$o2) or (o2=$o1 and o1=$o2))"]);  
 			return $ret;
 			
 		} catch (Exception $e) {
@@ -203,6 +208,8 @@ class ObjectLink {
 	public function getTableQuery2($params, $notPolicy=false){//[{id:1331, n:"ик", parentCol:0, inClass:false}]
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
+			$object = $this->object;
+			$link = $this->link;
 			$paramsArr = $params[0];
 			$groupbyind = isset($params[1]) ? $params[1] : "0";
 			$includeLinkDate = isset($params[2]) && $params[2] ? true : false;
@@ -225,12 +232,12 @@ class ObjectLink {
 						if ($includeLinkDate) {
 							$h = $h.", o".$i.".id `d_".$col."` \n";
 						}
-						$l = $id ? $id : "(select id from object where n='".$col."' limit 1)";
+						$l = $id ? $id : "(select id from $object where n='".$col."' limit 1)";
 						$b = 
 							"from (\n".
-							"	select id, n, c from object where 2=2 and id in ( \n".
-							"		select o1 from link where 2=2 and c>0 and o2 = ".$l." \n".
-							($inClass ? "" : "and o1 not in (select o1 from link where o2 = 1) \n").
+							"	select id, n, c from $object where 2=2 and id in ( \n".
+							"		select o1 from $link where 2=2 and c>0 and o2 = ".$l." \n".
+							($inClass ? "" : "and o1 not in (select o1 from $link where o2 = 1) \n").
 							"	) \n".
 							"	group by id \n".
 							")o".$i." \n";
@@ -253,21 +260,21 @@ class ObjectLink {
 										",l".$i.".c `c_".$col."` ";
 							}
 						}
-						$l = $id ? $id : "(select id from object where n='".$col."' limit 1)";
+						$l = $id ? $id : "(select id from $object where n='".$col."' limit 1)";
 						$parentCol = $pcol ? $pcol : 0;
 						$b = 
 							"left join ( \n".
-							"	select o1, o2, d, c from link where 2=2 and o1 in ( \n".
-							"		select o1 from link where c>0 and o2 = ".$l." \n".
-							($inClass ? "" : "and o1 not in (select o1 from link where o2 = 1) \n").
+							"	select o1, o2, d, c from $link where 2=2 and o1 in ( \n".
+							"		select o1 from $link where c>0 and o2 = ".$l." \n".
+							($inClass ? "" : "and o1 not in (select o1 from $link where o2 = 1) \n").
 							"	) \n".
 							" union all \n".
-							"	select o2, o1, d, c from link where 2=2 and o2 in ( \n".
-							"		select o1 from link where c>0 and o2 = ".$l." \n".
-							($inClass ? "" : "and o1 not in (select o1 from link where o2 = 1) \n").
+							"	select o2, o1, d, c from $link where 2=2 and o2 in ( \n".
+							"		select o1 from $link where c>0 and o2 = ".$l." \n".
+							($inClass ? "" : "and o1 not in (select o1 from $link where o2 = 1) \n").
 							"	) \n".
 							"	group by o1, o2 \n".
-							")l".$i." on l".$i.".o2 = o".$parentCol.".id and l".$i.".c>0 left join object o".$i." on o".$i.".id = l".$i.".o1 \n";
+							")l".$i." on l".$i.".o2 = o".$parentCol.".id and l".$i.".c>0 left join $object o".$i." on o".$i.".id = l".$i.".o1 \n";
 						$c = " and (o".$i.".c>0  or o".$i.".id is null)\n";
 
 						$head[] = $h;
@@ -410,29 +417,30 @@ class ObjectLink {
 	public function gAnd($params, $notPolicy=false){
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
+			$link = $this->link;
 			$objects = join(",",$params[0]);
 			$count = count($params[0]);
 			$fields = isset($params[1]) ? $params[1] : "*";
-			$notIsClass = isset($params[2]) && $params[2] ? "not in (select o1 from link where o2 = 1)" : "";
+			$notIsClass = isset($params[2]) && $params[2] ? "not in (select o1 from $link where o2 = 1)" : "";
 			$notIsClass1 = $notIsClass ? "and o1 $notIsClass" : "";
 			$notIsClass2 = $notIsClass ? "and o2 $notIsClass" : "";
 			$cond = isset($params[3]) ? $params[3] : "";
 			$parent = isset($params[4]) && $params[4] ? "and parent" : (isset($params[4]) ? "and not parent" : "");
-			$isClass = isset($params[5]) && $params[5] ? "in (select o1 from link where o2 = 1)" : "";
+			$isClass = isset($params[5]) && $params[5] ? "in (select o1 from $link where o2 = 1)" : "";
 			$isClass1 = $isClass ? "and o1 $isClass" : "";
 			$isClass2 = $isClass ? "and o2 $isClass" : "";
 			
 			$sel = "and c>0 and id in ( ".
 					"select o1 from ( ".
-					"select o1, o2, false parent from link where c>0 and o2 in ($objects) $notIsClass1 $isClass1 ".
+					"select o1, o2, false parent from $link where c>0 and o2 in ($objects) $notIsClass1 $isClass1 ".
 					"union all ".
-					"select o2, o1, true  parent from link where c>0 and o1 in ($objects) $notIsClass2 $isClass2 ".
+					"select o2, o1, true  parent from $link where c>0 and o1 in ($objects) $notIsClass2 $isClass2 ".
 					")x where 1=1 ".
 					"$parent ".
 					"group by o1 ".
 					"having count(o1) = $count ".
 				") $cond";
-			return $this->sql->sT(["object", $fields, $sel]);
+			return $this->sql->sT([$this->object, $fields, $sel]);
 		} catch (Exception $e){
 			print($e);
 			return null;
@@ -469,7 +477,7 @@ class ObjectLink {
 				$rootobject = $rootobject && count($rootobject) && count($rootobject[0]) ? $rootobject[0][0] : 0;
 				$rootclass = $this->gAnd([[$rootobject],"id,n",false," order by c desc, n ",true,true],true);
 				$rootclass = $rootclass && count($rootclass) && count($rootclass[0]) ? $rootclass[0][0] : 1;
-				return Array("uid"=>$u, "auth"=>$auth, "cid"=>$rootclass, "oid"=>0);//"oid"=> $rootobject? $root : 0
+				return Array("uid"=>$u, "auth"=>$auth, "cid"=>$rootclass, "oid"=>$rootobject);
 			} else {
 				return null;
 			}
@@ -497,16 +505,17 @@ class ObjectLink {
 		if (!$this->getPolicy([$this->u, [$func,"eO"]])) return [];
 
 		try {
+			$object = $this->object;
+			$link = $this->link;
 			$where = isset($params[0]) ? $params[0] : "";
 			$order = isset($params[1]) ? $params[1] : "";
 			
 			$query = "select * from ( ".
-			"	select distinct link.o1, object.n, link.o2, null c, link.t, object.c c_ from ( ".
-			"		select o1, o2, 'child' t from link where c>0 $where union all select o1, o2, t from (select o2 o1, o1 o2, 'parent' t from link where c>0)l where 1=1 $where ".
-			"	)link ".
-			"	join object on object.id = link.o1 ".
+			"	select distinct $link.o1, $object.n, $link.o2, null c, $link.t, $object.c c_ from ( ".
+			"		select o1, o2, 'child' t from $link where c>0 $where union all select o1, o2, t from (select o2 o1, o1 o2, 'parent' t from $link where c>0)l where 1=1 $where ".
+			"	)$link ".
+			"	join $object on $object.id = $link.o1 ".
 			")x where 1=1 and c_>0 and (o1 <> o2 or (o1 = o2 and t='parent')) ";
-			
 			return $this->sql->sT(["(".$query.")x", "*", "", $order, ""]);
 			
 		} catch (Exception $e){
@@ -572,7 +581,7 @@ class ObjectLink {
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$n = $params[0];
-			return $this->sql->sT(["object", "id, n", " and n like '%$n%' and id not in (select o1 from link where o2 = 1)", "order by id", ""]);
+			return $this->sql->sT([$this->object, "id, n", " and n like '%$n%' and id not in (select o1 from $link where o2 = 1)", "order by id", ""]);
 			
 		} catch (Exception $e){
 			print($e);
@@ -585,22 +594,23 @@ class ObjectLink {
 		return "".
 			"left join ".
 			"( ".
-			" select o1, o2 from link where 1=1 $isClass1 ".
+			" select o1, o2 from $link where 1=1 $isClass1 ".
 			" union all ".
-			" select o2, o1 from link where 1=1 $isClass2 ".
+			" select o2, o1 from $link where 1=1 $isClass2 ".
 			")l$ind on l$prev.o2 = l$ind.o1 ".
 			"";
 	}
 	
 	public function getLinkedObjectsLevel($params){
 		try {
+			$link = $this->link;
 			$cid1 = $params[0];
 			$cid2 = $params[1];
 			$level = $params[2];
 			$isClass = isset($params[3]) && $params[3] ? true : false;
 			$excludeClasses = isset($params[4]) ? "1,".join(",",$params[4]) : "1,1410";
 			
-			$isClass12 = $isClass ? " in (select o1 from link where o2 = 1 and o1 not in ($excludeClasses)) " : "";
+			$isClass12 = $isClass ? " in (select o1 from $link where o2 = 1 and o1 not in ($excludeClasses)) " : "";
 			$isClass1 = $isClass ? " and o1 $isClass12 " : " and o1 not in ($excludeClasses) ";
 			$isClass2 = $isClass ? " and o2 $isClass12 " : " and o2 not in ($excludeClasses) ";
 			
@@ -609,9 +619,9 @@ class ObjectLink {
 			
 			$body = "".
 				"from ( ".
-				" select o1, o2 from link where 1=1 $isClass1 ".
+				" select o1, o2 from $link where 1=1 $isClass1 ".
 				" union all ".
-				" select o2, o1 from link where 1=1 $isClass2 ".
+				" select o2, o1 from $link where 1=1 $isClass2 ".
 				")l1 ";
 			$cond = " where l1.o1 = $cid1 and (l1.o2 = $cid2 ";
 			$fields = "fondLevel, oid, l1";
@@ -678,8 +688,10 @@ class ObjectLink {
 
 	public function gOCQ($params){
 		try {
+			$object = $this->object;
+			$link = $this->link;
 			$cid = $params[0];
-			return "select * from object where id in ( select o1 from link where o2 = $cid and o1 not in (select o1 from link where o2 = 1) ) ";
+			return "select * from $object where id in ( select o1 from $link where o2 = $cid and o1 not in (select o1 from $link where o2 = 1) ) ";
 			
 		} catch (Exception $e){
 			print($e);
@@ -705,8 +717,10 @@ class ObjectLink {
 	
 	public function getObject($params){
 		try {
-			$cond = isset($params[0]) ? $params[0] : "";
-			$ret = $this->sql->sT(["object","*",$cond]);
+			$fields = isset($params[0]) ? $params[0] : "*";
+			$cond = isset($params[1]) ? $params[1] : "";
+			$object2 = isset($params[2]) ? $params[2] : $this->object;
+			$ret = $this->sql->sT([$object2,$fields,$cond]);
 			return $ret;
 			
 		} catch (Exception $e){
@@ -717,8 +731,10 @@ class ObjectLink {
 	
 	public function getLink($params){
 		try {
-			$cond = isset($params[0]) ? $params[0] : "";
-			$ret = $this->sql->sT(["link","*",$cond]);
+			$fields = isset($params[0]) ? $params[0] : "*";
+			$cond = isset($params[1]) ? $params[1] : "";
+			$link2 = isset($params[2]) ? $params[2] : $this->link;
+			$ret = $this->sql->sT([$link2,$fields,$cond]);
 			return $ret;
 			
 		} catch (Exception $e){
@@ -731,8 +747,10 @@ class ObjectLink {
 		try {
 			$arr = $params[0];//array of oid to need
 			$arr = join(",",$arr);
-			$obj = $this->sql->sT(["object", "id, n", "and id in ($arr)", " order by id"]);
-			$lnk = $this->sql->sT(["link", "o1, o2", "and o1 in ($arr) and o2 in ($arr) ", " order by id"]);
+			$object2 = isset($params[1]) ? $params[1] : $this->object;
+			$link2 = isset($params[2]) ? $params[2] : $this->link;
+			$obj = $this->getObject(["id, n", "and id in ($arr) order by id", $object2]);
+			$lnk = $this->getLink(["o1, o2", "and ( o1 in ($arr) or o2 in ($arr) ) order by id", $link2]);
 			
 			return array($obj, $lnk);//array of [ [[oid, n]... ], [[o1, o2]... ] ]
 			
@@ -789,6 +807,41 @@ class ObjectLink {
 			}
 			
 			return array($objArr, $lnkArr);
+			
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}
+	
+	public function getMapProps($params) {
+		try {
+			$map = $params[0];
+			$cid = $this->gO(["Карта", true]);
+			$oid = $cid ? $this->gO([$map, false, null, $cid]) : $this->gO([$map]);
+			
+			$cid = $this->gO(["tileLayer", true]);
+			$tileLayer = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
+			$tileLayer = $tileLayer && count($tileLayer)? $tileLayer[0][0] : "//mt{s}.googleapis.com/vt?lyrs=s,h&x={x}&y={y}&z={z}";
+
+			$cid = $this->gO(["tileLayerParams", true]);
+			$tileLayerParams = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
+			$tileLayerParams = $tileLayerParams && count($tileLayerParams)? $tileLayerParams[0][0] : '{"maxZoom": 18, "subdomains": [0,1,2,3]}';
+			
+			$cid = $this->gO(["setViewLatLng", true]);
+			$setViewLatLng = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
+			$setViewLatLng = $setViewLatLng && count($setViewLatLng)? $setViewLatLng[0][0] : "[65, 100]";
+			
+			$cid = $this->gO(["setViewZoom", true]);
+			$setViewZoom = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
+			$setViewZoom = $setViewZoom && count($setViewZoom)? $setViewZoom[0][0] : "3";
+			
+			return array(
+				"tileLayer"=>$tileLayer, 
+				"tileLayerParams"=>json_decode($tileLayerParams), 
+				"setViewLatLng"=>json_decode($setViewLatLng), 
+				"setViewZoom"=>json_decode($setViewZoom)
+			);
 			
 		} catch (Exception $e){
 			print($e);

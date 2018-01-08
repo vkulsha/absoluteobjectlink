@@ -551,25 +551,30 @@ class ObjectLink {
 	public function createPolygonObject($params, $notPolicy=false){
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
-			$coords = $params[0];
-			$oid = $params[1];
-			$caption = isset($params[2]) ? $params[2] : "полигон на карте объекта $oid";
-			$class = isset($params[3]) ? $params[3] : "Полигоны на карте";
+			$oid = (isset($params[0]) && $params[0]) ? $params[0] : 0;
+			$func = (isset($params[1]) && $params[1]) ? $params[1] : "Marker";
+			$param = (isset($params[2]) && $params[2]) ? $params[2] : "{weight:1, color:#0000ff}";
+			$coords = (isset($params[3]) && $params[3]) ? $params[3] : "";
+			if (!$oid) return 0;
 			
-			$cid = $this->gO([$class, true]);
-			$cid2 = $this->gO(["Координаты на карте", true]);
-			$id = $this->cO([$caption, $cid]);
-			$this->cL([$id, $oid]);
+			$maplink_cid = $this->gO(["Привязка к карте", true]);
+			$caption = "привязка к карте объекта $oid";
+			$maplink_oid = $this->cO([$caption, $maplink_cid]);
+			$this->cL([$maplink_oid, $oid]);
 			
-			foreach($coords as $coord){
-				$lat = $coord[0];
-				$lon = $coord[1];
-				$latlon = "$lat $lon";
-				$xy = $this->cO([$latlon, $cid2]);
-				$this->cL([$xy, $id]);
-			}
+			$func_cid = $this->gO(["Функции отрисовки", true]);
+			$func_oid = $this->gO([$func, false, null, $func_cid]);
+			$this->cL([$func_oid, $maplink_oid]);
+
+			$params_cid = $this->gO(["Параметры функции отрисовки", true]);
+			$params_oid = $this->cO([$param, $params_cid]);
+			$this->cL([$params_oid, $maplink_oid]);
 			
-			return $id;
+			$coords_cid = $this->gO(["Координаты на карте", true]);
+			$coords_oid = $this->cO([$coords, $coords_cid]);
+			$this->cL([$coords_oid, $maplink_oid]);
+			
+			return $maplink_oid;
 			
 		} catch (Exception $e){
 			print($e);
@@ -836,7 +841,7 @@ class ObjectLink {
 			$setViewZoom = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
 			$setViewZoom = $setViewZoom && count($setViewZoom)? $setViewZoom[0][0] : "3";
 
-			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"]]);
+			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"],[],[],false,null,"order by `Функции отрисовки`"]);
 			$mapFunctions = Array();
 			if ($mapFunctionsArr && count($mapFunctionsArr)){
 				foreach ($mapFunctionsArr as $obj){

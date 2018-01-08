@@ -14,6 +14,8 @@
 		<script src="modules/leafletEditable/Leaflet.Editable.js"></script>
 		<script src="modules/md5/md5.js"></script>
 		<script src="service.js"></script>
+		<script src="map.js"></script>
+		<script src="Main.js"></script>
 
 	</head>
 	<body>
@@ -21,7 +23,7 @@
 		<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.93); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:20%; background-position: center center' id='pLoginMain'>
 			<br><br><br>
 			<h1 align="middle" style="color:#fff">АНАЛИТИЧЕСКАЯ ИНФОРМАЦИОННАЯ СИСТЕМА</h1>
-			<!--<h2 align="middle" style="color:#ffdd00">УПРАВЛЕНИЕ ЭКСПЛУАТАЦИИ ИМУЩЕСТВА</h2>-->
+			<h2 align="middle" style="color:#ffdd00">УПРАВЛЕНИЕ ЭКСПЛУАТАЦИИ ИМУЩЕСТВА</h2>
 			
 			<div id='pLogin' style='background-color:rgba(255,255,255,0.1);' class="centered">
 				<form name="fLogin" onsubmit='return false;' id='fLogin'>
@@ -43,81 +45,67 @@ var classes_;
 var classes;
 var classes2 = [];
 var classes3 = function(cid){ return findObjVal(classes,cid)};
-var map;
 var fs = 11;
+var frmPaintLayers = new Form(!"isModal");
 var frmData = new Form();
 var frmFilter = new Form(!"isModal");
-map = L.map('map', {editable: true});
+
 var mapProps = orm("getMapProps",["map"]);
-L.tileLayer(mapProps.tileLayer,mapProps.tileLayerParams).addTo(map);
+var map = L.map('map', {editable: true});
+L.tileLayer(mapProps.tileLayer, mapProps.tileLayerParams).addTo(map);
 map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
-map.editTools.on('editable:drawing:end',function(e){
+var isPaintMode = false;
+var line;
+map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
+	endPaint(e);
+})
+function endPaint(e){
 	mapProps.mapFunctions.forEach(function(obj){
 		if (e.layer instanceof L[obj.drawFunc]){
+			var cid = frmData.cid;
+			var oid = frmData.oid;
+			var func = obj.drawFunc;
+			var params = "";
 			var latlngs = e.layer[obj.getLatLngFunc]();
-			var ll = L[obj.drawFunc.toLowerCase()](latlngs);
+			if (confirm("Привязать созданную линию к объекту '"+frmData.getCaption().innerHTML+"'")) {
+				var coords = JSON.stringify(latlngs,["lat","lng"]);
+				var oid = orm("createPolygonObject",[oid, func, params, coords]);
+				console.log("create drawing:",oid);
+				e.layer.remove();
+			}
+			//var ll = L[obj.drawFunc.toLowerCase()](latlngs);
 		}
 	})
-})
+}
+var mapObjects;///old
+var polylines = [];
+var selectedPoly;
+var zdzuPolygonsLayer = L.layerGroup();
+var paintedLayers = [];
+window.onhashchange = function(){///old
+	hashchange(mapObjects);
+}
+var oid = $_GET("oid", "#", location.hash);///old
+function hashchange(mapObjects_){///old
+	var oid_ = oid;
+	oid = $_GET("oid", "#", location.hash);
+	if (!oid) return;
+	var ind = mapObjects_.objects.oid.indexOf(oid);
+	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
+}
 
-L.EditControl = L.Control.extend({
-	options: {
-		position: 'topleft',
-		callback: null,
-		kind: '',
-		html: ''
-	},
-	onAdd: function (map) {
-		var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
-		var link = L.DomUtil.create('a', '', container);
-		link.href = '#';
-		link.title = 'Create a new ' + this.options.kind;
-		link.innerHTML = this.options.html;
-		L.DomEvent.on(link, 'click', L.DomEvent.stop)
-				  .on(link, 'click', function () {
-					window.LAYER = this.options.callback.call(map.editTools);
-				  }, this);
-		
-		return container;
-	}
-});
-L.NewLineControl = L.EditControl.extend({
-	options: {
-		position: 'topleft',
-		callback: map.editTools.startPolyline,
-		kind: 'line',
-		html: '\\/\\'
-	}
-});
-L.NewPolygonControl = L.EditControl.extend({
-	options: {
-		position: 'topleft',
-		callback: map.editTools.startPolygon,
-		kind: 'polygon',
-		html: '▰'
-	}
-});
-L.NewMarkerControl = L.EditControl.extend({
-	options: {
-		position: 'topleft',
-		callback: map.editTools.startMarker,
-		kind: 'marker',
-		html: '🖈'
-	}
-});
-L.NewCircleControl = L.EditControl.extend({
-	options: {
-		position: 'topleft',
-		callback: map.editTools.startCircle,
-		kind: 'circle',
-		html: '⬤'
-	}
-});
-map.addControl(new L.NewMarkerControl());
-map.addControl(new L.NewLineControl());
-map.addControl(new L.NewPolygonControl());
-map.addControl(new L.NewCircleControl());
+function loadAndPaintAllPolygons(map){
+	var polylines = []
+	var zu = orm("gT2",[["Объект", "Земельные участки", "Полигоны на карте", "Координаты на карте"],[[2,1],[3,2]],[],false, ["`Координаты на карте`", "`id_Полигоны на карте`", "`id_Земельные участки`", "`id_Объект`"], "and `id_Координаты на карте` is not null order by `id_Полигоны на карте`,`id_Координаты на карте`"]);
+	var zd = orm("gT2",[["Объект", "Здания и сооружения", "Полигоны на карте", "Координаты на карте"],[[2,1],[3,2]],[],false, ["`Координаты на карте`", "`id_Полигоны на карте`", "`id_Здания и сооружения`", "`id_Объект`"], "and `id_Координаты на карте` is not null order by `id_Полигоны на карте`,`id_Координаты на карте`"]);
+	var paintZu = mapPaint(zu, L.polygon, {color:"#00ff00", fillOpacity:0.1, weight:3}, map, classes["Земельные участки"]);
+	var paintZd = mapPaint(zd, L.polygon, {color:"#00ff00", fillOpacity:0.1, weight:2}, map, classes["Здания и сооружения"]);
+	polylines = paintZu ? polylines.concat(paintZu) : polylines;
+	polylines = paintZd ? polylines.concat(paintZd) : polylines;
+	return polylines;
+}
 
+function getPolicy(arrFunctions){ return orm("getPolicy",[currentUser.uid, arrFunctions]); }
 
 gDom("logo").onclick = function(){ frmData.setVisible(true); };
 
@@ -134,6 +122,12 @@ gDom("bLogin").onclick = function(){
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
+		mapInit(map);
+		mapObjects = initMapOld(map);///
+		//polylines = loadAndPaintAllPolygons(zdzuPolygonsLayer);///
+		//zdzuPolygonsLayer.addTo(map);///
+		paintedLayers = loadPaintLayers(map, frmPaintLayers);
+
 		var div = cDom("DIV");
 		var eFilter = div.appendChild(cInp("EDIT"));
 		var frmDataCaption = div.appendChild(cDom("LABEL"));
@@ -142,6 +136,24 @@ gDom("bLogin").onclick = function(){
 		loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
 		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
 		frmData.setVisible(true);
+		var frmDom = frmData.getDom();
+		frmDom.frm = frmData;
+		frmDom.oncontextmenu = function(e){
+			if (getPolicy(["cO","cL"]) && e.target == this) {
+				var frm = this.frm;
+				var cid = frm.cid;
+				var oid = frm.oid;
+				var hist = frm.hist;
+				var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
+				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
+				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
+				if (newoid) loadData({"oid":oid, "cid":cid, "frm":frm, "hist":hist});
+				e.stopPropagation();
+				return false;
+			}
+		};
+
+		if (oid) { hashchange(mapObjects) }
 		///
 	}
 	
@@ -302,13 +314,14 @@ function fillCard(params){
 	cell.frm = frm;
 	cell.onclick = function(){ 
 		if (this.cid == classes["Объект"]) {
-			location.href = mainHtmlPage+"#oid="+this.id;
+			location.href = "#oid="+this.id;
 		}
 		if (!this.hist) this.hist = {"back":[],"front":[]};
 		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
 		this.hist.front = [];
 		if (this.isClass)
-			loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
+			//loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
+			loadData({"oid":this.id, "cid":this.id, "frm":this.frm, "hist":this.hist})
 		else
 			loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 
 	}
@@ -346,7 +359,7 @@ function fillCard(params){
 	}
 		
 	cell.oncontextmenu = function(e){
-		if (this.isClass) {
+		if (getPolicy(["cO","cL"]) && this.isClass && e.target == this) {
 			var cid = this.id;
 			var frm = this.frm;
 			var oid_ = frm.oid;
@@ -356,12 +369,75 @@ function fillCard(params){
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
 			if (newoid) loadData({"oid":oid_, "cid":cid_, "frm":frm, "hist":hist});	
+			e.stopPropagation();
 			return false;
 		}
 	}
 }
 
+function loadAndPaint(classname, layer, paintfunc, paintfuncparam){
+	var polylines = []
+	var zd = orm("gT2",[[classname, "Полигоны на карте", "Координаты на карте"],[[2,1]],[],false, ["`Координаты на карте`", "`id_Полигоны на карте`", "`id_"+classname+"`"], "and `id_Координаты на карте` is not null order by `id_Полигоны на карте`,`id_Координаты на карте`"]);
+	var paintZd = mapPaint(zd, paintfunc, paintfuncparam, layer, classes[classname]);
+	polylines = paintZd ? polylines.concat(paintZd) : polylines;
+	return polylines;
+}
 
+function loadPaintLayers(map, frm){
+	frm.setWidth("auto");
+	var frmbody = frm.getBody();
+	frmbody.innerHTML = "";
+	var tb = cDom("TABLE");
+	frmbody.appendChild(tb);
+	var arr = orm("gAnd",[[classes["Полигоны на карте"]],"id,n",false,"",true,true]);
+	var ret = [];
+	var tr = cDom("TR",null,tb);
+	var td = cDom("TD",null,tr);
+	var cap = cDom("H3",null,td);
+	cap.innerHTML = "Слои привязки объектов к карте";
+	cap.style.color = "#ffdd00";
+	
+	for (var i=0; i < arr.length; i++){
+		var id = arr[i][0];
+		if (id == 1) continue;
+		var n = arr[i][1];
+		var tr = cDom("TR",null,tb);
+		var td = cDom("TD",null,tr);
+		
+		var ch = cInp("CHECKBOX");
+		var lab = cDom("LABEL");
+		lab.innerHTML = n;
+		td.appendChild(ch);
+		td.appendChild(lab);
+		ch.map = map;
+		ch.oid = id;
+		ch.n = n;
+		ch.layer = L.layerGroup();
+		ch.onchange = function(){
+			var paintfunc;
+			var paintfuncparam;
+			if (this.n == "Здания и сооружения" || this.n == "Земельные участки") {
+				paintfunc = L.polygon;
+				paintfuncparam = {color:"#00ff00", fillOpacity:0.1, weight:2};
+			} else {
+				paintfunc = L.polyline;
+				paintfuncparam = {color:"#ff9900", fillOpacity:0.1, weight:2};
+			}
+			if (this.checked) {
+				loadAndPaint(this.n, this.layer, paintfunc, paintfuncparam);
+				this.layer.addTo(map);
+			} else {
+				this.layer.clearLayers();
+			}
+		}
+		if (ch.n == "Здания и сооружения" || ch.n == "Земельные участки") {
+			ch.checked = true;
+			ch.onchange();
+		}
+	}
+	frm.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
+
+}
 
 </script>
 	</body>

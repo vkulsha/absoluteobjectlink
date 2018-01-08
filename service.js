@@ -154,6 +154,7 @@ function Form (isModal, zIndex, visible, opacity){
 	
 	this.setVisible = function(val) { that.visible = val; that.dom.hidden = !that.visible; }
 	this.getBody = function() { return that.body; }
+	this.getDom = function() { return that.frm; }
 	this.setWidth = function(val) {	that.frm.style.width = val; if (!this.isModal) that.dom.style.width = val; }
 	this.setHeight = function(val) { that.frm.style.height = val; if (!this.isModal) that.dom.style.height = val; }
 	this.setTop = function(val) { that.frm.style.top = val; if (!this.isModal) that.dom.style.top = val; }
@@ -175,6 +176,7 @@ function Form (isModal, zIndex, visible, opacity){
 		that.frm.style.height = "100%"; 
 	}
 	this.setCaption = function(val) { that.caption.appendChild(val); }
+	this.getCaption = function() { return that.caption; }
 
 	
 }

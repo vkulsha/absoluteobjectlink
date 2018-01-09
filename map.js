@@ -3,7 +3,7 @@
 function mapInit(map){
 	L.EditControl = L.Control.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: null,
 			kind: '',
 			html: ''
@@ -25,7 +25,7 @@ function mapInit(map){
 	
 	L.NewLineControl = L.EditControl.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: map.editTools.startPolyline,
 			kind: 'линия',
 			html: '\\/\\'
@@ -33,7 +33,7 @@ function mapInit(map){
 	});
 	L.NewPolygonControl = L.EditControl.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: map.editTools.startPolygon,
 			kind: 'полигон',
 			html: '▰'
@@ -41,7 +41,7 @@ function mapInit(map){
 	});
 	L.NewMarkerControl = L.EditControl.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: map.editTools.startMarker,
 			kind: 'маркер',
 			html: '🖈'
@@ -49,7 +49,7 @@ function mapInit(map){
 	});
 	L.NewCircleControl = L.EditControl.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: map.editTools.startCircle,
 			kind: 'круг',
 			html: '⬤'
@@ -63,7 +63,7 @@ function mapInit(map){
 
 	L.NewMenuControl = L.Control.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: frmData.setVisible,
 			kind: 'Главное меню',
 			html: '^'
@@ -86,7 +86,7 @@ function mapInit(map){
 
 	L.NewPainLayersControl = L.Control.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: frmPaintLayers.setVisible,
 			kind: 'Слои на карте',
 			html: '='
@@ -109,7 +109,7 @@ function mapInit(map){
 	
 	L.NewPaintControl = L.Control.extend({
 		options: {
-			position: 'topleft',
+			position: 'topright',
 			callback: enableControls,
 			kind: 'рисование',
 			html: '+'

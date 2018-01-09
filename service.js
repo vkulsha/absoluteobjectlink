@@ -88,7 +88,8 @@ function Form (isModal, zIndex, visible, opacity){
 	this.zIndex = zIndex || 200000;
 	this.opacity = opacity || "0.7";
 	this.visible = visible;
-	
+	this.left = "0px";
+	this.width = "0px";
 	var parentDom = document.body;
 
 	var dom = parentDom.appendChild(cDom("DIV"));
@@ -97,7 +98,7 @@ function Form (isModal, zIndex, visible, opacity){
 	dom.style.zIndex = this.zIndex;
 	dom.style.left = 0;
 	dom.style.top = 0;
-	dom.style.width = this.isModal ? "100%" : "auto";
+	dom.style.width = this.isModal ? "100%" : "300px";
 	dom.style.height = "100%";
 	dom.style.backgroundColor = "rgba(0,0,0,"+this.opacity+")";
 	this.dom = dom;
@@ -155,14 +156,14 @@ function Form (isModal, zIndex, visible, opacity){
 	this.setVisible = function(val) { that.visible = val; that.dom.hidden = !that.visible; }
 	this.getBody = function() { return that.body; }
 	this.getDom = function() { return that.frm; }
-	this.setWidth = function(val) {	that.frm.style.width = val; if (!this.isModal) that.dom.style.width = val; }
-	this.setHeight = function(val) { that.frm.style.height = val; if (!this.isModal) that.dom.style.height = val; }
+	this.setWidth = function(val) {	that.width = val; that.frm.style.width = val; if (!that.isModal) that.dom.style.width = val; }
+	this.setHeight = function(val) { that.frm.style.height = val; if (!that.isModal) that.dom.style.height = val; }
 	this.setTop = function(val) { that.frm.style.top = val; if (!this.isModal) that.dom.style.top = val; }
-	this.setLeft = function(val) { that.frm.style.left = val; if (!this.isModal) that.dom.style.left = val; }
-	this.getWidth = function(val) {	return (!this.isModal) ? that.dom.style.width : that.frm.style.width; }
-	this.getHeight = function(val) { return (!this.isModal) ? that.dom.style.height : that.frm.style.height; }
-	this.getTop = function(val) { return (!this.isModal) ? that.dom.style.top : that.frm.style.top; }
-	this.getLeft = function(val) { return (!this.isModal) ? that.dom.style.left : that.frm.style.left;  }
+	this.setLeft = function(val) { that.left = val; that.frm.style.left = val; if (!that.isModal) that.dom.style.left = val; }
+	this.getWidth = function(val) {	return (!that.isModal) ? that.dom.style.width : that.frm.style.width; }
+	this.getHeight = function(val) { return (!that.isModal) ? that.dom.style.height : that.frm.style.height; }
+	this.getTop = function(val) { return (!that.isModal) ? that.dom.style.top : that.frm.style.top; }
+	this.getLeft = function(val) { return (!that.isModal) ? that.dom.style.left : that.frm.style.left;  }
 	this.setZIndex = function(val) { that.dom.style.zIndex = val; }
 	this.setBack = function(val) { bback.onclick = val; }
 	this.getBack = function(val) { return bback; }
@@ -170,7 +171,8 @@ function Form (isModal, zIndex, visible, opacity){
 	this.getFront = function(val) { return bfront;  }
 	this.setIsModal = function(val) { 
 		that.isModal = val; 
-		that.dom.style.width = that.isModal ? "100%" : "auto"; 
+		if (that.isModal) that.dom.style.left = "0px";
+		that.dom.style.width = that.isModal ? "100%" : "300px"; 
 		that.dom.style.height = "100%"; 
 		that.frm.style.width = that.isModal ? "100%" : "auto"; 
 		that.frm.style.height = "100%"; 

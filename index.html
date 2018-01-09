@@ -46,7 +46,7 @@ var classes2 = [];
 var classes3 = function(cid){ return findObjVal(classes,cid)};
 var fs = 11;
 var frmPaintLayers = new Form(!"isModal");
-var frmData = new Form();
+var frmData = new Form(!"isModal");
 var frmFilter = new Form(!"isModal");
 
 var mapProps = orm("getMapProps",["map"]);
@@ -145,7 +145,8 @@ gDom("bLogin").onclick = function(){
 
 		var div = cDom("DIV");
 		var eFilter = div.appendChild(cInp("EDIT"));
-		var frmDataCaption = div.appendChild(cDom("LABEL"));
+		div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
+		var frmDataCaption = div.appendChild(cDom("LABEL")); frmDataCaption.style = "font-size:12px; font-weight:normal";
 		frmData.setCaption(div);
 		frmData.caption = frmDataCaption;
 		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
@@ -237,7 +238,7 @@ function loadData(params){
 	var cid_ = params.cid;
 	var frm  = params.frm;
 	var hist = params.hist;
-	frm.caption.innerHTML = "&nbsp;&nbsp;&nbsp;"+(orm("gN",[cid_]) || "") + ": " + (orm("gN",[oid_]) || "");
+	frm.caption.innerHTML = "<strong style='color:#ffdd00'>"+(orm("gN",[cid_]) || "") + ":</strong> " + (orm("gN",[oid_]) || "");
 	frm.oid = oid_;
 	frm.cid = cid_;
 	frm.hist = hist;
@@ -320,7 +321,7 @@ function enableFilterEdit(params){
 				var arr = orm("gO",[this.value, false, true, [classes["Объект"]] ]);
 				if (arr && arr.length){
 					frmFilter.setVisible(true);
-					frmFilter.setWidth("auto");
+					frmFilter.setWidth("300px");
 					var frmbody = frmFilter.getBody();
 					frmbody.innerHTML = "";
 					var tb = cDom("TABLE");
@@ -442,7 +443,6 @@ function loadAndPaint(classname, layer, paintfunc, paintfuncparam){
 }
 
 function loadPaintLayers(map, frm){
-	frm.setWidth("auto");
 	var frmbody = frm.getBody();
 	frmbody.innerHTML = "";
 	var tb = cDom("TABLE");
@@ -454,6 +454,7 @@ function loadPaintLayers(map, frm){
 	var cap = cDom("H3",null,td);
 	cap.innerHTML = "Слои привязки объектов к карте";
 	cap.style.color = "#ffdd00";
+	frm.setWidth("300px");
 	
 	for (var i=0; i < arr.length; i++){
 		var id = arr[i][0];
@@ -477,9 +478,21 @@ function loadPaintLayers(map, frm){
 			if (this.n == "Здания и сооружения" || this.n == "Земельные участки") {
 				paintfunc = L.polygon;
 				paintfuncparam = {color:"#00ff00", fillOpacity:0.1, weight:2};
-			} else {
+			} else if (this.n == "Электроснабжение") {
 				paintfunc = L.polyline;
 				paintfuncparam = {color:"#ff9900", fillOpacity:0.1, weight:2};
+			} else if (this.n == "Водоснабжение") {
+				paintfunc = L.polyline;
+				paintfuncparam = {color:"#0000ff", fillOpacity:0.1, weight:2};
+			} else if (this.n == "Теплоснабжение") {
+				paintfunc = L.polyline;
+				paintfuncparam = {color:"#ffff00", fillOpacity:0.1, weight:2};
+			} else if (this.n == "Водоотведение") {
+				paintfunc = L.polyline;
+				paintfuncparam = {color:"#995500", fillOpacity:0.1, weight:2};
+			} else {
+				paintfunc = L.polyline;
+				paintfuncparam = {color:"#ffffff", fillOpacity:0.1, weight:2};
 			}
 			if (this.checked) {
 				loadAndPaint(this.n, this.layer, paintfunc, paintfuncparam);
@@ -493,7 +506,7 @@ function loadPaintLayers(map, frm){
 			ch.onchange();
 		}
 	}
-	frm.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
+	frm.setLeft((getWindowWidth()-parseInt(getComputedStyle(frm.getDom()).width)-1)+"px");
 
 }
 

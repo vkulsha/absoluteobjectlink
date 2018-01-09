@@ -105,7 +105,7 @@ function mapPaint(coords, funcL, paramsL, map, cid){
 	var polyId = coords[0][1];
 	function onmouseover(e) {
 		if (!this.options.opacity) return;
-		this.setStyle({color:"#ff0000", weight:5}); 
+		this.setStyle({color:"#ff0000", weight:2}); 
 	}
 	function onmouseout(e) { 
 		if (!this.options.opacity) return;

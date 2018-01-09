@@ -2,7 +2,7 @@ function initMapOld(map){
 	var markers = L.layerGroup();
 
 	var markerClick = function(val){
-		location.href = "#oid="+val.oid;
+		location.href = "#oid="+val.oid+"&cid="+val.cid;
 	}
 	
 	var arrObjects = orm("gT2",[["Объект","Широта","Долгота","Масштаб на карте"],[],[],false,["`Широта`", "`Долгота`", "`id_Объект`","`Масштаб на карте`"]]);
@@ -45,6 +45,7 @@ function mapLoad(arrLatLon, opts, click){
 		var lon = value[1];
 		var oid = value[2];
 		var zoom = value[3] || 18;
+		var cid = orm("gO",["Объект",true]);
 
 		minLat = Math.min(lat, minLat);
 		minLon = Math.min(lon, minLon);
@@ -56,7 +57,7 @@ function mapLoad(arrLatLon, opts, click){
 		var marker = L.marker([lat, lon], icon)
 			.addTo(markers)
 			.on("click", function(){
-				click( {"lat":lat, "lon":lon, "oid":oid} )
+				click( {"lat":lat, "lon":lon, "oid":oid, "cid":cid} )
 			});
 
 		arrOid.push(oid);
@@ -119,10 +120,11 @@ function mapPaint(coords, funcL, paramsL, map, cid){
 			selectedPoly.enableEdit();
 
 		} else {
-			var cid = orm("gAnd",[[this.oid],"id",false,null,true,true]);
-			cid = (cid && cid.length) ? cid[0][0] : 0;
-			loadData({"oid":this.oid, "cid":cid, "frm":frmData, "hist":frmData.hist}); 
-			frmData.setVisible(true);
+			location.href = "#oid="+this.oid+"&cid="+this.cid;
+			//var cid = orm("gAnd",[[this.oid],"id",false," order by c desc ",true,true]);
+			//cid = (cid && cid.length) ? cid[0][0] : 0;
+			//loadData({"oid":this.oid, "cid":cid, "frm":frmData, "hist":frmData.hist}); 
+			//frmData.setVisible(true);
 		}
 	}
 

@@ -20,7 +20,7 @@
 	</head>
 	<body>
 		<div id="map" style="position:absolute; width:100%; height:100%"></div>
-		<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.93); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:20%; background-position: center center' id='pLoginMain'>
+		<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.5); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:20%; background-position: center center' id='pLoginMain'>
 			<br><br><br>
 			<h1 align="middle" style="color:#fff">АНАЛИТИЧЕСКАЯ ИНФОРМАЦИОННАЯ СИСТЕМА</h1>
 			<h2 align="middle" style="color:#ffdd00">УПРАВЛЕНИЕ ЭКСПЛУАТАЦИИ ИМУЩЕСТВА</h2>
@@ -83,16 +83,32 @@ var selectedPoly;
 var zdzuPolygonsLayer = L.layerGroup();
 var paintedLayers = [];
 window.onhashchange = function(){///old
-	hashchange(mapObjects);
+	hashchange(mapObjects, frmData);
 }
 var oid = $_GET("oid", "#", location.hash);///old
-function hashchange(mapObjects_){///old
-	var oid_ = oid;
+var cid = $_GET("cid", "#", location.hash);///old
+
+function hashchange(mapObjects_, frm){///old
 	oid = $_GET("oid", "#", location.hash);
+	cid = $_GET("cid", "#", location.hash);///old
 	if (!oid) return;
 	var ind = mapObjects_.objects.oid.indexOf(oid);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
+
+	if (!cid || cid == "null") {
+		cid = orm("gAnd",[[oid],"id",false," order by c desc ",true,true]);
+		cid = (cid && cid.length) ? cid[0][0] : 0;
+	};
+	loadData({"oid":oid, "cid":cid, "frm":frm});
+
 }
+function href(oid, cid){
+	if (!cid || cid == "null") {
+		cid = orm("gAnd",[[oid],"id",false," order by c desc ",true,true]);
+		cid = (cid && cid.length) ? cid[0][0] : 0;
+	};
+	location.href = "#oid="+oid+(cid ? "&cid="+cid : "");
+};
 
 function loadAndPaintAllPolygons(map){
 	var polylines = []
@@ -133,7 +149,6 @@ gDom("bLogin").onclick = function(){
 		var frmDataCaption = div.appendChild(cDom("LABEL"));
 		frmData.setCaption(div);
 		frmData.caption = frmDataCaption;
-		loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
 		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
 		frmData.setVisible(true);
 		var frmDom = frmData.getDom();
@@ -147,13 +162,51 @@ gDom("bLogin").onclick = function(){
 				var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
 				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
 				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
-				if (newoid) loadData({"oid":oid, "cid":cid, "frm":frm, "hist":hist});
+				//if (newoid) loadData({"oid":oid, "cid":cid, "frm":frm, "hist":hist});
+				if (newoid) href(oid, cid);
 				e.stopPropagation();
 				return false;
 			}
 		};
+		frmDom.ondblclick = function(){
+			var domSelFiles = cInp("FILE");
+			this.appendChild(domSelFiles);
+			domSelFiles.multiple = true;
+			var bSend = cDom("BUTTON","Загрузить файлы",this);
+			bSend.domSelFiles = domSelFiles;
+			bSend.frm = this.frm;
+			bSend.onclick = function(){
+				var frm = this.frm;
+				var cid = frm.cid;
+				var oid = frm.oid;
+				var hist = frm.hist;
+				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "data/"+oid+"/"	, "uploadId": oid, "userfile[]": this.domSelFiles.files[0]};
+				//console.log(formData);
 
-		if (oid) { hashchange(mapObjects) }
+				getXmlHttpReq(function(result){
+					//console.log(1);
+					href(oid, cid);
+				}, "php/uploadFiles.php", formData, true, true)
+			}
+			/*
+			<div id='selectFile' hidden>
+			<form enctype='multipart/form-data' action='php/uploadFiles.php' method='POST'>
+			<input type='hidden' name='MAX_FILE_SIZE' value='0' />
+			<input type='hidden' name='uploadPath' value='' id='selectFileUploadPath'/>
+			<input type='hidden' name='uploadId' value='' id='selectFileUploadId'/>Загрузить фото: 
+			<input name='userfile[]' type='file' multiple /><br><br>
+			<input type='submit' value='Загрузить' />
+			</form>
+			</div>
+			*/
+		}
+
+		if (oid) { 
+			hashchange(mapObjects, frmData) 
+		} else { 
+			//loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData}); 
+			href(currentUser.oid, currentUser.cid);
+		}
 		///
 	}
 	
@@ -246,7 +299,7 @@ function loadData(params){
 		
 		}
 	}
-	
+	frm.setVisible(true);
 }
 
 function enableFilterEdit(params){
@@ -285,7 +338,8 @@ function enableFilterEdit(params){
 					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
 				}
 			} else {
-				loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
+				//loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
+				href(currentUser.oid, currentUser.cid);
 			}
 		}
 	}
@@ -299,10 +353,10 @@ function fillCard(params){
 	var hist = params.hist;
 
 	cell.id = data[0];
-	if (!cid) {
+	/*if (!cid) {
 		cid = orm("gAnd",[[cell.id],"id",false," order by c desc ",true,true]);
 		cid = (cid && cid.length) ? cid[0][0] : 0;
-	}
+	}*/
 	cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;
 	cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
 	cell.cid = cell.isClass ? cell.id : cid;
@@ -316,16 +370,18 @@ function fillCard(params){
 	cell.frm = frm;
 	cell.onclick = function(){ 
 		if (this.cid == classes["Объект"]) {
-			location.href = "#oid="+this.id;
+			href(this.id, this.cid);
 		}
 		if (!this.hist) this.hist = {"back":[],"front":[]};
 		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
 		this.hist.front = [];
 		if (this.isClass)
 			//loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
-			loadData({"oid":this.id, "cid":this.id, "frm":this.frm, "hist":this.hist})
+			//loadData({"oid":this.id, "cid":this.id, "frm":this.frm, "hist":this.hist})
+			href(this.id, this.id);
 		else
-			loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 
+			href(this.id, this.cid);
+			//loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 
 	}
 	
 	if (cell.isFile && !cell.isClass) {
@@ -370,7 +426,8 @@ function fillCard(params){
 			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-			if (newoid) loadData({"oid":oid_, "cid":cid_, "frm":frm, "hist":hist});	
+			//if (newoid) loadData({"oid":oid_, "cid":cid_, "frm":frm, "hist":hist});
+			if (newoid) href(oid_, cid_);;
 			e.stopPropagation();
 			return false;
 		}

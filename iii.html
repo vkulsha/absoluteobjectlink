@@ -154,7 +154,8 @@ gDom("bLogin").onclick = function(){
 		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
 	}
 	
-	var auth = orm("getLogin",[eUser, md5(password)]);
+	//var auth = orm("getLogin",[eUser, md5(password)]);
+	var auth = orm("gLogin",[eUser, md5(password)]);
 	if (auth && auth.uid) {
 		currentUser = auth;
 		if (auth.auth) {

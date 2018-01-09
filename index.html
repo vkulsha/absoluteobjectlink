@@ -167,7 +167,8 @@ gDom("bLogin").onclick = function(){
 		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
 	}
 	
-	var auth = orm("getLogin",[eUser, md5(password)]);
+	//var auth = orm("getLogin",[eUser, md5(password)]);
+	var auth = orm("gLogin",[eUser, md5(password)]);
 	if (auth && auth.uid) {
 		currentUser = auth;
 		if (auth.auth) {
@@ -263,7 +264,8 @@ function enableFilterEdit(params){
 	eFilter.onkeydown = function(e){
 		if (e.key == "Enter") {
 			if (this.value) {
-				var arr = orm("gO",[this.value, false, true]);
+				//var arr = orm("gO",[this.value, false, true]);
+				var arr = orm("gO",[this.value, false, true, [classes["Объект"]] ]);
 				if (arr && arr.length){
 					frmFilter.setVisible(true);
 					frmFilter.setWidth("auto");
@@ -298,7 +300,7 @@ function fillCard(params){
 
 	cell.id = data[0];
 	if (!cid) {
-		cid = orm("gAnd",[[cell.id],"id",false,null,true,true]);
+		cid = orm("gAnd",[[cell.id],"id",false," order by c desc ",true,true]);
 		cid = (cid && cid.length) ? cid[0][0] : 0;
 	}
 	cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;

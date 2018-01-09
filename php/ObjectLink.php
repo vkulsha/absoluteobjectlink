@@ -36,7 +36,7 @@ class ObjectLink {
 			if ($n) {
 				if ($pid) {
 					//$id = 0;
-					$id = $this->gO([$n, null, null, $pid]);
+					$id = $this->gO([$n, null, null, [$pid]]);
 				}
 				
 				if (!$id) {
@@ -94,8 +94,8 @@ class ObjectLink {
 			$isLike = isset($params[2]) && $params[2];
 			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
 			//$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from link where o2 = ".$params[3]." and o1 not in (select o1 from link where o2 = 1) ) " : "";
-			$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where o2 = ".$params[3]." and o2 in (select o1 from $link where o2 = 1) ) " : "";
-			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $isClass $inClass", $isLike ? "order by n" : "order by c desc, d desc", $isLike ? "" : "limit 1"]);
+			$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where o2 = 1) ) " : "";
+			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $isClass $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : "limit 1"]);
 			return $ret ? ($isLike ? $ret : $ret[0][0]) : null;
 			
 		} catch (Exception $e) {
@@ -447,6 +447,26 @@ class ObjectLink {
 		}
 	}
  
+	public function gLogin($params){
+		try {
+			$login = isset($params[0]) ? $params[0] : "";
+			$pass = isset($params[1]) ? $params[1] : "";
+			
+			$u = $this->gAnd([[1576],"id",false,"and n='$login'"],true);
+			$u = $u && count($u) && count($u[0]) ? $u[0][0] : 0;
+			$p = $this->gAnd([[1579],"id",false,"and n='$pass'"],true);
+			$p = $p && count($p) && count($p[0]) ? $p[0][0] : 0;
+			$k = $this->gAnd([[$u, $p, 1596],"id"],true);
+			$k = $k && count($k) && count($k[0]) ? $k[0][0] : 0;
+			
+			return Array("uid"=>$u, "auth"=>!!$k, "cid"=>"1383", "oid"=>"1384");
+			
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}
+
 	public function getLogin($params){
 		try {
 			$login = isset($params[0]) ? $params[0] : "";
@@ -493,11 +513,13 @@ class ObjectLink {
 		
 		$func = "('".(join("','", $func))."')";
 		$res = $this->gT2([["Роли системы","Корневой класс роли системы","Пользователи системы","Правила группы функций системы","Функции системы"],[[4,3]],[],false,null,"and `id_Пользователи системы`=$user and `Функции системы` in $func"],true);
-		return $res && count($res);
+		//return $res && count($res);
+		return $user == 1577 || $user == 1578 || $user == 41000;
 	}
 	
 	public function getPolicyLazy(){
-		return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u]); 
+		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u]); 
+		return $this->u>1 && $this->gL([$this->gO(["Пользователи"]),$this->u]); 
 	}
 	
 	public function iii($params, $notPolicy=false){
@@ -563,7 +585,7 @@ class ObjectLink {
 			$this->cL([$maplink_oid, $oid]);
 			
 			$func_cid = $this->gO(["Функции отрисовки", true]);
-			$func_oid = $this->gO([$func, false, null, $func_cid]);
+			$func_oid = $this->gO([$func, false, null, [$func_cid]]);
 			$this->cL([$func_oid, $maplink_oid]);
 
 			$params_cid = $this->gO(["Параметры функции отрисовки", true]);
@@ -823,7 +845,7 @@ class ObjectLink {
 		try {
 			$map = $params[0];
 			$cid = $this->gO(["Карта", true]);
-			$oid = $cid ? $this->gO([$map, false, null, $cid]) : $this->gO([$map]);
+			$oid = $cid ? $this->gO([$map, false, null, [$cid]]) : $this->gO([$map]);
 			
 			$cid = $this->gO(["tileLayer", true]);
 			$tileLayer = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;

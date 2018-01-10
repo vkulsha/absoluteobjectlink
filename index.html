@@ -380,7 +380,7 @@ function fillCard(params){
 			//loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
 			//loadData({"oid":this.id, "cid":this.id, "frm":this.frm, "hist":this.hist})
 			//href(this.id, this.id);
-			href(0, this.id);
+			href(this.frm.oid ? 0 : this.id, this.id);
 		else
 			href(this.id, this.cid);
 			//loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 

@@ -177,7 +177,7 @@ function Form (isModal, zIndex, visible, opacity){
 		that.frm.style.width = that.isModal ? "100%" : "auto"; 
 		that.frm.style.height = "100%"; 
 	}
-	this.setCaption = function(val) { that.caption.appendChild(val); }
+	this.setCaption = function(val) { return that.caption.appendChild(val); }
 	this.getCaption = function() { return that.caption; }
 
 	

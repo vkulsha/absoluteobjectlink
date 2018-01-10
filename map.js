@@ -66,14 +66,17 @@ function mapInit(map){
 			position: 'topright',
 			callback: frmData.setVisible,
 			kind: 'Главное меню',
-			html: '^'
+			imgsrc: 'images/logo.png'
 		},
 		onAdd: function (map) {
 			var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
 			var link = L.DomUtil.create('a', '', container);
 			link.href = '#';
 			link.title = 'Главное меню';
-			link.innerHTML = this.options.html;
+			var img = cDom("IMG");
+			img.src = this.options.imgsrc;
+			img.style.width = "28px";
+			link.appendChild(img);
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
 						this.options.callback(true);
@@ -89,14 +92,17 @@ function mapInit(map){
 			position: 'topright',
 			callback: frmPaintLayers.setVisible,
 			kind: 'Слои на карте',
-			html: '='
+			imgsrc: 'images/layers.png'
 		},
 		onAdd: function (map) {
 			var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
 			var link = L.DomUtil.create('a', '', container);
 			link.href = '#';
 			link.title = 'Слои на карте';
-			link.innerHTML = this.options.html;
+			var img = cDom("IMG");
+			img.src = this.options.imgsrc;
+			img.style.width = "20px";
+			link.appendChild(img);
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
 						this.options.callback(true);
@@ -112,14 +118,17 @@ function mapInit(map){
 			position: 'topright',
 			callback: enableControls,
 			kind: 'рисование',
-			html: '+'
+			imgsrc: 'images/paint.png'
 		},
 		onAdd: function (map) {
 			var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
 			var link = L.DomUtil.create('a', '', container);
 			link.href = '#';
 			link.title = 'Режим рисования';
-			link.innerHTML = this.options.html;
+			var img = cDom("IMG");
+			img.src = this.options.imgsrc;
+			img.style.width = "20px";
+			link.appendChild(img);
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
 						isPaintMode = !isPaintMode;

@@ -20,7 +20,7 @@
 	</head>
 	<body>
 		<div id="map" style="position:absolute; width:100%; height:100%"></div>
-		<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.5); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:40%; background-position: center center' id='pLoginMain'>
+		<div style='position:absolute; left:0px; top:0px; width:100%; height:100%; z-index:1100000; background-color:rgba(0,0,0,0.5); background-image:url(images/logo.png); background-repeat: no-repeat; background-size:30%; background-position: center center' id='pLoginMain'>
 			<br><br><br>
 			<h1 align="middle" style="color:#fff">АНАЛИТИЧЕСКАЯ ИНФОРМАЦИОННАЯ СИСТЕМА</h1>
 			
@@ -34,10 +34,10 @@
 				</form>
 			</div>
 		</div>
-		<div id='logo' style='cursor:pointer; position:absolute; left:90%; top:10px; width:100px; z-index:100000; background-color:rgba(0,0,0,0.5); text-align:center; border-radius:5px'>
+		<!--<div id='logo' style='cursor:pointer; position:absolute; left:90%; top:10px; width:100px; z-index:100000; background-color:rgba(0,0,0,0.5); text-align:center; border-radius:5px'>
 			<img src='images/logo.png' width='64'/><br>
 			<label>База Данных</label>
-		</div>
+		</div>-->
 	
 <script lang="javascript">
 var classes_;
@@ -109,20 +109,9 @@ function href(oid, cid){
 	location.href = "#oid="+oid+(cid ? "&cid="+cid : "");
 };
 
-function loadAndPaintAllPolygons(map){
-	var polylines = []
-	var zu = orm("gT2",[["Объект", "Земельные участки", "Полигоны на карте", "Координаты на карте"],[[2,1],[3,2]],[],false, ["`Координаты на карте`", "`id_Полигоны на карте`", "`id_Земельные участки`", "`id_Объект`"], "and `id_Координаты на карте` is not null order by `id_Полигоны на карте`,`id_Координаты на карте`"]);
-	var zd = orm("gT2",[["Объект", "Здания и сооружения", "Полигоны на карте", "Координаты на карте"],[[2,1],[3,2]],[],false, ["`Координаты на карте`", "`id_Полигоны на карте`", "`id_Здания и сооружения`", "`id_Объект`"], "and `id_Координаты на карте` is not null order by `id_Полигоны на карте`,`id_Координаты на карте`"]);
-	var paintZu = mapPaint(zu, L.polygon, {color:"#00ff00", fillOpacity:0.1, weight:3}, map, classes["Земельные участки"]);
-	var paintZd = mapPaint(zd, L.polygon, {color:"#00ff00", fillOpacity:0.1, weight:2}, map, classes["Здания и сооружения"]);
-	polylines = paintZu ? polylines.concat(paintZu) : polylines;
-	polylines = paintZd ? polylines.concat(paintZd) : polylines;
-	return polylines;
-}
-
 function getPolicy(arrFunctions){ return orm("getPolicy",[currentUser.uid, arrFunctions]); }
 
-gDom("logo").onclick = function(){ frmData.setVisible(true); };
+//gDom("logo").onclick = function(){ frmData.setVisible(true); };
 
 gDom("bLogin").onclick = function(){
 	var auth = false;
@@ -139,8 +128,6 @@ gDom("bLogin").onclick = function(){
 		///
 		mapInit(map);
 		mapObjects = initMapOld(map);///
-		//polylines = loadAndPaintAllPolygons(zdzuPolygonsLayer);///
-		//zdzuPolygonsLayer.addTo(map);///
 		paintedLayers = loadPaintLayers(map, frmPaintLayers);
 
 		var div = cDom("DIV");
@@ -150,6 +137,8 @@ gDom("bLogin").onclick = function(){
 		frmData.setCaption(div);
 		frmData.caption = frmDataCaption;
 		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
+		frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
+		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
 		frmData.setVisible(true);
 		var frmDom = frmData.getDom();
 		frmDom.frm = frmData;
@@ -162,7 +151,6 @@ gDom("bLogin").onclick = function(){
 				var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
 				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
 				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
-				//if (newoid) loadData({"oid":oid, "cid":cid, "frm":frm, "hist":hist});
 				if (newoid) href(oid, cid);
 				e.stopPropagation();
 				return false;
@@ -204,7 +192,6 @@ gDom("bLogin").onclick = function(){
 		if (oid) { 
 			hashchange(mapObjects, frmData) 
 		} else { 
-			//loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData}); 
 			href(currentUser.oid, currentUser.cid);
 		}
 		///
@@ -263,12 +250,6 @@ function loadData(params){
 				loadData({"oid":oid, "cid":cid, "frm":this.frm, "hist":this.hist}); 
 			});
 		}
-		/*///вперед тоже работает. убрал, т.к. пока лишнее
-		var front = hist.front;
-			...
-			frm.setFront(function(){
-				...
-		*/
 	}
 	
 	var cnt = frm.getBody();
@@ -311,14 +292,13 @@ function enableFilterEdit(params){
 	var frmFilter = this.frmFilter;
 	var frmData = this.frmData;
 	eFilter.style = "color:#fff; background-color:rgba(0,0,0,0.1);";
-	eFilter.placeholder = "фильтр по базе данных";
+	eFilter.placeholder = "поиск по базе данных";
 	eFilter.parentElement.align = "left";
 	eFilter.frmFilter = frmFilter;
 	eFilter.frmData = frmData;
 	eFilter.onkeydown = function(e){
 		if (e.key == "Enter") {
 			if (this.value) {
-				//var arr = orm("gO",[this.value, false, true]);
 				var arr = orm("gO",[this.value, false, true, [classes["Объект"]] ]);
 				if (arr && arr.length){
 					frmFilter.setVisible(true);
@@ -339,7 +319,6 @@ function enableFilterEdit(params){
 					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
 				}
 			} else {
-				//loadData({"oid":currentUser.oid, "cid":currentUser.cid, "frm":frmData});
 				href(currentUser.oid, currentUser.cid);
 			}
 		}
@@ -354,10 +333,6 @@ function fillCard(params){
 	var hist = params.hist;
 
 	cell.id = data[0];
-	/*if (!cid) {
-		cid = orm("gAnd",[[cell.id],"id",false," order by c desc ",true,true]);
-		cid = (cid && cid.length) ? cid[0][0] : 0;
-	}*/
 	cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;
 	cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
 	cell.cid = cell.isClass ? cell.id : cid;
@@ -376,14 +351,11 @@ function fillCard(params){
 		if (!this.hist) this.hist = {"back":[],"front":[]};
 		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
 		this.hist.front = [];
-		if (this.isClass)
-			//loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
-			//loadData({"oid":this.id, "cid":this.id, "frm":this.frm, "hist":this.hist})
-			//href(this.id, this.id);
+		if (this.isClass) {
 			href(this.frm.oid ? 0 : this.id, this.id);
-		else
+		} else {
 			href(this.id, this.cid);
-			//loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 
+		}
 	}
 	
 	if (cell.isFile && !cell.isClass) {
@@ -428,7 +400,6 @@ function fillCard(params){
 			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-			//if (newoid) loadData({"oid":oid_, "cid":cid_, "frm":frm, "hist":hist});
 			if (newoid) href(oid_, cid_);;
 			e.stopPropagation();
 			return false;
@@ -453,9 +424,6 @@ function loadPaintLayers(map, frm){
 	var ret = [];
 	var tr = cDom("TR",null,tb);
 	var td = cDom("TD",null,tr);
-	var cap = cDom("H3",null,td);
-	cap.innerHTML = "Слои привязки объектов к карте";
-	cap.style.color = "#ffdd00";
 	frm.setWidth("300px");
 	
 	for (var i=0; i < arr.length; i++){

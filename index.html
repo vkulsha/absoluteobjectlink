@@ -34,6 +34,7 @@
 				</form>
 			</div>
 		</div>
+		
 		<!--<div id='logo' style='cursor:pointer; position:absolute; left:90%; top:10px; width:100px; z-index:100000; background-color:rgba(0,0,0,0.5); text-align:center; border-radius:5px'>
 			<img src='images/logo.png' width='64'/><br>
 			<label>База Данных</label>
@@ -171,26 +172,16 @@ gDom("bLogin").onclick = function(){
 				var frm = this.frm;
 				var cid = frm.cid;
 				var oid = frm.oid;
-				var hist = frm.hist;
-				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "data/"+oid+"/"	, "uploadId": oid, "userfile[]": this.domSelFiles.files[0]};
-				//console.log(formData);
-
-				getXmlHttpReq(function(result){
-					//console.log(1);
-					href(oid, cid);
-				}, "php/uploadFiles.php", formData, true, true)
+				
+				for (var i=0; i < this.domSelFiles.files.length; i++) {
+					var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
+					getXmlHttpReq(function(result){
+					}, "php/uploadFiles.php", formData, false, true)
+				};
+				href(oid, cid);
+				this.domSelFiles.remove();
+				this.remove();
 			}
-			/*
-			<div id='selectFile' hidden>
-			<form enctype='multipart/form-data' action='php/uploadFiles.php' method='POST'>
-			<input type='hidden' name='MAX_FILE_SIZE' value='0' />
-			<input type='hidden' name='uploadPath' value='' id='selectFileUploadPath'/>
-			<input type='hidden' name='uploadId' value='' id='selectFileUploadId'/>Загрузить фото: 
-			<input name='userfile[]' type='file' multiple /><br><br>
-			<input type='submit' value='Загрузить' />
-			</form>
-			</div>
-			*/
 		}
 
 		if (oid) { 

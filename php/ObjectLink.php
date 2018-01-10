@@ -25,9 +25,9 @@ class ObjectLink {
 		return ($retO && $retL);
 	}
 	
-	public function cO($params){//create object and link
+	public function cO($params, $notPolicy=false){//create object and link
 		$func = debug_backtrace()[0]['function'];
-		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
@@ -60,9 +60,9 @@ class ObjectLink {
 		return $ret;
 	}
 
-	public function cL($params){//link objects
+	public function cL($params, $notPolicy=false){//link objects
 		$func = debug_backtrace()[0]['function'];
-		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 
 		$ret = 0;
 		try {
@@ -134,9 +134,9 @@ class ObjectLink {
 		return $ret;
 	}
 	
-	public function uO($params){//update object name by id
+	public function uO($params, $notPolicy=false){//update object name by id
 		$func = debug_backtrace()[0]['function'];
-		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$id = $params[0];
 			$n = $params[1];
@@ -152,9 +152,9 @@ class ObjectLink {
 		return $ret;
 	}
 	
-	public function eO($params){//erase object from database
+	public function eO($params, $notPolicy=false){//erase object from database
 		$func = debug_backtrace()[0]['function'];
-		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		return $this->nO($params);
 	}
 	
@@ -199,9 +199,9 @@ class ObjectLink {
 		return $ret;
 	}
 		
-	public function eL($params){//erase link from database
+	public function eL($params, $notPolicy=false){//erase link from database
 		$func = debug_backtrace()[0]['function'];
-		if (!$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		return $this->nL($params);
 	}
 

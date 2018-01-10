@@ -82,6 +82,30 @@ function getXmlHttpReq(func, uri, postdata, async, isjson, funcError, funcFinnal
 	
 }
 
+function uploadFile(file, func) {
+	var formData = new FormData();
+	formData.append("MAX_FILE_SIZE", 0);
+	formData.append("uploadPath", "../data/"+oid+"/");
+	formData.append("uploadId", oid);
+	formData.append("userfile[]", file);
+	formData.append("u", currentUser.uid);
+	
+	var xhr = new XMLHttpRequest();
+	xhr.upload.onprogress = function(event) {
+		//progress.max = event.total;
+		//progress.value = event.loaded;
+	}
+	xhr.onload = xhr.onerror = function() {
+		if (this.status == 200) {
+			func(xhr.response)
+		} else {
+			func(false)
+		}
+	};
+	xhr.open("POST", "php/uploadFiles.php", true);
+	xhr.send(formData);
+}
+
 function Form (isModal, zIndex, visible, opacity){
 	var that = this;
 	this.isModal = isModal == null ? true : isModal;

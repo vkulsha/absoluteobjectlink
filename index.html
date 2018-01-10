@@ -101,12 +101,16 @@ function hashchange(mapObjects_, frm){///old
 	loadData({"oid":oid, "cid":cid, "frm":frm});
 
 }
-function href(oid, cid){
-	if (!cid || cid == "null") {
-		cid = orm("gAnd",[[oid],"id",false," order by c desc ",true,true]);
-		cid = (cid && cid.length) ? cid[0][0] : 0;
+function href(oid_, cid_){
+	if (!cid_ || cid_ == "null") {
+		cid_ = orm("gAnd",[[oid_],"id",false," order by c desc ",true,true]);
+		cid_ = (cid_ && cid_.length) ? cid_[0][0] : 0;
 	};
-	location.href = "#oid="+oid+(cid ? "&cid="+cid : "");
+	if (oid == oid_ && cid == cid_) {
+		loadData({"oid":oid, "cid":cid, "frm":frmData});
+	} else {
+		location.href = "#oid="+oid_+(cid_ ? "&cid="+cid_ : "");
+	}
 };
 
 function getPolicy(arrFunctions){ return orm("getPolicy",[currentUser.uid, arrFunctions]); }

@@ -459,7 +459,8 @@ class ObjectLink {
 			$k = $this->gAnd([[$u, $p, 1596],"id"],true);
 			$k = $k && count($k) && count($k[0]) ? $k[0][0] : 0;
 			
-			return Array("uid"=>$u, "auth"=>!!$k, "cid"=>"1383", "oid"=>"1384");
+			//return Array("uid"=>$u, "auth"=>!!$k, "cid"=>"1383", "oid"=>"1384");
+			return Array("uid"=>$u, "auth"=>!!$k, "cid"=>"1251", "oid"=>"0");
 			
 		} catch (Exception $e){
 			print($e);

@@ -234,8 +234,9 @@ gDom("bLogin").onclick = function(){
 }
 	
 function loadData(params){
-	var oid_ = params.oid;
-	var cid_ = params.cid;
+	var oid_ = parseInt(params.oid);
+	var cid_ = parseInt(params.cid);
+
 	var frm  = params.frm;
 	var hist = params.hist;
 	frm.caption.innerHTML = "<strong style='color:#ffdd00'>"+(orm("gN",[cid_]) || "") + ":</strong> " + (orm("gN",[oid_]) || "");
@@ -378,7 +379,8 @@ function fillCard(params){
 		if (this.isClass)
 			//loadData({"oid":0, "cid":this.id, "frm":this.frm, "hist":this.hist})
 			//loadData({"oid":this.id, "cid":this.id, "frm":this.frm, "hist":this.hist})
-			href(this.id, this.id);
+			//href(this.id, this.id);
+			href(0, this.id);
 		else
 			href(this.id, this.cid);
 			//loadData({"oid":this.id, "cid":this.cid, "frm":this.frm, "hist":this.hist}); 

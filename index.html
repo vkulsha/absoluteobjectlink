@@ -45,6 +45,7 @@ var frmPaintLayers = new Form(!"isModal");
 var frmsData = [new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal")];
 var frmFilter = new Form(!"isModal");
 var currentFrmData = frmsData[0];
+currentFrmData.num = 0;
 
 var mapProps = orm("getMapProps",["map"]);
 var map = L.map('map', {editable: true});
@@ -78,15 +79,15 @@ var polylines = [];
 var selectedPoly;
 var zdzuPolygonsLayer = L.layerGroup();
 var paintedLayers = [];
-window.onhashchange = function(){
+window.onhashchange = function(){///old
 	hashchange(mapObjects, currentFrmData);
 }
-var oid = $_GET("oid", "#", location.hash);
-var cid = $_GET("cid", "#", location.hash);
+var oid = $_GET("oid", "#", location.hash);///old
+var cid = $_GET("cid", "#", location.hash);///old
 
-function hashchange(mapObjects_, frm){
+function hashchange(mapObjects_, frm){///old
 	oid = $_GET("oid", "#", location.hash);
-	cid = $_GET("cid", "#", location.hash);
+	cid = $_GET("cid", "#", location.hash);///old
 	if (!oid) return;
 	var ind = mapObjects_.objects.oid.indexOf(oid);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
@@ -129,55 +130,8 @@ gDom("bLogin").onclick = function(){
 		mapObjects = initMapOld(map);///
 		paintedLayers = loadPaintLayers(map, frmPaintLayers);
 		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
-
-		var div = cDom("DIV");
-		var eFilter = div.appendChild(cInp("EDIT"));
-		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frm, "filterForm":frmFilter});
-		frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
-		div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
-		var frmDataCaption = div.appendChild(cDom("LABEL")); frmDataCaption.style = "font-size:12px; font-weight:normal";
-		frm.setCaption(div);
-		frm.caption = frmDataCaption;
-		frm.setVisible(true);
-		var frmDom = frm.getDom();
-		frmDom.frm = frm;
-		frmDom.oncontextmenu = function(e){
-			if (getPolicy(["cO","cL"]) && e.target == this) {
-				var frm = this.frm;
-				var cid = frm.cid;
-				var oid = frm.oid;
-				var hist = frm.hist;
-				var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
-				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
-				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
-				if (newoid) href(oid, cid, frm);
-				e.stopPropagation();
-				return false;
-			}
-		};
-		frmDom.ondblclick = function(){
-			var domSelFiles = cInp("FILE");
-			this.appendChild(domSelFiles);
-			domSelFiles.multiple = true;
-			var bSend = cDom("BUTTON","Загрузить файлы",this);
-			bSend.domSelFiles = domSelFiles;
-			bSend.frm = this.frm;
-			bSend.onclick = function(){
-				var frm = this.frm;
-				var cid = frm.cid;
-				var oid = frm.oid;
-				
-				for (var i=0; i < this.domSelFiles.files.length; i++) {
-					var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
-					getXmlHttpReq(function(result){
-					}, "php/uploadFiles.php", formData, false, true)
-				};
-				href(oid, cid, frm);
-				this.domSelFiles.remove();
-				this.remove();
-			}
-		}
-
+		initFrmData(frm);
+		
 		if (oid) { 
 			hashchange(mapObjects, frm) 
 		} else { 
@@ -208,7 +162,58 @@ gDom("bLogin").onclick = function(){
 	}
 
 }
-	
+
+function initFrmData(frm) {
+	var div = cDom("DIV");
+	var eFilter = div.appendChild(cInp("EDIT"));
+	enableFilterEdit({"filterEditBox":eFilter, "dataForm":frm, "filterForm":frmFilter});
+	frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
+	div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
+	var frmDataCaption = div.appendChild(cDom("LABEL")); 
+	frmDataCaption.style = "font-size:12px; font-weight:normal";
+	frm.setCaption(div);
+	frm.caption = frmDataCaption;
+	frm.setVisible(true);
+	var frmDom = frm.getDom();
+	frmDom.frm = frm;
+	frmDom.oncontextmenu = function(e){
+		if (getPolicy(["cO","cL"]) && e.target == this) {
+			var frm = this.frm;
+			var cid = frm.cid;
+			var oid = frm.oid;
+			var hist = frm.hist;
+			var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
+			var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
+			var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
+			if (newoid) href(oid, cid, frm);
+			e.stopPropagation();
+			return false;
+		}
+	};
+	frmDom.ondblclick = function(){
+		var domSelFiles = cInp("FILE");
+		this.appendChild(domSelFiles);
+		domSelFiles.multiple = true;
+		var bSend = cDom("BUTTON","Загрузить файлы",this);
+		bSend.domSelFiles = domSelFiles;
+		bSend.frm = this.frm;
+		bSend.onclick = function(){
+			var frm = this.frm;
+			var cid = frm.cid;
+			var oid = frm.oid;
+			
+			for (var i=0; i < this.domSelFiles.files.length; i++) {
+				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
+				getXmlHttpReq(function(result){
+				}, "php/uploadFiles.php", formData, false, true)
+			};
+			href(oid, cid, frm);
+			this.domSelFiles.remove();
+			this.remove();
+		}
+	}
+}
+
 function loadData(params){
 	var oid_ = parseInt(params.oid);
 	var cid_ = parseInt(params.cid);
@@ -343,6 +348,17 @@ function fillCard(params){
 		} else {
 			href(this.id, this.cid, this.frm);
 		}
+		
+		var oldFrmData = currentFrmData;
+		var num = currentFrmData.num;
+		//if (num<5) {
+			num++;
+			currentFrmData = frmsData[num];
+			currentFrmData.num = num;
+			initFrmData(currentFrmData);
+			var _left = parseInt(oldFrmData.getLeft())+parseInt(oldFrmData.getWidth())+3+"px";
+			currentFrmData.setLeft(_left);
+		//}
 	}
 	
 	if (cell.isFile && !cell.isClass) {

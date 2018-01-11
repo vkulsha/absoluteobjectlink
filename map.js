@@ -64,7 +64,7 @@ function mapInit(map){
 	L.NewMenuControl = L.Control.extend({
 		options: {
 			position: 'topright',
-			callback: frmData.setVisible,
+			callback: currentFrmData.setVisible,
 			kind: 'Главное меню',
 			imgsrc: 'images/logo.png'
 		},

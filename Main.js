@@ -121,10 +121,6 @@ function mapPaint(coords, funcL, paramsL, map, cid){
 
 		} else {
 			location.href = "#oid="+this.oid+"&cid="+this.cid;
-			//var cid = orm("gAnd",[[this.oid],"id",false," order by c desc ",true,true]);
-			//cid = (cid && cid.length) ? cid[0][0] : 0;
-			//loadData({"oid":this.oid, "cid":cid, "frm":frmData, "hist":frmData.hist}); 
-			//frmData.setVisible(true);
 		}
 	}
 

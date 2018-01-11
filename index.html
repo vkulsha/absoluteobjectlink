@@ -34,11 +34,6 @@
 				</form>
 			</div>
 		</div>
-		
-		<!--<div id='logo' style='cursor:pointer; position:absolute; left:90%; top:10px; width:100px; z-index:100000; background-color:rgba(0,0,0,0.5); text-align:center; border-radius:5px'>
-			<img src='images/logo.png' width='64'/><br>
-			<label>База Данных</label>
-		</div>-->
 	
 <script lang="javascript">
 var classes_;
@@ -47,8 +42,9 @@ var classes2 = [];
 var classes3 = function(cid){ return findObjVal(classes,cid)};
 var fs = 11;
 var frmPaintLayers = new Form(!"isModal");
-var frmData = new Form(!"isModal");
+var frmsData = [new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal")];
 var frmFilter = new Form(!"isModal");
+var currentFrmData = frmsData[0];
 
 var mapProps = orm("getMapProps",["map"]);
 var map = L.map('map', {editable: true});
@@ -57,17 +53,17 @@ map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
 var isPaintMode = false;
 var line;
 map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
-	endPaint(e);
+	endPaint(e, currentFrmData);
 })
-function endPaint(e){
+function endPaint(e, frm){
 	mapProps.mapFunctions.forEach(function(obj){
 		if (e.layer instanceof L[obj.drawFunc]){
-			var cid = frmData.cid;
-			var oid = frmData.oid;
+			var cid = frm.cid;
+			var oid = frm.oid;
 			var func = obj.drawFunc;
 			var params = "";
 			var latlngs = e.layer[obj.getLatLngFunc]();
-			if (confirm("Привязать созданную линию к объекту '"+frmData.getCaption().innerHTML+"'")) {
+			if (confirm("Привязать созданную линию к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
 				var coords = JSON.stringify(latlngs,["lat","lng"]);
 				var oid = orm("createPolygonObject",[oid, func, params, coords]);
 				console.log("create drawing:",oid);
@@ -82,15 +78,15 @@ var polylines = [];
 var selectedPoly;
 var zdzuPolygonsLayer = L.layerGroup();
 var paintedLayers = [];
-window.onhashchange = function(){///old
-	hashchange(mapObjects, frmData);
+window.onhashchange = function(){
+	hashchange(mapObjects, currentFrmData);
 }
-var oid = $_GET("oid", "#", location.hash);///old
-var cid = $_GET("cid", "#", location.hash);///old
+var oid = $_GET("oid", "#", location.hash);
+var cid = $_GET("cid", "#", location.hash);
 
-function hashchange(mapObjects_, frm){///old
+function hashchange(mapObjects_, frm){
 	oid = $_GET("oid", "#", location.hash);
-	cid = $_GET("cid", "#", location.hash);///old
+	cid = $_GET("cid", "#", location.hash);
 	if (!oid) return;
 	var ind = mapObjects_.objects.oid.indexOf(oid);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
@@ -102,13 +98,13 @@ function hashchange(mapObjects_, frm){///old
 	loadData({"oid":oid, "cid":cid, "frm":frm});
 
 }
-function href(oid_, cid_){
+function href(oid_, cid_, frm){
 	if (!cid_ || cid_ == "null") {
 		cid_ = orm("gAnd",[[oid_],"id",false," order by c desc ",true,true]);
 		cid_ = (cid_ && cid_.length) ? cid_[0][0] : 0;
 	};
 	if (oid == oid_ && cid == cid_) {
-		loadData({"oid":oid, "cid":cid, "frm":frmData});
+		loadData({"oid":oid, "cid":cid, "frm":frm});
 	} else {
 		location.href = "#oid="+oid_+(cid_ ? "&cid="+cid_ : "");
 	}
@@ -116,14 +112,12 @@ function href(oid_, cid_){
 
 function getPolicy(arrFunctions){ return orm("getPolicy",[currentUser.uid, arrFunctions]); }
 
-//gDom("logo").onclick = function(){ frmData.setVisible(true); };
-
 gDom("bLogin").onclick = function(){
 	var auth = false;
 	var eUser = document.fLogin.eUser.value;;
 	var password = document.fLogin.ePassword.value;
 
-	var openview = function() {
+	var openview = function(frm) {
 		classes_ = orm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
 		classes = hash4arr(classes_);
 		var arr = orm("gAnd",[[1],"id"]);
@@ -134,19 +128,19 @@ gDom("bLogin").onclick = function(){
 		mapInit(map);
 		mapObjects = initMapOld(map);///
 		paintedLayers = loadPaintLayers(map, frmPaintLayers);
+		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
 
 		var div = cDom("DIV");
 		var eFilter = div.appendChild(cInp("EDIT"));
+		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frm, "filterForm":frmFilter});
+		frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
 		div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
 		var frmDataCaption = div.appendChild(cDom("LABEL")); frmDataCaption.style = "font-size:12px; font-weight:normal";
-		frmData.setCaption(div);
-		frmData.caption = frmDataCaption;
-		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frmData, "filterForm":frmFilter});
-		frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
-		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
-		frmData.setVisible(true);
-		var frmDom = frmData.getDom();
-		frmDom.frm = frmData;
+		frm.setCaption(div);
+		frm.caption = frmDataCaption;
+		frm.setVisible(true);
+		var frmDom = frm.getDom();
+		frmDom.frm = frm;
 		frmDom.oncontextmenu = function(e){
 			if (getPolicy(["cO","cL"]) && e.target == this) {
 				var frm = this.frm;
@@ -156,7 +150,7 @@ gDom("bLogin").onclick = function(){
 				var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
 				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
 				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
-				if (newoid) href(oid, cid);
+				if (newoid) href(oid, cid, frm);
 				e.stopPropagation();
 				return false;
 			}
@@ -178,25 +172,25 @@ gDom("bLogin").onclick = function(){
 					getXmlHttpReq(function(result){
 					}, "php/uploadFiles.php", formData, false, true)
 				};
-				href(oid, cid);
+				href(oid, cid, frm);
 				this.domSelFiles.remove();
 				this.remove();
 			}
 		}
 
 		if (oid) { 
-			hashchange(mapObjects, frmData) 
+			hashchange(mapObjects, frm) 
 		} else { 
-			href(currentUser.oid, currentUser.cid);
+			href(currentUser.oid, currentUser.cid, frm);
 		}
 		///
 	}
 	
-	var getLDAP = function() {
+	var getLDAP = function(frm) {
 		getXmlHttpReq(function(responce) {
 			var resp = JSON.parse(responce);
 			if (resp) {
-				openview();
+				openview(frm);
 			} else {
 			}
 		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
@@ -207,9 +201,9 @@ gDom("bLogin").onclick = function(){
 	if (auth && auth.uid) {
 		currentUser = auth;
 		if (auth.auth) {
-			openview();
+			openview(currentFrmData);
 		} else {
-			getLDAP();
+			getLDAP(currentFrmData);
 		}
 	}
 
@@ -281,16 +275,14 @@ function loadData(params){
 
 function enableFilterEdit(params){
 	var eFilter = params.filterEditBox;
-	var frmData = params.dataForm;
+	var frmD = params.dataForm;
 	var frmFilter = params.filterForm;
 	
-	var frmFilter = this.frmFilter;
-	var frmData = this.frmData;
 	eFilter.style = "color:#fff; background-color:rgba(0,0,0,0.1);";
 	eFilter.placeholder = "поиск по базе данных";
 	eFilter.parentElement.align = "left";
 	eFilter.frmFilter = frmFilter;
-	eFilter.frmData = frmData;
+	eFilter.frmD = frmD;
 	eFilter.onkeydown = function(e){
 		if (e.key == "Enter") {
 			if (this.value) {
@@ -308,13 +300,13 @@ function enableFilterEdit(params){
 						var id = arr[i][0];
 						var n = arr[i][1];
 						var cell = cDom("BUTTON");
-						fillCard({"data":arr[i], "cell":cell, "frm":this.frmData, "cid":null, "hist":this.frmData.hist})
+						fillCard({"data":arr[i], "cell":cell, "frm":this.frmD, "cid":null, "hist":this.frmD.hist})
 						td.appendChild(cell);
 					}
 					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
 				}
 			} else {
-				href(currentUser.oid, currentUser.cid);
+				href(currentUser.oid, currentUser.cid, this.frmD);
 			}
 		}
 	}
@@ -341,15 +333,15 @@ function fillCard(params){
 	cell.frm = frm;
 	cell.onclick = function(){ 
 		if (this.cid == classes["Объект"]) {
-			href(this.id, this.cid);
+			href(this.id, this.cid, this.frm);
 		}
 		if (!this.hist) this.hist = {"back":[],"front":[]};
 		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
 		this.hist.front = [];
 		if (this.isClass) {
-			href(this.frm.oid ? 0 : this.id, this.id);
+			href(this.frm.oid ? 0 : this.id, this.id, this.frm);
 		} else {
-			href(this.id, this.cid);
+			href(this.id, this.cid, this.frm);
 		}
 	}
 	
@@ -395,7 +387,7 @@ function fillCard(params){
 			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-			if (newoid) href(oid_, cid_);;
+			if (newoid) href(oid_, cid_, frm);;
 			e.stopPropagation();
 			return false;
 		}

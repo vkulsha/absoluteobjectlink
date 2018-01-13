@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-function mapInit(map){
+function mapInit(map, frmsData){
 	L.EditControl = L.Control.extend({
 		options: {
 			position: 'topright',
@@ -64,7 +64,7 @@ function mapInit(map){
 	L.NewMenuControl = L.Control.extend({
 		options: {
 			position: 'topright',
-			callback: currentFrmData.setVisible,
+			callback: null,
 			kind: 'Главное меню',
 			imgsrc: 'images/logo.png'
 		},
@@ -79,7 +79,7 @@ function mapInit(map){
 			link.appendChild(img);
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
-						this.options.callback(true);
+						frmsData[frmsData.length-1].setVisible(true);	
 					  }, this);
 		
 			return container;

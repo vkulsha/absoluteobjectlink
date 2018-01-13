@@ -42,10 +42,9 @@ var classes2 = [];
 var classes3 = function(cid){ return findObjVal(classes,cid)};
 var fs = 11;
 var frmPaintLayers = new Form(!"isModal");
-var frmsData = [new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal"), new Form(!"isModal")];
 var frmFilter = new Form(!"isModal");
-var currentFrmData = frmsData[0];
-currentFrmData.num = 0;
+var frmsData = [];
+var frmDataCnt = 5;
 
 var mapProps = orm("getMapProps",["map"]);
 var map = L.map('map', {editable: true});
@@ -54,11 +53,12 @@ map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
 var isPaintMode = false;
 var line;
 map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
-	endPaint(e, currentFrmData);
+	endPaint(e);
 })
-function endPaint(e, frm){
+function endPaint(e){
 	mapProps.mapFunctions.forEach(function(obj){
 		if (e.layer instanceof L[obj.drawFunc]){
+			var frm = frmsData[frmsData.length-1];
 			var cid = frm.cid;
 			var oid = frm.oid;
 			var func = obj.drawFunc;
@@ -80,36 +80,65 @@ var selectedPoly;
 var zdzuPolygonsLayer = L.layerGroup();
 var paintedLayers = [];
 window.onhashchange = function(){///old
-	hashchange(mapObjects, currentFrmData);
+	hashchange(mapObjects);
 }
-var oid = $_GET("oid", "#", location.hash);///old
-var cid = $_GET("cid", "#", location.hash);///old
 
-function hashchange(mapObjects_, frm){///old
-	oid = $_GET("oid", "#", location.hash);
-	cid = $_GET("cid", "#", location.hash);///old
-	if (!oid) return;
-	var ind = mapObjects_.objects.oid.indexOf(oid);
+function hashchange(mapObjects_){
+	var ret = openCurrentFrmDataFromHash();
+	loadData({"oid":ret.oids, "cid":ret.cids, "frm":ret.frm});
+
+	var ind = mapObjects_.objects.oid.indexOf(ret.oids);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
-
-	if (!cid || cid == "null") {
-		cid = orm("gAnd",[[oid],"id",false," order by c desc ",true,true]);
-		cid = (cid && cid.length) ? cid[0][0] : 0;
-	};
-	loadData({"oid":oid, "cid":cid, "frm":frm});
-
+	
 }
-function href(oid_, cid_, frm){
-	if (!cid_ || cid_ == "null") {
-		cid_ = orm("gAnd",[[oid_],"id",false," order by c desc ",true,true]);
-		cid_ = (cid_ && cid_.length) ? cid_[0][0] : 0;
-	};
-	if (oid == oid_ && cid == cid_) {
-		loadData({"oid":oid, "cid":cid, "frm":frm});
+
+function href(oid_, cid_, reload){
+	if (reload || (("#oid="+oid_+"&cid="+cid_+"") == location.hash)) {
+		hashchange(mapObjects, true)
 	} else {
-		location.href = "#oid="+oid_+(cid_ ? "&cid="+cid_ : "");
+		location.href = "#oid="+oid_+"&cid="+cid_+"";
 	}
 };
+
+function openCurrentFrmDataFromHash(){
+	var oids = $_GET("oid", "#", location.hash);
+	var cids = $_GET("cid", "#", location.hash);
+
+	if (!parseInt(cids)) {
+		cids = orm("gAnd",[[oids],"id",false," order by c desc ",true,true]);
+		cids = (cids && cids.length) ? cids[0][0] : 0;
+	};
+
+	var currentFrmData = frmsData[frmsData.length-1];
+
+	if (frmsData.length < frmDataCnt){
+		var oldFrmData = frmsData[frmsData.length-1];
+		frmsData.push(new Form(!"isModal").setCloseFunc(function(){
+			if (this.ind > 0) {
+				frmsData.splice(this.ind, 1);
+				refreshFrmsIndex(frmsData);
+			} else {
+				refreshFrmsIndex(frmsData);
+				this.setLeft("0px");
+			}
+		}));
+		
+		currentFrmData = frmsData[frmsData.length-1];
+		currentFrmData.ind = frmsData.length-1;
+		initFrmData(currentFrmData);
+		var _left = oldFrmData ? parseInt(oldFrmData.getLeft())+parseInt(oldFrmData.getWidth())+3+"px" : "0px";
+		currentFrmData.setLeft(_left);
+	}
+	
+	return {"oids":oids, "cids":cids, "frm":currentFrmData};
+
+}
+
+function refreshFrmsIndex(frmsData){
+	for (var i=0; i < frmsData.length; i++){
+		frmsData[i].ind = i;
+	}	
+}
 
 function getPolicy(arrFunctions){ return orm("getPolicy",[currentUser.uid, arrFunctions]); }
 
@@ -118,7 +147,7 @@ gDom("bLogin").onclick = function(){
 	var eUser = document.fLogin.eUser.value;;
 	var password = document.fLogin.ePassword.value;
 
-	var openview = function(frm) {
+	var openview = function() {
 		classes_ = orm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
 		classes = hash4arr(classes_);
 		var arr = orm("gAnd",[[1],"id"]);
@@ -126,25 +155,19 @@ gDom("bLogin").onclick = function(){
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
-		mapInit(map);
 		mapObjects = initMapOld(map);///
+		href(currentUser.oid, currentUser.cid, !!location.hash);
 		paintedLayers = loadPaintLayers(map, frmPaintLayers);
 		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
-		initFrmData(frm);
-		
-		if (oid) { 
-			hashchange(mapObjects, frm) 
-		} else { 
-			href(currentUser.oid, currentUser.cid, frm);
-		}
+		mapInit(map, frmsData);
 		///
 	}
 	
-	var getLDAP = function(frm) {
+	var getLDAP = function() {
 		getXmlHttpReq(function(responce) {
 			var resp = JSON.parse(responce);
 			if (resp) {
-				openview(frm);
+				openview();
 			} else {
 			}
 		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
@@ -155,9 +178,9 @@ gDom("bLogin").onclick = function(){
 	if (auth && auth.uid) {
 		currentUser = auth;
 		if (auth.auth) {
-			openview(currentFrmData);
+			openview();
 		} else {
-			getLDAP(currentFrmData);
+			getLDAP();
 		}
 	}
 
@@ -185,7 +208,7 @@ function initFrmData(frm) {
 			var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
 			var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
 			var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
-			if (newoid) href(oid, cid, frm);
+			if (newoid) href(oid, cid);
 			e.stopPropagation();
 			return false;
 		}
@@ -207,7 +230,7 @@ function initFrmData(frm) {
 				getXmlHttpReq(function(result){
 				}, "php/uploadFiles.php", formData, false, true)
 			};
-			href(oid, cid, frm);
+			href(oid, cid);
 			this.domSelFiles.remove();
 			this.remove();
 		}
@@ -311,7 +334,7 @@ function enableFilterEdit(params){
 					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
 				}
 			} else {
-				href(currentUser.oid, currentUser.cid, this.frmD);
+				href(currentUser.oid, currentUser.cid);
 			}
 		}
 	}
@@ -337,28 +360,14 @@ function fillCard(params){
 	cell.hist = hist;
 	cell.frm = frm;
 	cell.onclick = function(){ 
-		if (this.cid == classes["Объект"]) {
-			href(this.id, this.cid, this.frm);
-		}
 		if (!this.hist) this.hist = {"back":[],"front":[]};
 		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
 		this.hist.front = [];
 		if (this.isClass) {
-			href(this.frm.oid ? 0 : this.id, this.id, this.frm);
+			href(this.frm.oid ? 0 : this.id, this.id);
 		} else {
-			href(this.id, this.cid, this.frm);
+			href(this.id, this.cid);
 		}
-		
-		var oldFrmData = currentFrmData;
-		var num = currentFrmData.num;
-		//if (num<5) {
-			num++;
-			currentFrmData = frmsData[num];
-			currentFrmData.num = num;
-			initFrmData(currentFrmData);
-			var _left = parseInt(oldFrmData.getLeft())+parseInt(oldFrmData.getWidth())+3+"px";
-			currentFrmData.setLeft(_left);
-		//}
 	}
 	
 	if (cell.isFile && !cell.isClass) {
@@ -403,7 +412,7 @@ function fillCard(params){
 			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-			if (newoid) href(oid_, cid_, frm);;
+			if (newoid) href(oid_, cid_);;
 			e.stopPropagation();
 			return false;
 		}

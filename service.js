@@ -106,9 +106,10 @@ function uploadFile(file, func) {
 	xhr.send(formData);
 }
 
-function Form (isModal, zIndex, visible, opacity){
+function Form (isModal, closeFunc, zIndex, visible, opacity){
 	var that = this;
 	this.isModal = isModal == null ? true : isModal;
+	this.closeFunc = closeFunc;
 	this.zIndex = zIndex || 200000;
 	this.opacity = opacity || "0.7";
 	this.visible = visible;
@@ -126,7 +127,6 @@ function Form (isModal, zIndex, visible, opacity){
 	dom.style.height = "100%";
 	dom.style.backgroundColor = "rgba(0,0,0,"+this.opacity+")";
 	this.dom = dom;
-	
 
 	var frm = dom.appendChild(cDom("DIV"));
 	this.frm = frm;
@@ -159,7 +159,7 @@ function Form (isModal, zIndex, visible, opacity){
 
 	var bclose = td3.appendChild(cDom("BUTTON"));
 	bclose.innerHTML = "&times";
-	bclose.onclick = function() { that.setVisible(false); }
+	bclose.onclick = function() { that.setVisible(false); if (that.closeFunc) that.closeFunc(); }
 
 	var bminmax = td3.appendChild(cDom("BUTTON"));
 	bminmax.innerHTML = "[]";
@@ -177,6 +177,7 @@ function Form (isModal, zIndex, visible, opacity){
 	var tdF = tr.appendChild(cDom("TD"));
 	this.foot = tdF;
 	
+	this.setCloseFunc = function(val) { that.closeFunc = val; return that;}
 	this.setVisible = function(val) { that.visible = val; that.dom.hidden = !that.visible; }
 	this.getBody = function() { return that.body; }
 	this.getDom = function() { return that.frm; }
@@ -203,92 +204,9 @@ function Form (isModal, zIndex, visible, opacity){
 	}
 	this.setCaption = function(val) { return that.caption.appendChild(val); }
 	this.getCaption = function() { return that.caption; }
-
+	//return that;
 	
 }
-
-function OldForm (isModal, zIndex, parentDom, width_, height_, left_, top_, visible){
-	var that = this;
-	var dom = cDom("DIV");
-	isModal = isModal == null ? true : isModal;
-	parentDom = parentDom || document.body;
-	if (parentDom) parentDom.appendChild(dom);
-	dom.style.display = visible ? "block" : "none";
-	dom.style.position = "absolute";
-	dom.style.zIndex = zIndex || 200000;
-	dom.style.left = isModal ? 0 : left_ || 0;;
-	dom.style.top = isModal ? 0 : top_ || 0;;
-	dom.style.width = isModal ? "100%" : width_ || "auto";
-	dom.style.height = isModal ? "100%" : height_ || "auto";
-	dom.style.backgroundColor = "rgba(0,0,0,0.7)";
-	//dom.style.overflow = "hidden";
-	//dom.style.overflowY = "scroll";
-
-	var body = dom.appendChild(cDom("DIV"));
-	body.style.position = "relative";
-	body.style.backgroundColor = "rgba(0,0,0,0.1)";
-	body.style.margin = "auto";
-	body.style.padding = "5px 5px 20px 5px";
-	body.style.left = left_ || 0;
-	body.style.top = top_ || 0;
-	body.style.width = width_ || "99%";
-	body.style.height = height_ || body.style.height;
-	body.style.boxShadow = "0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)";
-	
-	var head = cDom("DIV");
-	head.style.color = "#fff";
-	head.style.float = "right";
-	head.style.fontSize = "28px";
-	head.style.fontWeight = "bold";
-	head.style.cursor = "pointer";
-	head.style.padding = "0px 5px";
-	var bback = head.appendChild(cDom("BUTTON"));
-	bback.innerHTML = "<<&nbsp&nbsp&nbsp";
-	bback.hidden = true;
-	var bfront = head.appendChild(cDom("BUTTON"));
-	bfront.innerHTML = ">>";
-	bfront.hidden = true;
-	var fminmax = head.appendChild(cDom("BUTTON"));
-	fminmax.innerHTML = "[]";
-	fminmax.onclick = function() { that.setIsModal(!isModal); }
-	var fclose = head.appendChild(cDom("SPAN"));
-	fclose.innerHTML = "&times";
-	fclose.onclick = function() { that.setVisible(false); }
-	
-	var data = cDom("DIV");
-	data.style.color = "#fff";
-	data.style.fontSize = "14px";
-	data.style.cursor = "pointer";
-	data.style.padding = "0px 5px";
-	data.style.backgroundColor = "rgba(0,0,0,0.1)";
-	data.style.overflow = "hidden";
-	data.style.overflowY = "scroll";
-	
-	var foot = cDom("DIV");
-
-	body.innerHTML = "";
-	body.appendChild(head);
-	var br = cDom("BR");
-	body.appendChild(br);
-	body.appendChild(data);
-	body.appendChild(foot);
-	
-	this.setVisible = function(val) { dom.style.display = val ? "block" : "none"; }
-	this.getDom = function() { return dom; }
-	this.getBody = function() { return data; }
-	this.setWidth = function(val) {	body.style.width = val; }
-	this.setHeight = function(val) { body.style.height = val; }
-	this.setTop = function(val) { body.style.top = val; }
-	this.setLeft = function(val) { body.style.left = val; }
-	this.setZIndex = function(val) { dom.style.zIndex = val; }
-	this.setBack = function(val) { bback.onclick = val; }
-	this.getBack = function(val) { return bback; }
-	this.setFront = function(val) { bfront.onclick = val; }
-	this.getFront = function(val) { return bfront;  }
-	this.setIsModal = function(val) { isModal = val; dom.style.width = isModal ? "100%" : "auto"; dom.style.height = isModal ? "100%" : "auto"; }
-	
-}	
-
 
 /***	
 	return object or array from query-resultset depending on the @query and @type

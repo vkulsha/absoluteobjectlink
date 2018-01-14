@@ -44,7 +44,7 @@ var fs = 11;
 var frmPaintLayers = new Form(!"isModal");
 var frmFilter = new Form(!"isModal");
 var frmsData = [];
-var frmDataCnt = 5;
+var frmDataCnt = window.localStorage && window.localStorage.frmDataCnt ? window.localStorage.frmDataCnt : 4;
 
 var mapProps = orm("getMapProps",["map"]);
 var map = L.map('map', {editable: true});
@@ -83,18 +83,20 @@ window.onhashchange = function(){///old
 	hashchange(mapObjects);
 }
 
-function hashchange(mapObjects_){
-	var ret = openCurrentFrmDataFromHash();
-	loadData({"oid":ret.oids, "cid":ret.cids, "frm":ret.frm});
+function hashchange(mapObjects_, notGetOidCid){
+	var ret = notGetOidCid ? {"frm": frmsData[frmsData.length-1]} : openCurrentFrmDataFromHash();
+	loadData({/*"oid":ret.oids, "cid":ret.cids,*/"frm":ret.frm});
 
 	var ind = mapObjects_.objects.oid.indexOf(ret.oids);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
 	
 }
 
-function href(oid_, cid_, reload){
-	if (reload || (("#oid="+oid_+"&cid="+cid_+"") == location.hash)) {
-		hashchange(mapObjects, true)
+function href(oid_, cid_, loadwinthhash){
+	if ((("#oid="+oid_+"&cid="+cid_+"") == location.hash)) {
+		hashchange(mapObjects, false)
+	} else if (loadwinthhash) {
+		hashchange(mapObjects, false)
 	} else {
 		location.href = "#oid="+oid_+"&cid="+cid_+"";
 	}
@@ -110,25 +112,30 @@ function openCurrentFrmDataFromHash(){
 	};
 
 	var currentFrmData = frmsData[frmsData.length-1];
-
-	if (frmsData.length < frmDataCnt){
+	
+	if (currentFrmData && currentFrmData.oid && currentFrmData.oid == oids && currentFrmData.cid && currentFrmData.cid == cids){
+	} else if (frmsData.length < frmDataCnt){
 		var oldFrmData = frmsData[frmsData.length-1];
 		frmsData.push(new Form(!"isModal").setCloseFunc(function(){
-			if (this.ind > 0) {
-				frmsData.splice(this.ind, 1);
-				refreshFrmsIndex(frmsData);
-			} else {
-				refreshFrmsIndex(frmsData);
+			for (var i=0; i < frmsData.length; i++){
+				if (i>=this.ind) frmsData[i].setVisible(false);
+			}	
+			frmsData.splice(this.ind, frmsData.length-this.ind);
+
+			if (this.ind == 0) {
 				this.setLeft("0px");
+				href(currentUser.oid, currentUser.cid);
 			}
 		}));
 		
 		currentFrmData = frmsData[frmsData.length-1];
 		currentFrmData.ind = frmsData.length-1;
-		initFrmData(currentFrmData);
 		var _left = oldFrmData ? parseInt(oldFrmData.getLeft())+parseInt(oldFrmData.getWidth())+3+"px" : "0px";
 		currentFrmData.setLeft(_left);
 	}
+		currentFrmData.oid = parseInt(oids);
+		currentFrmData.cid = parseInt(cids);
+		initFrmData(currentFrmData);
 	
 	return {"oids":oids, "cids":cids, "frm":currentFrmData};
 
@@ -137,6 +144,12 @@ function openCurrentFrmDataFromHash(){
 function refreshFrmsIndex(frmsData){
 	for (var i=0; i < frmsData.length; i++){
 		frmsData[i].ind = i;
+	}	
+}
+
+function closeFrmsDataTillInd(ind){
+	for (var i=0; i < frmsData.length; i++){
+		if (i>=ind) frmsData[i].closeFunc();
 	}	
 }
 
@@ -151,7 +164,7 @@ gDom("bLogin").onclick = function(){
 		classes_ = orm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
 		classes = hash4arr(classes_);
 		var arr = orm("gAnd",[[1],"id"]);
-		for (var i=0; i < arr.length; i++) classes2.push(arr[i][0]);
+		for (var i=0; i < arr.length; i++) classes2.push(parseInt(arr[i][0]));
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
@@ -188,39 +201,76 @@ gDom("bLogin").onclick = function(){
 
 function initFrmData(frm) {
 	var div = cDom("DIV");
-	var eFilter = div.appendChild(cInp("EDIT"));
-	enableFilterEdit({"filterEditBox":eFilter, "dataForm":frm, "filterForm":frmFilter});
-	frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
-	div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
+	if (frm.ind == 0) {
+		var eFilter = div.appendChild(cInp("EDIT"));
+		enableFilterEdit({"filterEditBox":eFilter, "dataForm":frm, "filterForm":frmFilter});
+		frmFilter.setCaption(cDom("LABEL","Результаты поиска:")).style.color = "#ffdd00";
+		var l = div.appendChild(cDom("LABEL"));
+		l.innerHTML = " окон ";
+		l.style.fontSize = "11px";
+		var sel = div.appendChild(cDom("SELECT"));
+		fillSelectDom(sel, [[1,1],[2,2],[3,3],[4,4],[5,5]]);
+		sel.value = frmDataCnt;
+		sel.onchange = function(){
+			frmDataCnt = this.value;
+			if (window.localStorage) window.localStorage.frmDataCnt = frmDataCnt;
+		}
+		div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
+	}
 	var frmDataCaption = div.appendChild(cDom("LABEL")); 
+	frmDataCaption.innerHTML = "<strong style='color:#ffdd00'>"+(orm("gN",[frm.cid]) || "") + ":</strong> " + (orm("gN",[frm.oid]) || "")
 	frmDataCaption.style = "font-size:12px; font-weight:normal";
 	frm.setCaption(div);
-	frm.caption = frmDataCaption;
 	frm.setVisible(true);
-	var frmDom = frm.getDom();
-	frmDom.frm = frm;
-	frmDom.oncontextmenu = function(e){
-		if (getPolicy(["cO","cL"]) && e.target == this) {
+	
+	var cnt = frm.getBody();
+	cnt.innerHTML = "";
+	
+	var tb = cnt.appendChild(cDom("TABLE"));
+	tb.style.width = '100%';
+	var tbData = cnt.appendChild(cDom("TABLE"));
+	tbData.style.width = '100%';
+	cnt.tbData = tbData;
+	
+	var tr = tb.appendChild(cDom("TR"));
+	var td = tr.appendChild(cDom("TD"));
+	frm.editLayer = tr;
+	tr.hidden = true;
+	
+	var bC = td.appendChild(cDom("BUTTON"));
+	bC.innerHTML = "Класс (+) ";
+	bC.frm = frm;
+	bC.onclick = function(){
+		if (getPolicy(["cO","cL"])) {
 			var frm = this.frm;
 			var cid = frm.cid;
 			var oid = frm.oid;
-			var hist = frm.hist;
 			var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
 			var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
 			var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
 			if (newoid) href(oid, cid);
-			e.stopPropagation();
 			return false;
 		}
-	};
-	frmDom.ondblclick = function(){
-		var domSelFiles = cInp("FILE");
-		this.appendChild(domSelFiles);
-		domSelFiles.multiple = true;
-		var bSend = cDom("BUTTON","Загрузить файлы",this);
-		bSend.domSelFiles = domSelFiles;
-		bSend.frm = this.frm;
-		bSend.onclick = function(){
+	}
+	
+	var bF = td.appendChild(cDom("BUTTON"));
+	var dF = td.appendChild(cDom("DIV"));
+	bF.innerHTML = "Файл (+) ";
+	bF.frm = frm;
+	bF.dF = dF;
+	bF.onclick = function(){
+		this.dF.hidden = !this.dF.hidden;
+	}
+	
+	dF.hidden = true;
+	var domSelFiles = cInp("FILE");
+	dF.appendChild(domSelFiles);
+	domSelFiles.multiple = true;
+	var bSend = cDom("BUTTON","Загрузить файлы",dF);
+	bSend.domSelFiles = domSelFiles;
+	bSend.frm = frm;
+	bSend.onclick = function(){
+		if (getPolicy(["cO","cL"])) {
 			var frm = this.frm;
 			var cid = frm.cid;
 			var oid = frm.oid;
@@ -231,113 +281,70 @@ function initFrmData(frm) {
 				}, "php/uploadFiles.php", formData, false, true)
 			};
 			href(oid, cid);
-			this.domSelFiles.remove();
-			this.remove();
-		}
-	}
-}
-
-function loadData(params){
-	var oid_ = parseInt(params.oid);
-	var cid_ = parseInt(params.cid);
-
-	var frm  = params.frm;
-	var hist = params.hist;
-	frm.caption.innerHTML = "<strong style='color:#ffdd00'>"+(orm("gN",[cid_]) || "") + ":</strong> " + (orm("gN",[oid_]) || "");
-	frm.oid = oid_;
-	frm.cid = cid_;
-	frm.hist = hist;
-	var bback = frm.getBack();
-	var bfront = frm.getFront();
-	bback.hidden = true;
-	bfront.hidden = true;
-	if (hist) {
-		var back = hist.back;
-		if (back && back.length) {
-			bback.hidden = false;
-			bback.hist = hist;
-			bback.frm = frm;
-			bback.oid = oid_;
-			bback.cid = cid_;
-			frm.setBack(function(){
-				var oid = hist.back[hist.back.length-1].oid;
-				var cid = hist.back[hist.back.length-1].cid;
-				this.hist.back.splice(-1);
-				this.hist.front.push({"oid":this.oid, "cid":this.cid});
-				loadData({"oid":oid, "cid":cid, "frm":this.frm, "hist":this.hist}); 
-			});
+			//this.domSelFiles.remove();
+			//this.remove();
 		}
 	}
 	
-	var cnt = frm.getBody();
-	cnt.innerHTML = "";
-	var isFile = false;
-	var isClass = false;
+}
+
+function loadData(params){
+	var frm  = params.frm;
+	var oid_ = frm.oid;
+	var cid_ = frm.cid;
+
 	var getClasses = function(ids){return orm("gAnd",[ids,"id,n",false," order by c desc, n ",false,true])};
 	var getObjects = function(ids){return orm("gAnd",[ids,"id,n",true," order by c desc, n ",false,false])};
 	var arrCls = oid_ || cid_ == 1 ? getClasses([cid_]) : [[cid_, classes3(cid_)]];
 	if (!arrCls.length) return false;
 
-	var tb = cnt.appendChild(cDom("TABLE"));
+	//frm.oid = oid_;
+	//frm.cid = cid_;
+	
+	var cnt = frm.getBody();
+	//cnt.innerHTML = "";
+	
+	frm.buttons = [];
+	
+	//var tb = cnt.appendChild(cDom("TABLE"));
+	var tb = cnt.tbData;
 	tb.style.width = '100%';
+	tb.innerHTML = "";
+	
 	for (var i=0; i < arrCls.length; i++){
 		var tr = tb.appendChild(cDom("TR"));
 		var td = tr.appendChild(cDom("TD"));
 		
-		var cell1 = td.appendChild(cDom("BUTTON"));
-		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":cid_, "hist":hist});
-
-		var arr = [cell1.id];
+		var _tb = td.appendChild(cDom("TABLE"));
+		_tb.style.width = '100%';
+		var _tr = _tb.appendChild(cDom("TR"));
+		var _td = _tr.appendChild(cDom("TD"));
+		var cell1 = _td.appendChild(cDom("BUTTON"));
+		frm.buttons.push(cell1);
+		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":cid_});
+		
+		var arr = [cell1.oid];
 		if (oid_) arr.push(oid_);
 		var arrObj = getObjects(arr);
+		if (arrObj.length == 0 || arrObj.length > 1) cell1.innerHTML += " ("+arrObj.length+")"
+		
+		var _tr2 = _tb.appendChild(cDom("TR"));
+		cell1.buttons = _tr2;
+		_tr2.hidden = arrObj.length > 5;
+		
+		var _td2 = _tr2.appendChild(cDom("TD"));
+		var _tb2 = _td2.appendChild(cDom("TABLE"));
+		_tb2.style.width = '100%';
 		for (var j=0; j < arrObj.length; j++){
-			var tr = tb.appendChild(cDom("TR"));
-			var td = tr.appendChild(cDom("TD"));
-			var cell2 = td.appendChild(cDom("BUTTON"));
-			fillCard({"data":arrObj[j], "cell":cell2, "frm":frm, "cid":cell1.id, "hist":hist});
+			var _tr3 = _tb2.appendChild(cDom("TR"));
+			var _td3 = _tr3.appendChild(cDom("TD"));
+			var cell2 = _td3.appendChild(cDom("BUTTON"));
+			frm.buttons.push(cell2);
+			fillCard({"data":arrObj[j], "cell":cell2, "frm":frm, "cid":cell1.oid});
 		
 		}
 	}
 	frm.setVisible(true);
-}
-
-function enableFilterEdit(params){
-	var eFilter = params.filterEditBox;
-	var frmD = params.dataForm;
-	var frmFilter = params.filterForm;
-	
-	eFilter.style = "color:#fff; background-color:rgba(0,0,0,0.1);";
-	eFilter.placeholder = "поиск по базе данных";
-	eFilter.parentElement.align = "left";
-	eFilter.frmFilter = frmFilter;
-	eFilter.frmD = frmD;
-	eFilter.onkeydown = function(e){
-		if (e.key == "Enter") {
-			if (this.value) {
-				var arr = orm("gO",[this.value, false, true, [classes["Объект"]] ]);
-				if (arr && arr.length){
-					frmFilter.setVisible(true);
-					frmFilter.setWidth("300px");
-					var frmbody = frmFilter.getBody();
-					frmbody.innerHTML = "";
-					var tb = cDom("TABLE");
-					frmbody.appendChild(tb);
-					for (var i=0; i < arr.length; i++){
-						var tr = cDom("TR",null,tb);
-						var td = cDom("TD",null,tr);
-						var id = arr[i][0];
-						var n = arr[i][1];
-						var cell = cDom("BUTTON");
-						fillCard({"data":arr[i], "cell":cell, "frm":this.frmD, "cid":null, "hist":this.frmD.hist})
-						td.appendChild(cell);
-					}
-					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
-				}
-			} else {
-				href(currentUser.oid, currentUser.cid);
-			}
-		}
-	}
 }
 
 function fillCard(params){
@@ -345,33 +352,45 @@ function fillCard(params){
 	var cell = params.cell;
 	var frm  = params.frm;
 	var cid  = params.cid;
-	var hist = params.hist;
 
-	cell.id = data[0];
-	cell.isClass = classes2.indexOf(cell.id) >= 0 || cell.id == 1;
+	cell.oid = parseInt(data[0]);
+	cell.id = "b"+cell.oid;
+	cell.isClass = classes2.indexOf(cell.oid) >= 0 || cell.oid == 1;
 	cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
-	cell.cid = cell.isClass ? cell.id : cid;
+	cell.cid = cell.isClass ? cell.oid : cid;
 	cell.style.width = "100%"; 
 	cell.style.textAlign = "left"; 
 	cell.style.fontWeight = cell.isClass ? "bold" : "";
 	cell.style.color = cell.isClass ? "#ffdd00" : "#fff";
 	cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
 	cell.isFile = !cell.isClass && (cell.cid == classes["Файлы"] || cell.cid == classes["Фото"]);
-	cell.hist = hist;
 	cell.frm = frm;
+	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
 	cell.onclick = function(){ 
-		if (!this.hist) this.hist = {"back":[],"front":[]};
-		this.hist.back.push({"oid":this.frm.oid, "cid":this.frm.cid});
-		this.hist.front = [];
 		if (this.isClass) {
-			href(this.frm.oid ? 0 : this.id, this.id);
+			if (isPaintMode && getPolicy(["cO","cL"])) {
+				var cid = this.oid;
+				var frm = this.frm;
+				var oid_ = frm.oid;
+				var cid_ = frm.cid;
+				var n = prompt("Добавить новое значение '"+orm("gN",[this.oid,true])+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
+				var newoid = n ? orm("cO",[n, cid]) : 0;
+				var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+				if (newoid) href(oid_, cid_);;
+				return false;
+			} else {
+				if (this.buttons) this.buttons.hidden = !this.buttons.hidden;
+			//href(this.frm.oid ? 0 : this.oid, this.oid);
+			}
 		} else {
-			href(this.id, this.cid);
+			this.frm.buttons.forEach(function(e){ e.style.backgroundColor = "rgba(0,0,0,0.3)"; });
+			this.style.backgroundColor = "rgba(255,0,0,0.3)";
+			href(this.oid, this.cid);
 		}
 	}
 	
 	if (cell.isFile && !cell.isClass) {
-		var txt = {value: orm("gN",[cell.id])};
+		var txt = {value: orm("gN",[cell.oid])};
 		var img = new Image();
 		var fn = txt.value;
 
@@ -404,17 +423,55 @@ function fillCard(params){
 		
 	cell.oncontextmenu = function(e){
 		if (getPolicy(["cO","cL"]) && this.isClass && e.target == this) {
-			var cid = this.id;
+			var cid = this.oid;
 			var frm = this.frm;
 			var oid_ = frm.oid;
 			var cid_ = frm.cid;
-			var hist = frm.hist;
 			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 			var newoid = n ? orm("cO",[n, cid]) : 0;
 			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
 			if (newoid) href(oid_, cid_);;
 			e.stopPropagation();
 			return false;
+		}
+	}
+}
+
+function enableFilterEdit(params){
+	var eFilter = params.filterEditBox;
+	var frmD = params.dataForm;
+	var frmFilter = params.filterForm;
+	
+	eFilter.style = "color:#fff; background-color:rgba(0,0,0,0.1);";
+	eFilter.placeholder = "поиск по базе данных";
+	eFilter.parentElement.align = "left";
+	eFilter.frmFilter = frmFilter;
+	eFilter.frmD = frmD;
+	eFilter.onkeydown = function(e){
+		if (e.key == "Enter") {
+			if (this.value) {
+				var arr = orm("gO",[this.value, false, true, [classes["Объект"]] ]);
+				if (arr && arr.length){
+					frmFilter.setVisible(true);
+					frmFilter.setWidth("300px");
+					var frmbody = frmFilter.getBody();
+					frmbody.innerHTML = "";
+					var tb = cDom("TABLE");
+					frmbody.appendChild(tb);
+					for (var i=0; i < arr.length; i++){
+						var tr = cDom("TR",null,tb);
+						var td = cDom("TD",null,tr);
+						var id = arr[i][0];
+						var n = arr[i][1];
+						var cell = cDom("BUTTON");
+						fillCard({"data":arr[i], "cell":cell, "frm":this.frmD, "cid":null})
+						td.appendChild(cell);
+					}
+					frmFilter.setLeft((getWindowWidth()-parseInt(getComputedStyle(frmFilter.dom).width)-10)+"px");
+				}
+			} else {
+				href(currentUser.oid, currentUser.cid);
+			}
 		}
 	}
 }

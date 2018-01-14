@@ -124,7 +124,7 @@ function mapInit(map, frmsData){
 			var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
 			var link = L.DomUtil.create('a', '', container);
 			link.href = '#';
-			link.title = 'Режим рисования';
+			link.title = 'Режим редактирования';
 			var img = cDom("IMG");
 			img.src = this.options.imgsrc;
 			img.style.width = "20px";
@@ -132,6 +132,7 @@ function mapInit(map, frmsData){
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
 						isPaintMode = !isPaintMode;
+						frmsData.forEach(function(e){e.editLayer.hidden = !e.editLayer.hidden});
 						this.options.callback(map, [mc, lc, pc, cc], isPaintMode);
 					  }, this);
 		

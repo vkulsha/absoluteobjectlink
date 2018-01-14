@@ -153,7 +153,7 @@ function Form (isModal, closeFunc, zIndex, visible, opacity){
 	bfront.hidden = true;
 	this.bfront = bfront;
 	
-	this.caption = td2.appendChild(cDom("H3"));
+	this.caption = td2.appendChild(cDom("DIV"));
 	td2.style.width = "100%";
 	td2.style.textAlign = "center";
 
@@ -161,9 +161,9 @@ function Form (isModal, closeFunc, zIndex, visible, opacity){
 	bclose.innerHTML = "&times";
 	bclose.onclick = function() { that.setVisible(false); if (that.closeFunc) that.closeFunc(); }
 
-	var bminmax = td3.appendChild(cDom("BUTTON"));
-	bminmax.innerHTML = "[]";
-	bminmax.onclick = function() { that.setIsModal(!that.isModal); }
+	//var bminmax = td3.appendChild(cDom("BUTTON"));
+	//bminmax.innerHTML = "[]";
+	//bminmax.onclick = function() { that.setIsModal(!that.isModal); }
 	
 	var tr = frmtb.appendChild(cDom("TR"));
 	var tdB = tr.appendChild(cDom("TD"));
@@ -202,7 +202,7 @@ function Form (isModal, closeFunc, zIndex, visible, opacity){
 		that.frm.style.width = that.isModal ? "100%" : "auto"; 
 		that.frm.style.height = "100%"; 
 	}
-	this.setCaption = function(val) { return that.caption.appendChild(val); }
+	this.setCaption = function(val) { that.caption.innerHTML = ""; return that.caption.appendChild(val); }
 	this.getCaption = function() { return that.caption; }
 	//return that;
 	

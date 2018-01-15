@@ -476,8 +476,8 @@ function enableFilterEdit(params){
 function loadAndPaint(classname, layer, paintfunc, paintfuncparam){
 	var polylines = []
 	var zd = orm("gT2",[[classname, "Полигоны на карте", "Координаты на карте"],[[2,1]],[],false, ["`Координаты на карте`", "`id_Полигоны на карте`", "`id_"+classname+"`"], "and `id_Координаты на карте` is not null order by `id_Полигоны на карте`,`id_Координаты на карте`"]);
-	var paintZd = mapPaint(zd, paintfunc, paintfuncparam, layer, classes[classname]);
-	polylines = paintZd ? polylines.concat(paintZd) : polylines;
+	var paint = mapPaint(zd, paintfunc, paintfuncparam, layer, classes[classname]);
+	polylines = paint ? polylines.concat(paint) : polylines;
 	return polylines;
 }
 

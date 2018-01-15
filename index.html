@@ -7,7 +7,7 @@
 		<link rel="shortcut icon" href="/images/logo.png" type="image/png">
 
 		<link rel="stylesheet" href="modules/leaflet/leaflet_1.2.0.css" />
-		<link rel="stylesheet" type="text/css" href="main.css">
+		<link rel="stylesheet" type="text/css" href="main.css?">
 
 		<script src="modules/jquery/jquery-3.2.1.min.js"></script>
 		<script src="modules/leaflet/leaflet_1.2.0.js"></script>
@@ -316,16 +316,16 @@ function fillCard(params){
 	cell.oid = parseInt(data[0]);
 	cell.id = "b"+cell.oid;
 	cell.isClass = classes2.indexOf(cell.oid) >= 0 || cell.oid == 1;
+	cell.isClassGroup = (classesGroup.indexOf(cell.oid) >= 0);
 	cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
 	cell.cid = cell.isClass ? cell.oid : cid;
 	cell.style.width = "100%"; 
 	cell.style.textAlign = "left"; 
 	cell.style.fontWeight = cell.isClass ? "bold" : "";
-	cell.style.color = cell.isClass ? "#ffdd00" : "#fff";
+	cell.style.color = cell.isClass ? (cell.isClassGroup ? "#eeaa00" : "#ffdd00") : "#fff";
 	cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
 	cell.isFile = !cell.isClass && (cell.cid == classes["Файлы"] || cell.cid == classes["Фото"]);
 	cell.frm = frm;
-	cell.isClassGroup = (classesGroup.indexOf(cell.oid) >= 0);
 	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
 	cell.onclick = function(){ 
 		if (this.isClass) {

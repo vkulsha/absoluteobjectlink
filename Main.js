@@ -5,7 +5,7 @@ function initMapOld(map){
 		location.href = "#oid="+val.oid+"&cid="+val.cid;
 	}
 	
-	var arrObjects = orm("gT2",[["Объект","Широта","Долгота","Масштаб на карте"],[],[],false,["`Широта`", "`Долгота`", "`id_Объект`","`Масштаб на карте`"]]);
+	var arrObjects = orm("gT2",[["Объекты","Широта","Долгота","Масштаб на карте"],[],[],false,["`Широта`", "`Долгота`", "`id_Объекты`","`Масштаб на карте`"]]);
 	var mapObjects = mapLoad(arrObjects, {}, markerClick);
 
 	markers.clearLayers();
@@ -45,7 +45,7 @@ function mapLoad(arrLatLon, opts, click){
 		var lon = value[1];
 		var oid = value[2];
 		var zoom = value[3] || 18;
-		var cid = orm("gO",["Объект",true]);
+		var cid = orm("gO",["Объекты",true]);
 
 		minLat = Math.min(lat, minLat);
 		minLon = Math.min(lon, minLon);

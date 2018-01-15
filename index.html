@@ -40,6 +40,7 @@ var classes_;
 var classes;
 var classes2 = [];
 var classes3 = function(cid){ return findObjVal(classes,cid)};
+var classesGroup = [];
 var fs = 11;
 var frmPaintLayers = new Form(!"isModal");
 var frmFilter = new Form(!"isModal");
@@ -85,7 +86,7 @@ window.onhashchange = function(){///old
 
 function hashchange(mapObjects_){
 	var ret = openCurrentFrmDataFromHash();
-	loadData({"frm":ret.frm});
+	loadData(ret.frm);
 
 	var ind = mapObjects_.objects.oid.indexOf(ret.oids);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
@@ -164,6 +165,8 @@ gDom("bLogin").onclick = function(){
 		classes = hash4arr(classes_);
 		var arr = orm("gAnd",[[1],"id"]);
 		for (var i=0; i < arr.length; i++) classes2.push(parseInt(arr[i][0]));
+		var arr = orm("gAnd",[[1,orm("gO",["Группа классов"])],"id"]);
+		for (var i=0; i < arr.length; i++) classesGroup.push(parseInt(arr[i][0]));
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
@@ -217,7 +220,7 @@ function initFrmData(frm) {
 		div.appendChild(cDom("BR"));div.appendChild(cDom("BR"));
 	}
 	var frmDataCaption = div.appendChild(cDom("LABEL")); 
-	frmDataCaption.innerHTML = "<strong style='color:#ffdd00'>"+(orm("gN",[frm.cid]) || "") + ":</strong> " + (orm("gN",[frm.oid]) || "")
+	frmDataCaption.innerHTML = "<strong style='color:#ffdd00'>"+(orm("gN",[frm.cid]) || "") + ":</strong><br> " + (orm("gN",[frm.oid]) || "")
 	frmDataCaption.style = "font-size:12px; font-weight:normal";
 	frm.setCaption(div);
 	frm.setVisible(true);
@@ -253,28 +256,17 @@ function initFrmData(frm) {
 	}
 }
 
-function loadData(params){
-	var frm  = params.frm;
-	var oid_ = frm.oid;
-	var cid_ = frm.cid;
-
+function loadData(frm, body){
 	var getClasses = function(ids){return orm("gAnd",[ids,"id,n",false," order by c desc, n ",false,true])};
-	var getObjects = function(ids){return orm("gAnd",[ids,"id,n",true," order by c desc, n ",false,false])};
-	var arrCls = oid_ || cid_ == 1 ? getClasses([cid_]) : [[cid_, classes3(cid_)]];
+	var getObjects = function(ids){return orm("gAnd",[ids,"id,n",true, " order by c desc, n ",false,false])};
+	var arrCls = frm.oid || frm.cid == 1 ? getClasses([frm.cid]) : [[frm.cid, classes3(frm.cid)]];
 	if (!arrCls.length) return false;
-
-	//frm.oid = oid_;
-	//frm.cid = cid_;
 	
-	var cnt = frm.getBody();
-	//cnt.innerHTML = "";
-	
-	frm.buttons = [];
-	
-	//var tb = cnt.appendChild(cDom("TABLE"));
-	var tb = cnt.tbData;
+	var cnt = body || frm.getBody();
+	var tb = cnt.tbData || body;//cnt.appendChild(cDom("TABLE"));
 	tb.style.width = '100%';
 	tb.innerHTML = "";
+	frm.buttons = [];
 	
 	for (var i=0; i < arrCls.length; i++){
 		var tr = tb.appendChild(cDom("TR"));
@@ -286,12 +278,15 @@ function loadData(params){
 		var _td = _tr.appendChild(cDom("TD"));
 		var cell1 = _td.appendChild(cDom("BUTTON"));
 		frm.buttons.push(cell1);
-		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":cid_});
+		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":frm.cid});
 		frm.isFile = frm.isFile || cell1.isFile;
 		var arr = [cell1.oid];
-		if (oid_) arr.push(oid_);
+		if (frm.oid) arr.push(frm.oid);
 		var arrObj = getObjects(arr);
-		if (arrObj.length == 0 || arrObj.length > 1) cell1.innerHTML += " ("+arrObj.length+")"
+
+		if (cell1.isClassGroup) { cell1.innerHTML = "["+cell1.innerHTML+"...]"; }
+		else if (arrObj.length != 1) { cell1.innerHTML += " ("+arrObj.length+"):" }
+		else cell1.innerHTML += ":";
 		
 		var _tr2 = _tb.appendChild(cDom("TR"));
 		cell1.buttons = _tr2;
@@ -330,6 +325,7 @@ function fillCard(params){
 	cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
 	cell.isFile = !cell.isClass && (cell.cid == classes["Файлы"] || cell.cid == classes["Фото"]);
 	cell.frm = frm;
+	cell.isClassGroup = (classesGroup.indexOf(cell.oid) >= 0);
 	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
 	cell.onclick = function(){ 
 		if (this.isClass) {
@@ -346,18 +342,30 @@ function fillCard(params){
 					var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 					var newoid = n ? orm("cO",[n, cid]) : 0;
 					var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-					if (newoid) href(oid_, cid_, true);;
+					if (newoid) href(oid_, cid_, true);
 				}
 				return false;
 			} else {
-				if (this.buttons) this.buttons.hidden = !this.buttons.hidden;
-			//href(this.frm.oid ? 0 : this.oid, this.oid);
+				//href(this.frm.oid ? 0 : this.oid, this.oid);
+				if (this.isClassGroup) { 
+					var tb = this.buttons.getElementsByTagName("TABLE")[0];
+					if (!tb.innerHTML) {
+						var _frm = Object.assign({}, this.frm); 
+						_frm.cid = this.oid;
+						loadData(_frm, tb); 
+					} else {
+						tb.innerHTML = "";
+					}
+					//href(this.frm.oid, this.oid);
+				}
+				else if (this.buttons) { this.buttons.hidden = !this.buttons.hidden; };
+
 			}
 		} else {
-			this.frm.buttons.forEach(function(e){ e.style.backgroundColor = "rgba(0,0,0,0.3)"; });
-			this.style.backgroundColor = "rgba(255,0,0,0.3)";
 			href(this.oid, this.cid);
 		}
+		this.frm.buttons.forEach(function(e){ e.style.backgroundColor = "rgba(0,0,0,0.3)"; });
+		this.style.backgroundColor = "rgba(255,0,0,0.3)";
 	}
 	
 	if (cell.isFile && !cell.isClass) {

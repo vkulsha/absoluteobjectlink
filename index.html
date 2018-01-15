@@ -13,8 +13,8 @@
 		<script src="modules/leaflet/leaflet_1.2.0.js"></script>
 		<script src="modules/leafletEditable/Leaflet.Editable.js"></script>
 		<script src="modules/md5/md5.js"></script>
-		<script src="service.js"></script>
-		<script src="map.js"></script>
+		<script src="service.js?"></script>
+		<script src="map.js?"></script>
 		<script src="Main.js"></script>
 
 	</head>
@@ -83,22 +83,20 @@ window.onhashchange = function(){///old
 	hashchange(mapObjects);
 }
 
-function hashchange(mapObjects_, notGetOidCid){
-	var ret = notGetOidCid ? {"frm": frmsData[frmsData.length-1]} : openCurrentFrmDataFromHash();
-	loadData({/*"oid":ret.oids, "cid":ret.cids,*/"frm":ret.frm});
+function hashchange(mapObjects_){
+	var ret = openCurrentFrmDataFromHash();
+	loadData({"frm":ret.frm});
 
 	var ind = mapObjects_.objects.oid.indexOf(ret.oids);
 	if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 18);
 	
 }
 
-function href(oid_, cid_, loadwinthhash){
-	if ((("#oid="+oid_+"&cid="+cid_+"") == location.hash)) {
-		hashchange(mapObjects, false)
-	} else if (loadwinthhash) {
-		hashchange(mapObjects, false)
+function href(oid_, cid_, reload){
+	if (reload) {
+		hashchange(mapObjects)
 	} else {
-		location.href = "#oid="+oid_+"&cid="+cid_+"";
+		location.href = "#oid="+oid_+"&cid="+cid_+"&dt="+Date.now();
 	}
 };
 
@@ -114,6 +112,7 @@ function openCurrentFrmDataFromHash(){
 	var currentFrmData = frmsData[frmsData.length-1];
 	
 	if (currentFrmData && currentFrmData.oid && currentFrmData.oid == oids && currentFrmData.cid && currentFrmData.cid == cids){
+		///
 	} else if (frmsData.length < frmDataCnt){
 		var oldFrmData = frmsData[frmsData.length-1];
 		frmsData.push(new Form(!"isModal").setCloseFunc(function(){
@@ -235,13 +234,13 @@ function initFrmData(frm) {
 	var tr = tb.appendChild(cDom("TR"));
 	var td = tr.appendChild(cDom("TD"));
 	frm.editLayer = tr;
-	tr.hidden = true;
+	tr.hidden = !isPaintMode;
 	
 	var bC = td.appendChild(cDom("BUTTON"));
 	bC.innerHTML = "Класс (+) ";
 	bC.frm = frm;
 	bC.onclick = function(){
-		if (getPolicy(["cO","cL"])) {
+		if (getPolicy(["cO","cL"]) && currentUser.uid == 41000) {
 			var frm = this.frm;
 			var cid = frm.cid;
 			var oid = frm.oid;
@@ -252,40 +251,6 @@ function initFrmData(frm) {
 			return false;
 		}
 	}
-	
-	var bF = td.appendChild(cDom("BUTTON"));
-	var dF = td.appendChild(cDom("DIV"));
-	bF.innerHTML = "Файл (+) ";
-	bF.frm = frm;
-	bF.dF = dF;
-	bF.onclick = function(){
-		this.dF.hidden = !this.dF.hidden;
-	}
-	
-	dF.hidden = true;
-	var domSelFiles = cInp("FILE");
-	dF.appendChild(domSelFiles);
-	domSelFiles.multiple = true;
-	var bSend = cDom("BUTTON","Загрузить файлы",dF);
-	bSend.domSelFiles = domSelFiles;
-	bSend.frm = frm;
-	bSend.onclick = function(){
-		if (getPolicy(["cO","cL"])) {
-			var frm = this.frm;
-			var cid = frm.cid;
-			var oid = frm.oid;
-			
-			for (var i=0; i < this.domSelFiles.files.length; i++) {
-				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
-				getXmlHttpReq(function(result){
-				}, "php/uploadFiles.php", formData, false, true)
-			};
-			href(oid, cid);
-			//this.domSelFiles.remove();
-			//this.remove();
-		}
-	}
-	
 }
 
 function loadData(params){
@@ -322,7 +287,7 @@ function loadData(params){
 		var cell1 = _td.appendChild(cDom("BUTTON"));
 		frm.buttons.push(cell1);
 		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":cid_});
-		
+		frm.isFile = frm.isFile || cell1.isFile;
 		var arr = [cell1.oid];
 		if (oid_) arr.push(oid_);
 		var arrObj = getObjects(arr);
@@ -373,10 +338,16 @@ function fillCard(params){
 				var frm = this.frm;
 				var oid_ = frm.oid;
 				var cid_ = frm.cid;
-				var n = prompt("Добавить новое значение '"+orm("gN",[this.oid,true])+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
-				var newoid = n ? orm("cO",[n, cid]) : 0;
-				var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-				if (newoid) href(oid_, cid_);;
+				var cn = classes3(this.oid);//orm("gN",[this.oid,true]);
+				
+				if (cn == "Файлы" || cn == "Фото"){
+					uploadFileToObject(frm, oid_, classes[cn]);
+				} else {
+					var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
+					var newoid = n ? orm("cO",[n, cid]) : 0;
+					var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+					if (newoid) href(oid_, cid_, true);;
+				}
 				return false;
 			} else {
 				if (this.buttons) this.buttons.hidden = !this.buttons.hidden;
@@ -422,17 +393,43 @@ function fillCard(params){
 	}
 		
 	cell.oncontextmenu = function(e){
-		if (getPolicy(["cO","cL"]) && this.isClass && e.target == this) {
+		if (isPaintMode && getPolicy(["cO","cL"]) && (!this.isClass || currentUser.uid == 41000) && e.target == this) {
 			var cid = this.oid;
 			var frm = this.frm;
 			var oid_ = frm.oid;
 			var cid_ = frm.cid;
-			var n = prompt("Добавить новое значение '"+this.innerHTML+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
-			var newoid = n ? orm("cO",[n, cid]) : 0;
-			var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-			if (newoid) href(oid_, cid_);;
-			e.stopPropagation();
+			if ( confirm("Удалить запись '"+orm("gN",[this.oid])+"' из '"+orm("gN",[this.cid])+"' '"+orm("gN",[oid_])+"'?") ){
+				var res = orm("nL",[oid_, this.oid])
+				href(oid_, cid_, true);
+			}
 			return false;
+		}
+	}
+}
+
+function uploadFileToObject(frm, oid, cids){
+	cids = cids || [classes["Файлы"]];
+	var dF = frm.getBody().appendChild(cDom("DIV"));
+	var domSelFiles = cInp("FILE");
+	dF.appendChild(domSelFiles);
+	domSelFiles.multiple = true;
+	var bSend = cDom("BUTTON","Загрузить файлы",dF);
+	bSend.domSelFiles = domSelFiles;
+	bSend.frm = frm;
+	bSend.dF = dF;
+	bSend.onclick = function(){
+		if (getPolicy(["cO","cL"])) {
+			var frm = this.frm;
+			var cid = frm.cid;
+			var oid = frm.oid;
+			
+			for (var i=0; i < this.domSelFiles.files.length; i++) {
+				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": cids, "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
+				getXmlHttpReq(function(result){
+				}, "php/uploadFiles.php", formData, false, true)
+			};
+			href(oid, cid, true);
+			this.dF.remove();
 		}
 	}
 }

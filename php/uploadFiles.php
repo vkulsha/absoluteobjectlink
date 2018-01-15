@@ -10,6 +10,7 @@ $objectlink->u = $u;
 header('Content-Type: text/html; charset=utf-8');
 $uploaddir = $_POST['uploadPath'];
 $uploadid = $_POST['uploadId'];
+$uploadcids = $_POST['uploadCids'];
 
 mkdir($uploaddir);
 $typePhoto = ["image/jpeg", "image/png"];
@@ -31,17 +32,22 @@ try{
 		
 	}
 
-	$cidFile = $objectlink->gO(["Файлы"]);
-	$cidPhoto = $objectlink->gO(["Фото"]);
-
+	$cidFile = $objectlink->gO(["Файлы", true]);
+	$cidPhoto = $objectlink->gO(["Фото", true]);
+	if (!$uploadcids || !count($uploadcids)){
+		$uploadcids = Array($cidFile);
+	}
+	
 	for($i=0; $i<count($files); $i++){
 		$filename = array_key_exists("photo", $files[$i]) ? $files[$i]["photo"] : $files[$i]["other"];
 
 		$oid = $objectlink->cO([$filename, $uploadid], true);
 		
 		if ($oid) {
-			if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
-			if ($cidPhoto && array_key_exists("photo", $files[$i])) { $objectlink->cL([$oid, $cidPhoto], true);	}
+			for ($j=0; $j<count($uploadcids); $j++){
+				//if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
+				if ($cidPhoto && array_key_exists("photo", $files[$i])) { $objectlink->cL([$oid, $cidPhoto], true);	}
+			}
 		}
 		$oids[] = $oid;
 	}

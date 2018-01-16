@@ -456,7 +456,7 @@ function enableFilterEdit(params){
 	eFilter.onkeydown = function(e){
 		if (e.key == "Enter") {
 			if (this.value) {
-				var arr = orm("gO",[this.value, false, true, [classes["Объект"]] ]);
+				var arr = orm("gO",[this.value, false, true, [classes["Объекты"]] ]);
 				if (arr && arr.length){
 					frmFilter.setVisible(true);
 					frmFilter.setWidth("300px");

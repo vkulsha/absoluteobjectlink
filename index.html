@@ -304,7 +304,7 @@ function loadData(frm, body){
 		
 		}
 	}
-	frm.setVisible(true);
+	frm.setVisible(!body);
 }
 
 function fillCard(params){
@@ -350,7 +350,8 @@ function fillCard(params){
 				if (this.isClassGroup) { 
 					var tb = this.buttons.getElementsByTagName("TABLE")[0];
 					if (!tb.innerHTML) {
-						var _frm = Object.assign({}, this.frm); 
+						var _frm = new Form(false);//Object.assign({}, this.frm); 
+						_frm.oid = this.frm.oid;
 						_frm.cid = this.oid;
 						loadData(_frm, tb); 
 					} else {

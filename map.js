@@ -16,6 +16,7 @@ function mapInit(map, frmsData){
 			link.innerHTML = this.options.html;
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
+						currentEditingType = this.options.type;
 						window.LAYER = this.options.callback.call(map.editTools);
 					  }, this);
 			
@@ -28,6 +29,7 @@ function mapInit(map, frmsData){
 			position: 'topright',
 			callback: map.editTools.startPolyline,
 			kind: 'линия',
+			type: 'Polyline',
 			html: '\\/\\'
 		}
 	});
@@ -36,6 +38,7 @@ function mapInit(map, frmsData){
 			position: 'topright',
 			callback: map.editTools.startPolygon,
 			kind: 'полигон',
+			type: 'Polygon',
 			html: '▰'
 		}
 	});
@@ -44,6 +47,7 @@ function mapInit(map, frmsData){
 			position: 'topright',
 			callback: map.editTools.startMarker,
 			kind: 'маркер',
+			type: 'Marker',
 			html: '🖈'
 		}
 	});
@@ -52,6 +56,7 @@ function mapInit(map, frmsData){
 			position: 'topright',
 			callback: map.editTools.startCircle,
 			kind: 'круг',
+			type: 'Circle',
 			html: '⬤'
 		}
 	});
@@ -134,6 +139,8 @@ function mapInit(map, frmsData){
 						isPaintMode = !isPaintMode;
 						frmsData.forEach(function(e){e.editLayer.hidden = !e.editLayer.hidden});
 						this.options.callback(map, [mc, lc, pc, cc], isPaintMode);
+						if (!isPaintMode && currentEditing) currentEditing.disableEdit();
+
 					  }, this);
 		
 			return container;

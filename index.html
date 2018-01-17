@@ -13,8 +13,8 @@
 		<script src="modules/leaflet/leaflet_1.2.0.js"></script>
 		<script src="modules/leafletEditable/Leaflet.Editable.js"></script>
 		<script src="modules/md5/md5.js"></script>
-		<script src="service.js?"></script>
-		<script src="map.js?"></script>
+		<script src="service.js?@"></script>
+		<script src="map.js?@"></script>
 		<script src="Main.js"></script>
 
 	</head>
@@ -52,23 +52,34 @@ var map = L.map('map', {editable: true});
 L.tileLayer(mapProps.tileLayer, mapProps.tileLayerParams).addTo(map);
 map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
 var isPaintMode = false;
-var line;
+var currentEditing;
+var currentEditingType;
 map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
-	endPaint(e);
+	if (isPaintMode) endPaint(e);
 })
+map.editTools.on('editable:enable',function(e){
+	if (isPaintMode) {
+		if (currentEditing) currentEditing.disableEdit();
+		currentEditing = e.layer;
+	}
+});
+
 function endPaint(e){
 	mapProps.mapFunctions.forEach(function(obj){
-		if (e.layer instanceof L[obj.drawFunc]){
+		if (currentEditingType == obj.drawFunc){
+			console.log(obj.drawFunc);
 			var frm = frmsData[frmsData.length-1];
 			var cid = frm.cid;
 			var oid = frm.oid;
 			var func = obj.drawFunc;
 			var params = "";
 			var latlngs = e.layer[obj.getLatLngFunc]();
-			if (confirm("Привязать созданную линию к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
+			if (confirm("Привязать отрисовку к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
 				var coords = JSON.stringify(latlngs,["lat","lng"]);
 				var oid = orm("createPolygonObject",[oid, func, params, coords]);
 				console.log("create drawing:",oid);
+				e.layer.remove();
+			} else {
 				e.layer.remove();
 			}
 			//var ll = L[obj.drawFunc.toLowerCase()](latlngs);
@@ -490,12 +501,22 @@ function loadAndPaint(classname, layer, paintfunc, paintfuncparam){
 	return polylines;
 }
 
+function loadAndPaintNew(classname, layer){
+	var polylines = []
+	var zd = orm("gT2",[[classname, "Привязка к карте", "Координаты на карте", "Функции отрисовки", "Параметры функции отрисовки"],[[2,1],[3,1],[4,1]],[],false, ["`Координаты на карте`", "`id_Привязка к карте`", "`id_"+classname+"`", "`Функции отрисовки`", "`Параметры функции отрисовки`"], "and `id_Координаты на карте` is not null order by `id_Привязка к карте`,`id_Координаты на карте`"]);
+	var paint = mapPaintNew(zd, paintfunc, paintfuncparam, layer, classes[classname]);
+	polylines = paint ? polylines.concat(paint) : polylines;
+	return polylines;
+}
+
 function loadPaintLayers(map, frm){
 	var frmbody = frm.getBody();
 	frmbody.innerHTML = "";
 	var tb = cDom("TABLE");
 	frmbody.appendChild(tb);
 	var arr = orm("gAnd",[[classes["Полигоны на карте"]],"id,n",false,"",true,true]);
+	//var arr2 = orm("gAnd",[[classes["Привязка к карте"]],"id,n",false,"",true,true]);
+	//arr = arr.concat(arr2);
 	var ret = [];
 	var tr = cDom("TR",null,tb);
 	var td = cDom("TD",null,tr);
@@ -539,6 +560,7 @@ function loadPaintLayers(map, frm){
 				paintfunc = L.polyline;
 				paintfuncparam = {color:"#ffffff", fillOpacity:0.1, weight:2};
 			}
+
 			if (this.checked) {
 				loadAndPaint(this.n, this.layer, paintfunc, paintfuncparam);
 				this.layer.addTo(map);
@@ -546,6 +568,7 @@ function loadPaintLayers(map, frm){
 				this.layer.clearLayers();
 			}
 		}
+
 		if (ch.n == "Здания и сооружения" || ch.n == "Земельные участки") {
 			ch.checked = true;
 			ch.onchange();

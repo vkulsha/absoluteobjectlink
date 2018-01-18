@@ -67,7 +67,6 @@ map.editTools.on('editable:enable',function(e){
 function endPaint(e){
 	mapProps.mapFunctions.forEach(function(obj){
 		if (currentEditingType == obj.drawFunc){
-			console.log(obj.drawFunc);
 			var frm = frmsData[frmsData.length-1];
 			var cid = frm.cid;
 			var oid = frm.oid;
@@ -87,10 +86,8 @@ function endPaint(e){
 	})
 }
 var mapObjects;///old
-var polylines = [];
 var selectedPoly;
 var zdzuPolygonsLayer = L.layerGroup();
-var paintedLayers = [];
 window.onhashchange = function(){///old
 	hashchange(mapObjects);
 }
@@ -183,7 +180,8 @@ gDom("bLogin").onclick = function(){
 		///
 		mapObjects = initMapOld(map);///
 		href(currentUser.oid, currentUser.cid, !!location.hash);
-		paintedLayers = loadPaintLayers(map, frmPaintLayers);
+		loadPaintLayers(map, frmPaintLayers, "Полигоны на карте");
+		loadPaintLayers(map, frmPaintLayers, "Привязка к карте", true);
 		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
 		mapInit(map, frmsData);
 		///
@@ -503,20 +501,75 @@ function loadAndPaint(classname, layer, paintfunc, paintfuncparam){
 
 function loadAndPaintNew(classname, layer){
 	var polylines = []
-	var zd = orm("gT2",[[classname, "Привязка к карте", "Координаты на карте", "Функции отрисовки", "Параметры функции отрисовки"],[[2,1],[3,1],[4,1]],[],false, ["`Координаты на карте`", "`id_Привязка к карте`", "`id_"+classname+"`", "`Функции отрисовки`", "`Параметры функции отрисовки`"], "and `id_Координаты на карте` is not null order by `id_Привязка к карте`,`id_Координаты на карте`"]);
-	var paint = mapPaintNew(zd, paintfunc, paintfuncparam, layer, classes[classname]);
+	var paintArr = orm("gT2",[[classname, "Привязка к карте", "Координаты на карте", "Функции отрисовки", "Параметры функции отрисовки"],
+		[[2,1],[3,1],[4,1]],[],false, ["`Координаты на карте`", "`Функции отрисовки`", "`Параметры функции отрисовки`", "`id_Привязка к карте`", "`id_"+classname+"`"], 
+		"and `id_Координаты на карте` is not null order by `id_Привязка к карте`,`id_Координаты на карте`"]);
+	var paint = mapPaintNew({"paintArr": paintArr, "cid" : classes[classname] , "layer": layer});
 	polylines = paint ? polylines.concat(paint) : polylines;
 	return polylines;
 }
 
-function loadPaintLayers(map, frm){
+function mapPaintNew(params){
+	var paintArr = params.paintArr;
+	var layer = params.layer;
+	var cid = parseInt(params.cid);
+	var ret = [];
+	function onmouseover(e) {
+		this.setStyle({color:"#ff0000", weight:2}); 
+	}
+	function onmouseout(e) { 
+		this.setStyle(this.paintFuncParams); 
+	}
+	function onmouseclick(){
+		if (isPaintMode) {
+			if (selectedPoly) {
+				selectedPoly.disableEdit();
+			}
+			selectedPoly = this;
+			selectedPoly.enableEdit();
+		} else {
+			href(this.oid, this.cid);
+		}
+	}
+	function oncontextmenu(e) { 
+		if (isPaintMode && selectedPoly && confirm("Удалить выделенную линию класса "+classes3(cid)+" ?")) {
+			var ret = orm("nL",[selectedPoly.oid, selectedPoly.lid]);
+			if (ret) {
+				selectedPoly.disableEdit();
+				selectedPoly.remove();
+				selectedPoly = this;
+			}
+		}
+	}
+
+	for (var i=0; i < paintArr.length; i++){
+		var paint = paintArr[i];
+		var latlngs = JSON.parse(paint[0]);
+		var paintFunc = paint[1];
+		var paintFuncParams = JSON.parse(paint[2]);
+		var oid = parseInt(paint[3]);
+		var lid = parseInt(paint[4]);
+		var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
+		p.oid = oid;
+		p.lid = lid;
+		p.cid = cid;
+		p.paintFuncParams = paintFuncParams;
+		ret.push(p);
+		p.on('mouseover', onmouseover);
+		p.on('mouseout', onmouseout);
+		p.on('click', onmouseclick);
+		p.on('contextmenu', oncontextmenu);
+		
+	}
+	return ret;
+}
+
+function loadPaintLayers(map, frm, mapLinkClassName, notClearFrmBody){
 	var frmbody = frm.getBody();
-	frmbody.innerHTML = "";
+	if (!notClearFrmBody) frmbody.innerHTML = "";
 	var tb = cDom("TABLE");
 	frmbody.appendChild(tb);
-	var arr = orm("gAnd",[[classes["Полигоны на карте"]],"id,n",false,"",true,true]);
-	//var arr2 = orm("gAnd",[[classes["Привязка к карте"]],"id,n",false,"",true,true]);
-	//arr = arr.concat(arr2);
+	var arr = orm("gAnd",[[classes[mapLinkClassName]],"id,n",false,"",true,true]);
 	var ret = [];
 	var tr = cDom("TR",null,tb);
 	var td = cDom("TD",null,tr);
@@ -562,7 +615,11 @@ function loadPaintLayers(map, frm){
 			}
 
 			if (this.checked) {
-				loadAndPaint(this.n, this.layer, paintfunc, paintfuncparam);
+				if (mapLinkClassName == "Полигоны на карте") {
+					loadAndPaint(this.n, this.layer, paintfunc, paintfuncparam);
+				} else {
+					loadAndPaintNew(this.n, this.layer);
+				}
 				this.layer.addTo(map);
 			} else {
 				this.layer.clearLayers();

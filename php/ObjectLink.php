@@ -576,12 +576,14 @@ class ObjectLink {
 		try {
 			$oid = (isset($params[0]) && $params[0]) ? $params[0] : 0;
 			$func = (isset($params[1]) && $params[1]) ? $params[1] : "Marker";
-			$param = (isset($params[2]) && $params[2]) ? $params[2] : "{weight:1, color:#0000ff}";
+			$param = (isset($params[2]) && $params[2]) ? $params[2] : '{"weight":1, "color":"#0000ff"}';
 			$coords = (isset($params[3]) && $params[3]) ? $params[3] : "";
 			if (!$oid) return 0;
 			
+			$date = new DateTime();
+			$timestamp = $date->getTimestamp();
 			$maplink_cid = $this->gO(["Привязка к карте", true]);
-			$caption = "привязка к карте объекта $oid";
+			$caption = "привязка к карте объекта $oid ".$timestamp;
 			$maplink_oid = $this->cO([$caption, $maplink_cid]);
 			$this->cL([$maplink_oid, $oid]);
 			

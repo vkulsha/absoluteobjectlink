@@ -16,7 +16,6 @@
 		<script src="service.js?@"></script>
 		<script src="map.js?@"></script>
 		<script src="Main.js"></script>
-
 	</head>
 	<body>
 		<div id="map" style="position:absolute; width:100%; height:100%"></div>
@@ -524,9 +523,11 @@ function loadAndPaint(classname, layer, paintfunc, paintfuncparam){
 
 function loadAndPaintNew(classname, layer){
 	var polylines = []
-	var paintArr = orm("gT2",[[classname, "Привязка к карте", "Координаты на карте", "Функции отрисовки", "Параметры функции отрисовки"],
-		[[2,1],[3,1],[4,1]],[],false, ["`Координаты на карте`", "`Функции отрисовки`", "`Параметры функции отрисовки`", "`id_Привязка к карте`", "`id_"+classname+"`"], 
-		"and `id_Координаты на карте` is not null order by `id_Привязка к карте`,`id_Координаты на карте`"]);
+	var paintArr = orm("gT2id",[[classes[classname], classes["Привязка к карте"], classes["Координаты на карте"], classes["Функции отрисовки"], classes["Параметры функции отрисовки"]],
+		[[2,1],[3,1],[4,1]],[],false, ["o"+classes["Координаты на карте"], "o"+classes["Функции отрисовки"], "o"+classes["Параметры функции отрисовки"], 
+		"id_o"+classes["Привязка к карте"], "id_o"+classes[classname]], 
+		"and `id_o"+classes["Привязка к карте"]+"` is not null order by `id_o"+classes["Привязка к карте"]+"`,`id_o"+classes["Координаты на карте"]+"`"]);
+	log(paintArr);
 	var paint = mapPaintNew({"paintArr": paintArr, "cid" : classes[classname] , "layer": layer});
 	polylines = paint ? polylines.concat(paint) : polylines;
 	return polylines;
@@ -682,7 +683,7 @@ function ContextMenuItem(caption, onclickfunc, ctx){
 }
 
 function ContextMenu(items, x, y){
-//	new ContextMenu([ new ContextMenuItem("abc", function(){ }), ], e.x, e.y); return false;
+//	new ContextMenu([ new ContextMenuItem("abc", function(){ }, this), ], e.x, e.y); return false;
 	var menu;
 	menu = document.body.appendChild(cDom("DIV"));
 	menu.style.backgroundColor = "rgba(0,0,0,0.5)";
@@ -708,7 +709,6 @@ function ContextMenu(items, x, y){
 	return menu;
 	
 }
-
 </script>
 	</body>
 </html>

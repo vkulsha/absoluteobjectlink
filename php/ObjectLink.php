@@ -222,7 +222,7 @@ class ObjectLink {
 			$i = -1;
 			foreach ($paramsArr as $cc){
 				$i++;
-				if (isset($cc["n"])) {
+				if (isset($cc["n"]) || isset($cc["id"])) {
 					$id = isset($cc["id"]) ? $cc["id"] : null;
 					$col = isset($cc["n"]) ? $cc["n"] : "o".$id;
 					$pcol = isset($cc["parentCol"]) ? $cc["parentCol"] : null;
@@ -306,11 +306,17 @@ class ObjectLink {
 			//$fields = isset($params[4]) ? join(",", $params[4]) : "*";
 			//$cond = isset($params[5]) ? $params[5] : "";
 			$includeLinkDate = isset($params[6]) && $params[6] ? true : false;
+			$idsNotN = isset($params[7]) && $params[7] ? true : false;
 			
 			$opts = [];
 			for ($i=0; $i < count($nArr); $i++){
-				$opts[] = array("n"=>$nArr[$i], "parentCol"=>0, "linkParent"=>false);
+				if ($idsNotN) {
+					$opts[] = array("id"=>$nArr[$i], "parentCol"=>0, "linkParent"=>false);
+				} else {
+					$opts[] = array("n"=>$nArr[$i], "parentCol"=>0, "linkParent"=>false);
+				}
 			}
+			
 			for ($i=0; $i < count($parentColArr); $i++){
 				$opts[$parentColArr[$i][0]]["parentCol"] = $parentColArr[$i][1];
 			}
@@ -327,14 +333,35 @@ class ObjectLink {
 	
 	public function gT2($params, $notPolicy=false){//["a","b","c"], [[1,0],[2,0],[3,1]], [1], false, ["f1","f2"], "and a = 115"
 		try {
-			$fields = isset($params[4]) ? join(",", $params[4]) : "*";
+			$fields = isset($params[4]) && count($params[4]) ? join(",", $params[4]) : "*";
 			$cond = isset($params[5]) ? $params[5] : "";
 			$includeLinkDate = isset($params[6]) && $params[6] ? true : false;
+			$idsNotN = isset($params[7]) && $params[7] ? true : false;
 
-			//$funcarr = debug_backtrace();
-			//$func1 = $funcarr[0]['function'];
-			//$func2 = count($funcarr)>1 ? $funcarr[1]['function'] : "";
-			//if ($this->u>=1 || $func2 == "policy" || $this->policy([$this->u, ["iii"]])) {
+			$sel = $this->gTq2($params, true);
+			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
+			
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}	
+	
+	public function gT2id($params, $notPolicy=false){//["a","b","c"], [[1,0],[2,0],[3,1]], [1], false, ["f1","f2"], "and a = 115"
+		try {
+			$fields = isset($params[4]) && count($params[4]) ? join(",", $params[4]) : "*";
+			$cond = isset($params[5]) ? $params[5] : "";
+			$includeLinkDate = isset($params[6]) && $params[6] ? true : false;
+			$idsNotN = true;
+			
+			if (!isset($params[1])) { $params[] = []; }
+			if (!isset($params[2])) { $params[] = []; }
+			if (!isset($params[3])) { $params[] = false; }
+			if (!isset($params[4])) { $params[] = []; }
+			if (!isset($params[5])) { $params[] = ""; }
+			if (!isset($params[6])) { $params[] = $includeLinkDate; }
+			if (!isset($params[7])) { $params[] = $idsNotN; }
+
 			$sel = $this->gTq2($params, true);
 			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
 			

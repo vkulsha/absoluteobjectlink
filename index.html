@@ -429,16 +429,18 @@ function fillCard(params){
 					
 				return false;
 			} else {
-				new ContextMenu([
-					new ContextMenuItem("Открыть структура класса", function(){
-						href(this.ctx.oid, this.ctx.cid);
-						}, this),
-					new ContextMenuItem("Показать все записи класса", function(){
-						href(0, this.ctx.cid);
-					}, this)
-					], e.x, e.y);
-					
-				return false;
+				if (this.isClass){
+					new ContextMenu([
+						new ContextMenuItem("Открыть структура класса", function(){
+							href(this.ctx.oid, this.ctx.cid);
+							}, this),
+						new ContextMenuItem("Показать все записи класса", function(){
+							href(0, this.ctx.cid);
+						}, this)
+						], e.x, e.y);
+						
+					return false;
+				}
 			
 			}
 		}
@@ -673,6 +675,8 @@ function ContextMenuItem(caption, onclickfunc, ctx){
 	item.innerHTML = caption;
 	item.onclick = onclickfunc;
 	item.ctx = ctx;
+	item.style.width = "100%";
+	item.style.textAlign = "left";
 	return item;
 }
 
@@ -680,6 +684,7 @@ function ContextMenu(items, x, y){
 //	new ContextMenu([ new ContextMenuItem("abc", function(){ }), ], e.x, e.y); return false;
 	var menu;
 	menu = document.body.appendChild(cDom("DIV"));
+	menu.style.backgroundColor = "rgba(0,0,0,0.5)";
 	menu.style.position = "absolute";
 	menu.style.zIndex = 300000;
 	menu.style.left = x-3+"px";
@@ -690,6 +695,7 @@ function ContextMenu(items, x, y){
 	items = items || [];
 	
 	var tb = menu.appendChild(cDom("TABLE"));
+	tb.style.width = "100%";
 	for (var i=0; i < items.length; i++){
 		var item = items[i];
 		var tr = tb.appendChild(cDom("TR"));

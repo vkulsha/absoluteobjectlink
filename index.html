@@ -338,39 +338,21 @@ function fillCard(params){
 	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
 	cell.onclick = function(){ 
 		if (this.isClass) {
-/*			if (isPaintMode && getPolicy(["cO","cL"])) {
-				var cid = this.oid;
-				var frm = this.frm;
-				var oid_ = frm.oid;
-				var cid_ = frm.cid;
-				var cn = classes3(this.oid);//orm("gN",[this.oid,true]);
-				
-				if (cn == "Файлы" || cn == "Фото"){
-					uploadFileToObject(frm, oid_, classes[cn]);
+			//href(this.frm.oid ? 0 : this.oid, this.oid);
+			if (this.isClassGroup) { 
+				var tb = this.buttons.getElementsByTagName("TABLE")[0];
+				if (!tb.innerHTML) {
+					var _frm = new Form(false);//Object.assign({}, this.frm); 
+					_frm.oid = this.frm.oid;
+					_frm.cid = this.oid;
+					loadData(_frm, tb); 
 				} else {
-					var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
-					var newoid = n ? orm("cO",[n, cid]) : 0;
-					var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-					if (newoid) href(oid_, cid_, true);
+					tb.innerHTML = "";
 				}
-				return false;
-			} else {
-*/				//href(this.frm.oid ? 0 : this.oid, this.oid);
-				if (this.isClassGroup) { 
-					var tb = this.buttons.getElementsByTagName("TABLE")[0];
-					if (!tb.innerHTML) {
-						var _frm = new Form(false);//Object.assign({}, this.frm); 
-						_frm.oid = this.frm.oid;
-						_frm.cid = this.oid;
-						loadData(_frm, tb); 
-					} else {
-						tb.innerHTML = "";
-					}
-					//href(this.frm.oid, this.oid);
-				}
-				else if (this.buttons) { this.buttons.hidden = !this.buttons.hidden; };
-
-//			}
+				//href(this.frm.oid, this.oid);
+			} else if (this.buttons) { 
+				this.buttons.hidden = !this.buttons.hidden; 
+			};
 		} else {
 			href(this.oid, this.cid);
 		}
@@ -411,40 +393,54 @@ function fillCard(params){
 	}
 		
 	cell.oncontextmenu = function(e){
-		if (isPaintMode && getPolicy(["cO","cL"]) && e.target == this) {
-			var miAdd = ContextMenuItem("Добавить запись", function(){
-					var cid = this.ctx.oid;
-					var frm = this.ctx.frm;
-					var oid_ = frm.oid;
-					var cid_ = frm.cid;
-					var cn = classes3(this.ctx.oid);//orm("gN",[this.oid,true]);
+		if (e.target == this) {
+			if (isPaintMode && getPolicy(["cO","cL"])) {
+				var miAdd = ContextMenuItem("Добавить запись", function(){
+						var cid = this.ctx.oid;
+						var frm = this.ctx.frm;
+						var oid_ = frm.oid;
+						var cid_ = frm.cid;
+						var cn = classes3(this.ctx.oid);//orm("gN",[this.oid,true]);
+						
+						if (cn == "Файлы" || cn == "Фото"){
+							uploadFileToObject(frm, oid_, classes[cn]);
+						} else {
+							var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
+							var newoid = n ? orm("cO",[n, cid]) : 0;
+							var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+							if (newoid) href(oid_, cid_, true);
+						}
+					}, this);
 					
-					if (cn == "Файлы" || cn == "Фото"){
-						uploadFileToObject(frm, oid_, classes[cn]);
-					} else {
-						var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
-						var newoid = n ? orm("cO",[n, cid]) : 0;
-						var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-						if (newoid) href(oid_, cid_, true);
-					}
-				}, this);
+				var miDel = ContextMenuItem("Удалить запись", function(){ 
+						var frm = this.ctx.frm;
+						var oid_ = frm.oid;
+						var cid_ = frm.cid;
+						if ( confirm("Удалить запись '"+orm("gN",[this.ctx.oid])+"' из '"+orm("gN",[this.ctx.cid])+"' '"+orm("gN",[oid_])+"'?") ){
+							var res = orm("nL",[oid_, this.ctx.oid])
+							href(oid_, cid_, true);
+						}
+					}, this);
+				var miArr = [];
+				if (this.isClass) miArr.push(miAdd);
+				if (!this.isClass || currentUser.uid == 41000) miArr.push(miDel);
 				
-			var miDel = ContextMenuItem("Удалить запись", function(){ 
-					var frm = this.ctx.frm;
-					var oid_ = frm.oid;
-					var cid_ = frm.cid;
-					if ( confirm("Удалить запись '"+orm("gN",[this.ctx.oid])+"' из '"+orm("gN",[this.ctx.cid])+"' '"+orm("gN",[oid_])+"'?") ){
-						var res = orm("nL",[oid_, this.ctx.oid])
-						href(oid_, cid_, true);
-					}
-				}, this);
-			var miArr = [];
-			if (this.isClass) miArr.push(miAdd);
-			if (!this.isClass || currentUser.uid == 41000) miArr.push(miDel);
+				new ContextMenu(miArr, e.x, e.y);
+					
+				return false;
+			} else {
+				new ContextMenu([
+					new ContextMenuItem("Открыть структура класса", function(){
+						href(this.ctx.oid, this.ctx.cid);
+						}, this),
+					new ContextMenuItem("Показать все записи класса", function(){
+						href(0, this.ctx.cid);
+					}, this)
+					], e.x, e.y);
+					
+				return false;
 			
-			new ContextMenu(miArr, e.x, e.y);
-				
-			return false;
+			}
 		}
 	}
 }

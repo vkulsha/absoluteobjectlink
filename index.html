@@ -7,7 +7,7 @@
 		<link rel="shortcut icon" href="/images/logo.png" type="image/png">
 
 		<link rel="stylesheet" href="modules/leaflet/leaflet_1.2.0.css" />
-		<link rel="stylesheet" type="text/css" href="main.css?">
+		<link rel="stylesheet" type="text/css" href="main.css?@">
 
 		<script src="modules/jquery/jquery-3.2.1.min.js"></script>
 		<script src="modules/leaflet/leaflet_1.2.0.js"></script>
@@ -251,7 +251,7 @@ function initFrmData(frm) {
 	bC.innerHTML = "Класс (+) ";
 	bC.frm = frm;
 	bC.onclick = function(){
-		if (getPolicy(["cO","cL"]) && currentUser.uid == 41000) {
+		if (getPolicy(["cO","cL"]) && (currentUser.uid == 41000 || currentUser.uid == 1577)) {
 			var frm = this.frm;
 			var cid = frm.cid;
 			var oid = frm.oid;
@@ -272,7 +272,6 @@ function loadData(frm, body){
 	
 	var cnt = body || frm.getBody();
 	var tb = cnt.tbData || body;//cnt.appendChild(cDom("TABLE"));
-	log(cnt);
 	tb.style.width = '100%';
 	tb.innerHTML = "";
 	frm.buttons = [];
@@ -345,6 +344,7 @@ function fillCard(params){
 					var _frm = new Form(false);//Object.assign({}, this.frm); 
 					_frm.oid = this.frm.oid;
 					_frm.cid = this.oid;
+					_frm.parentFrm = this.frm;
 					loadData(_frm, tb); 
 				} else {
 					tb.innerHTML = "";
@@ -356,8 +356,8 @@ function fillCard(params){
 		} else {
 			href(this.oid, this.cid);
 		}
-		this.frm.buttons.forEach(function(e){ e.style.backgroundColor = "rgba(0,0,0,0.3)"; });
-		this.style.backgroundColor = "rgba(255,0,0,0.3)";
+		this.frm.buttons.forEach(function(e){ e.style.border = "none"; });
+		this.style.border = "2px solid rgba(255,221,0,0.3)";
 	}
 	
 	if (cell.isFile && !cell.isClass) {
@@ -396,43 +396,53 @@ function fillCard(params){
 		if (e.target == this) {
 			if (this.isClass){
 				var miStruct = new ContextMenuItem("Открыть структура класса", function(){
-					href(this.ctx.oid, this.ctx.cid);
+					var cell = this.ctx;
+					href(cell.oid, cell.cid);
 					}, this);
 				var miDict = new ContextMenuItem("Показать все записи класса", function(){
-					href(0, this.ctx.cid);
+					var cell = this.ctx;
+					href(0, cell.cid);
 				}, this);
 			}
 
 			if (isPaintMode && getPolicy(["cO","cL"])) {
 				var miAdd = new ContextMenuItem("Добавить запись", function(){
-						var cid = this.ctx.oid;
-						var frm = this.ctx.frm;
+						var cell = this.ctx;
+						var cid = cell.oid;
+						var frm = cell.frm;
 						var oid_ = frm.oid;
-						var cid_ = frm.cid;
-						var cn = classes3(this.ctx.oid);//orm("gN",[this.oid,true]);
+						var classname = classes3(cid);
 						
-						if (cn == "Файлы" || cn == "Фото"){
-							uploadFileToObject(frm, oid_, classes[cn]);
+						if (classname == "Файлы" || classname == "Фото"){
+							uploadFileToObject(frm, oid_, cid);
 						} else {
-							var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
+							var objname = orm("gN",[oid_]);
+							var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+" "+objname);
 							var newoid = n ? orm("cO",[n, cid]) : 0;
 							var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-							if (newoid) href(oid_, cid_, true);//loadData(this.ctx.frm, this.ctx); //
+							if (newoid){
+								var _frm = frm;
+								while (_frm && _frm.parentFrm != undefined){
+									_frm = _frm.parentFrm;
+								}
+								loadData(_frm);
+							}
 						}
 					}, this);
 					
 				var miDel = new ContextMenuItem("Удалить запись", function(){ 
-						var frm = this.ctx.frm;
+						var cell = this.ctx;
+						var frm = cell.frm;
 						var oid_ = frm.oid;
 						var cid_ = frm.cid;
-						if ( confirm("Удалить запись '"+orm("gN",[this.ctx.oid])+"' из '"+orm("gN",[this.ctx.cid])+"' '"+orm("gN",[oid_])+"'?") ){
-							var res = orm("nL",[oid_, this.ctx.oid])
-							href(oid_, cid_, true);
+						if ( confirm("Удалить запись '"+orm("gN",[cell.oid])+"' из "+(!cell.isClass ? "'"+orm("gN",[cell.cid])+"': " : "")+"'"+orm("gN",[cell.isClass ? cid_ : oid_])+"'?") ){
+							var res = orm("nL",[cell.isClass ? cid_ : oid_, cell.oid])
+							if (res) cell.remove();
 						}
 					}, this);
 				var miArr = [miStruct, miDict];
 				if (this.isClass) miArr.push(miAdd);
-				if (!this.isClass || currentUser.uid == 41000) miArr.push(miDel);
+				if (!this.isClass || currentUser.uid == 41000 || currentUser.uid == 1577) miArr.push(miDel);
 				
 				new ContextMenu(miArr, e.x, e.y);
 					
@@ -528,7 +538,6 @@ function loadAndPaintNew(classname, layer){
 		[[2,1],[3,1],[4,1]],[],false, ["o"+classes["Координаты на карте"], "o"+classes["Функции отрисовки"], "o"+classes["Параметры функции отрисовки"], 
 		"id_o"+classes["Привязка к карте"], "id_o"+classes[classname]], 
 		"and `id_o"+classes["Привязка к карте"]+"` is not null order by `id_o"+classes["Привязка к карте"]+"`,`id_o"+classes["Координаты на карте"]+"`"]);
-	log(paintArr);
 	var paint = mapPaintNew({"paintArr": paintArr, "cid" : classes[classname] , "layer": layer});
 	polylines = paint ? polylines.concat(paint) : polylines;
 	return polylines;

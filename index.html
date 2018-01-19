@@ -272,6 +272,7 @@ function loadData(frm, body){
 	
 	var cnt = body || frm.getBody();
 	var tb = cnt.tbData || body;//cnt.appendChild(cDom("TABLE"));
+	log(cnt);
 	tb.style.width = '100%';
 	tb.innerHTML = "";
 	frm.buttons = [];
@@ -416,7 +417,7 @@ function fillCard(params){
 							var n = prompt("Добавить новое значение '"+cn+"'"+(oid_ ? " к записи '"+orm("gN",[oid_])+"'" : "")+":","");
 							var newoid = n ? orm("cO",[n, cid]) : 0;
 							var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-							if (newoid) href(oid_, cid_, true);
+							if (newoid) href(oid_, cid_, true);//loadData(this.ctx.frm, this.ctx); //
 						}
 					}, this);
 					

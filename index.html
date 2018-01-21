@@ -143,7 +143,6 @@ function openCurrentFrmDataFromHash(){
 		currentFrmData.oid = parseInt(oids);
 		currentFrmData.cid = parseInt(cids);
 		initFrmData(currentFrmData);
-	
 	return {"oids":oids, "cids":cids, "frm":currentFrmData};
 
 }
@@ -269,7 +268,6 @@ function loadData(frm, body){
 	var getObjects = function(ids){return orm("gAnd",[ids,"id,n",true, " order by c desc, n ",false,false])};
 	var arrCls = frm.oid || frm.cid == 1 ? getClasses([frm.cid]) : [[frm.cid, classes3(frm.cid)]];
 	if (!arrCls.length) return false;
-	
 	var cnt = body || frm.getBody();
 	var tb = cnt.tbData || body;//cnt.appendChild(cDom("TABLE"));
 	tb.style.width = '100%';
@@ -290,7 +288,7 @@ function loadData(frm, body){
 		frm.isFile = frm.isFile || cell1.isFile;
 		var arr = [cell1.oid];
 		if (frm.oid) arr.push(frm.oid);
-		var arrObj = getObjects(arr);
+		var arrObj = frm.cid == 1 ? [] : getObjects(arr);
 
 		if (cell1.isClassGroup) { cell1.innerHTML = "["+cell1.innerHTML+"...]"; }
 		else if (arrObj.length != 1) { cell1.innerHTML += " ("+arrObj.length+"):" }
@@ -320,7 +318,6 @@ function fillCard(params){
 	var cell = params.cell;
 	var frm  = params.frm;
 	var cid  = params.cid;
-
 	cell.oid = parseInt(data[0]);
 	cell.id = "b"+cell.oid;
 	cell.isClass = classes2.indexOf(cell.oid) >= 0 || cell.oid == 1;
@@ -345,6 +342,7 @@ function fillCard(params){
 					_frm.oid = this.frm.oid;
 					_frm.cid = this.oid;
 					_frm.parentFrm = this.frm;
+					_frm.ind = this.frm.ind;
 					loadData(_frm, tb); 
 				} else {
 					tb.innerHTML = "";
@@ -354,6 +352,7 @@ function fillCard(params){
 				this.buttons.hidden = !this.buttons.hidden; 
 			};
 		} else {
+			if ( frmsData.length-1 > this.frm.ind ) frmsData[this.frm.ind+1].closeFunc();
 			href(this.oid, this.cid);
 		}
 		this.frm.buttons.forEach(function(e){ e.style.border = "none"; });
@@ -417,7 +416,7 @@ function fillCard(params){
 							uploadFileToObject(frm, oid_, cid);
 						} else {
 							var objname = orm("gN",[oid_]);
-							var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+" "+objname);
+							var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+(objname ? " "+objname : ""));
 							var newoid = n ? orm("cO",[n, cid]) : 0;
 							var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
 							if (newoid){
@@ -435,8 +434,10 @@ function fillCard(params){
 						var frm = cell.frm;
 						var oid_ = frm.oid;
 						var cid_ = frm.cid;
-						if ( confirm("Удалить запись '"+orm("gN",[cell.oid])+"' из "+(!cell.isClass ? "'"+orm("gN",[cell.cid])+"': " : "")+"'"+orm("gN",[cell.isClass ? cid_ : oid_])+"'?") ){
-							var res = orm("nL",[cell.isClass ? cid_ : oid_, cell.oid])
+						var o1 = cell.oid;
+						var o2 = (cell.isClass ? (o1 == cid_ ? 1 : cid_) : oid_) || cid_;
+						if ( confirm("Удалить запись '"+orm("gN",[o1])+"' из '"+orm("gN",[o2])+"'?") ){
+							var res = orm("nL",[o1, o2])
 							if (res) cell.remove();
 						}
 					}, this);

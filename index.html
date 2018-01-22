@@ -610,7 +610,7 @@ function mapPaintNew(params){
 			selectedPoly = this;
 			selectedPoly.enableEdit();
 		} else {
-			href(this.oid, this.cid);
+			href(this.lid, this.cid);
 		}
 	}
 	function oncontextmenu(e) { 
@@ -639,6 +639,7 @@ function mapPaintNew(params){
 		var oid = parseInt(paint[3]);
 		var lid = parseInt(paint[4]);
 		if (paintFunc == "Marker") paintFuncParams = {"icon":L.icon(paintFuncParams)};
+		if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; console.log(oid)}
 		var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
 		p.oid = oid;
 		p.lid = lid;

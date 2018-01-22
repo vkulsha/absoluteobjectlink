@@ -438,6 +438,18 @@ function fillCard(params){
 						}
 					}, this);
 					
+				var miUpd = new ContextMenuItem("Изменить запись", function(){
+						var cell = this.ctx;
+						var frm = cell.frm;
+						var o1 = cell.oid;
+						var _n = orm("gN",[o1]);
+						var n = prompt("Изменить запись", _n);
+						if ( n != _n ){
+							var res = orm("uO",[o1, n]);
+							reloadFrm(frm);
+						}
+					}, this);
+					
 				var miDel = new ContextMenuItem("Удалить запись", function(){ 
 						var cell = this.ctx;
 						var frm = cell.frm;
@@ -452,7 +464,10 @@ function fillCard(params){
 					}, this);
 				var miArr = [miStruct, miDict];
 				if (this.isClass) miArr.push(miAdd);
-				if (!this.isClass || currentUser.uid == 41000 || currentUser.uid == 1577) miArr.push(miDel);
+				if (!this.isClass || currentUser.uid == 41000 || currentUser.uid == 1577) {
+					miArr.push(miUpd);
+					miArr.push(miDel);
+				}
 				
 				new ContextMenu(miArr, e.x, e.y);
 					

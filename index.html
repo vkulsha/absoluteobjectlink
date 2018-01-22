@@ -444,7 +444,7 @@ function fillCard(params){
 						var o1 = cell.oid;
 						var _n = orm("gN",[o1]);
 						var n = prompt("Изменить запись", _n);
-						if ( n != _n ){
+						if ( n && n != _n ){
 							var res = orm("uO",[o1, n]);
 							reloadFrm(frm);
 						}

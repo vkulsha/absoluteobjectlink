@@ -443,11 +443,24 @@ function fillCard(params){
 						var frm = cell.frm;
 						var o1 = cell.oid;
 						var _n = orm("gN",[o1]);
-						var n = prompt("Изменить запись", _n);
-						if ( n && n != _n ){
-							var res = orm("uO",[o1, n]);
-							reloadFrm(frm);
+						var linksArr = orm("gAnd",[[o1],null,true,"",true]);
+						var links = "";
+						var update = true;
+						for (var i=0; i<linksArr.length; i++){
+							links += "  "+linksArr[i][1]+"\n";
 						}
+						if (linksArr.length > 1 && links){
+							update = confirm("Данная запись связана с несколькими записями:\n"+links+"\nЕе отображение в этих записях будет изменено!\nВы уверены, что хотите изменить эту запись?");
+						}
+						
+						if (update){
+							var n = prompt("Изменить запись", _n);
+							if ( n && n != _n ){
+								var res = orm("uO",[o1, n]);
+								reloadFrm(frm);
+							}
+						}
+
 					}, this);
 					
 				var miDel = new ContextMenuItem("Удалить запись", function(){ 

@@ -420,11 +420,7 @@ function fillCard(params){
 							var newoid = n ? orm("cO",[n, cid]) : 0;
 							var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
 							if (newoid){
-								var _frm = frm;
-								while (_frm && _frm.parentFrm != undefined){
-									_frm = _frm.parentFrm;
-								}
-								loadData(_frm);
+								reloadFrm(frm);
 							}
 						}
 					}, this);
@@ -459,6 +455,14 @@ function fillCard(params){
 	}
 }
 
+function reloadFrm(frm){
+	var _frm = frm;
+	while (_frm && _frm.parentFrm != undefined){
+		_frm = _frm.parentFrm;
+	}
+	loadData(_frm);
+}
+
 function uploadFileToObject(frm, oid, cids){
 	cids = cids || [classes["Файлы"]];
 	var dF = frm.getBody().appendChild(cDom("DIV"));
@@ -476,11 +480,13 @@ function uploadFileToObject(frm, oid, cids){
 			var oid = frm.oid;
 			
 			for (var i=0; i < this.domSelFiles.files.length; i++) {
-				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": cids, "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
+				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": JSON.stringify([cids]), "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
 				getXmlHttpReq(function(result){
+					console.log(result);
 				}, "php/uploadFiles.php", formData, false, true)
 			};
-			href(oid, cid, true);
+			reloadFrm(frm);
+			//href(oid, cid, true);
 			this.dF.remove();
 		}
 	}
@@ -719,6 +725,20 @@ function ContextMenu(items, x, y){
 	
 	return menu;
 	
+}
+
+function test(){
+	var arr = orm("gT2",[["Объекты","Широта","Долгота"],[],[],false,["`id_Объекты`", "`Широта`", "`Долгота`"]]);
+	for (var i=0; i<=arr.length; i++){
+		var oid = arr[i][0];
+		var lat = parseInt(arr[i][1]);
+		var lng = parseInt(arr[i][2]);
+
+		var func = "Marker";
+		var coords = JSON.stringify({"lat":lat,"lng":lng});
+		var oid = orm("createPolygonObject",[oid, func, params, coords]);
+		console.log("create drawing:",oid);
+	}
 }
 </script>
 	</body>

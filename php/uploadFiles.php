@@ -10,7 +10,7 @@ $objectlink->u = $u;
 header('Content-Type: text/html; charset=utf-8');
 $uploaddir = $_POST['uploadPath'];
 $uploadid = $_POST['uploadId'];
-$uploadcids = $_POST['uploadCids'];
+$uploadcids = json_decode($_POST['uploadCids']);
 
 mkdir($uploaddir);
 $typePhoto = ["image/jpeg", "image/png"];
@@ -44,10 +44,11 @@ try{
 		$oid = $objectlink->cO([$filename, $uploadid], true);
 		
 		if ($oid) {
-			for ($j=0; $j<count($uploadcids); $j++){
-				//if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
+			//for ($j=0; $j<count($uploadcids); $j++){
+				if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
+				//if ($uploadcids[j]) { $objectlink->cL([$oid, $uploadcids[j]], true); }
 				if ($cidPhoto && array_key_exists("photo", $files[$i])) { $objectlink->cL([$oid, $cidPhoto], true);	}
-			}
+			//}
 		}
 		$oids[] = $oid;
 	}

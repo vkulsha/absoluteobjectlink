@@ -11,10 +11,10 @@ function initMapOld(map){
 	markers.clearLayers();
 	markers = mapObjects.markers;
 	markers.addTo(map);
-	map.fitBounds([
+/*	map.fitBounds([
 		[mapObjects.bounds.minLat, mapObjects.bounds.minLon],
 		[mapObjects.bounds.maxLat, mapObjects.bounds.maxLon]
-	]);
+]);*/
 	return mapObjects;
 	
 	

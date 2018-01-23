@@ -50,6 +50,7 @@ var map = L.map('map', {editable: true});
 L.tileLayer(mapProps.tileLayer, mapProps.tileLayerParams).addTo(map);
 map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
 var isPaintMode = false;
+var selectedPoly;
 var currentEditing;
 var currentEditingType;
 var mapPaints = []
@@ -58,10 +59,10 @@ map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
 	if (isPaintMode) endPaint(e.layer);
 })
 map.editTools.on('editable:enable',function(e){
-	if (isPaintMode) {
+	/*if (isPaintMode) {
 		if (currentEditing) currentEditing.disableEdit();
 		currentEditing = e.layer;
-	}
+	}*/
 });
 
 function endPaint(layer){
@@ -107,7 +108,6 @@ function endPaint(layer){
 	})
 }
 var mapObjects;///old
-var selectedPoly;
 window.onhashchange = function(){///old
 	hashchange(mapObjects);
 }
@@ -130,10 +130,10 @@ function hashchange(mapObjects_){
 	
 	if (coord) {
 		map.setView([coord.lat, coord.lng], 18);
-	} else if (mapObjects_) {
+	} /*else if (mapObjects_) {
 	  var ind = mapObjects_.objects.oid.indexOf(ret.oids);
 	  if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 16);
-	}
+	}*/
 	
 }
 
@@ -213,7 +213,7 @@ gDom("bLogin").onclick = function(){
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
-		mapObjects = initMapOld(map);///
+		//mapObjects = initMapOld(map);///
 		loadPaintLayers(map, frmPaintLayers, "Полигоны на карте");
 		loadPaintLayers(map, frmPaintLayers, "Привязка к карте", true);
 		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
@@ -666,16 +666,14 @@ function mapPaintNew(params){
 			this.setStyle(this.paintFuncParams); 
 	}
 	function onclick(){
-		if (this.paintFunc != "Marker") {
-			if (isPaintMode) {
-				if (selectedPoly) {
-					selectedPoly.disableEdit();
-				}
-				selectedPoly = this;
-				selectedPoly.enableEdit();
-			} else {
-				href(this.lid, this.cid);
+		if (isPaintMode && this.paintFunc != "Marker") {
+			if (selectedPoly) {
+				selectedPoly.disableEdit();
 			}
+			selectedPoly = this;
+			selectedPoly.enableEdit();
+		} else {
+			href(this.lid, this.cid);
 		}
 	}
 	function oncontextmenu(e) { 
@@ -844,6 +842,7 @@ function ContextMenu(items, x, y){
 }
 
 /////old Main.js
+/*
 function initMapOld(map){
 	var markers = L.layerGroup();
 
@@ -861,7 +860,7 @@ function initMapOld(map){
 	
 	
 }
-
+*/
 function mapLoad(arrLatLon, opts, click){
 	var ObjectIcon = L.Icon.extend({
 		options: {
@@ -947,7 +946,7 @@ function mapPaint(coords, funcL, paramsL, map, cid){
 			selectedPoly.enableEdit();
 
 		} else {
-			location.href = "#oid="+this.oid+"&cid="+this.cid;
+			href(this.oid, this.cid);
 		}
 	}
 

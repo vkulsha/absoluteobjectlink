@@ -451,6 +451,7 @@ function fillCard(params){
 						var o2 = oid_ || cid_;
 						var cid = cell.cid;
 						var _n = orm("gN",[o1]);
+						/*
 						var linksArr = orm("gAnd",[[o1],null,true,"",true]);
 						var links = "";
 						var update = true;
@@ -471,6 +472,16 @@ function fillCard(params){
 								var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
 								if (newlink) orm("nL",[o1, o2]);
 							}
+						}*/
+
+						var n = prompt("Изменить запись", _n);
+						if ( n && n != _n ){
+							var newoid = orm("mO",[n, cid, o1]);
+							if (newoid) {
+								orm("cL",[newoid, o2]);
+								orm("nL",[o1, o2]);
+							}
+							console.log(n, cid, o1, o1, o2);
 						}
 						reloadFrm(frm);
 

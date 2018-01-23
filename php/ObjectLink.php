@@ -153,29 +153,26 @@ class ObjectLink {
 	}
 	
 	public function mO($params, $notPolicy=false){
-		//$func = debug_backtrace()[0]['function'];
-		//if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		$func = debug_backtrace()[0]['function'];
+		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
 			$mid = $params[2];
 			
-			//$oid = $this->cO([$n, $pid],true);
+			$oid = $this->cO([$n, $pid],true);
 			$linksArr = $this->gAnd([[$mid],"id,n",true,"",false], true);
 			
 			forEach ($linksArr as $link) {
-				//$lid = $this->cL([$link[0], $oid],true);
-				echo json_encode($link[0]);
-				echo "<br>";
+				$lid = $this->cL([$link[0], $oid],true);
 			}
-			//$lid = $this->cL([$oid, $pid],true);
-			return "ok";
+			$lid = $this->cL([$oid, $pid],true);
+			return $oid;
 			
 		} catch (Exception $e) {
 			print($e);
-			$ret = null;
+			return null;
 		}
-		return $ret;
 	}
 	
 	public function eO($params, $notPolicy=false){//erase object from database

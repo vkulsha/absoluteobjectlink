@@ -15,7 +15,6 @@
 		<script src="modules/md5/md5.js"></script>
 		<script src="service.js?@"></script>
 		<script src="map.js?@"></script>
-		<script src="Main.js"></script>
 	</head>
 	<body>
 		<div id="map" style="position:absolute; width:100%; height:100%"></div>
@@ -441,7 +440,11 @@ function fillCard(params){
 				var miUpd = new ContextMenuItem("Изменить запись", function(){
 						var cell = this.ctx;
 						var frm = cell.frm;
+						var oid_ = frm.oid;
+						var cid_ = frm.cid;
 						var o1 = cell.oid;
+						var o2 = oid_ || cid_;
+						var cid = cell.cid;
 						var _n = orm("gN",[o1]);
 						var linksArr = orm("gAnd",[[o1],null,true,"",true]);
 						var links = "";
@@ -450,16 +453,21 @@ function fillCard(params){
 							links += "  "+linksArr[i][1]+"\n";
 						}
 						if (linksArr.length > 1 && links){
-							update = confirm("Данная запись связана с несколькими записями:\n"+links+"\nЕе отображение в этих записях будет изменено!\nВы уверены, что хотите изменить эту запись?");
+							//update = confirm("Данная запись связана с несколькими записями:\n"+links+"\nЕе отображение в этих записях будет изменено!\nВы уверены, что хотите изменить эту запись?");
+							update = confirm("Данная запись связана с несколькими записями:\n"+links+"\nИзменить это значение во всех записях (Да) или только в текущей записи (Нет)?");
 						}
 						
-						if (update){
-							var n = prompt("Изменить запись", _n);
-							if ( n && n != _n ){
+						var n = prompt("Изменить запись", _n);
+						if ( n && n != _n ){
+							if (update){
 								var res = orm("uO",[o1, n]);
-								reloadFrm(frm);
+							} else {
+								var newoid = orm("cO",[n, cid]);
+								var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+								if (newlink) orm("nL",[o1, o2]);
 							}
 						}
+						reloadFrm(frm);
 
 					}, this);
 					
@@ -585,7 +593,7 @@ function loadAndPaintNew(classname, layer){
 	var paintArr = orm("gT2id",[[classes[classname], classes["Привязка к карте"], classes["Координаты на карте"], classes["Функции отрисовки"], classes["Параметры функции отрисовки"]],
 		[[2,1],[3,1],[4,1]],[],false, ["o"+classes["Координаты на карте"], "o"+classes["Функции отрисовки"], "o"+classes["Параметры функции отрисовки"], 
 		"id_o"+classes["Привязка к карте"], "id_o"+classes[classname]], 
-		"and `id_o"+classes["Привязка к карте"]+"` is not null order by `id_o"+classes["Привязка к карте"]+"`,`id_o"+classes["Координаты на карте"]+"`"]);
+		"and `id_o"+classes["Привязка к карте"]+"` is not null and  `id_o"+classes["Координаты на карте"]+"` is not null order by `id_o"+classes["Привязка к карте"]+"`,`id_o"+classes["Координаты на карте"]+"`"]);
 	var paint = mapPaintNew({"paintArr": paintArr, "cid" : classes[classname] , "layer": layer});
 	polylines = paint ? polylines.concat(paint) : polylines;
 	return polylines;
@@ -640,17 +648,18 @@ function mapPaintNew(params){
 		var lid = parseInt(paint[4]);
 		if (paintFunc == "Marker") paintFuncParams = {"icon":L.icon(paintFuncParams)};
 		if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; console.log(oid)}
-		var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
-		p.oid = oid;
-		p.lid = lid;
-		p.cid = cid;
-		p.paintFuncParams = paintFuncParams;
-		ret.push(p);
-		p.on('mouseover', onmouseover);
-		p.on('mouseout', onmouseout);
-		p.on('click', onclick);
-		p.on('contextmenu', oncontextmenu);
-		
+		if (latlngs) {
+			var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
+			p.oid = oid;
+			p.lid = lid;
+			p.cid = cid;
+			p.paintFuncParams = paintFuncParams;
+			ret.push(p);
+			p.on('mouseover', onmouseover);
+			p.on('mouseout', onmouseout);
+			p.on('click', onclick);
+			p.on('contextmenu', oncontextmenu);
+		}
 	}
 	return ret;
 }
@@ -794,7 +803,155 @@ function test(){
 	return false;
 }
 
+/////old Main.js
+function initMapOld(map){
+	var markers = L.layerGroup();
 
+	var markerClick = function(val){
+		location.href = "#oid="+val.oid+"&cid="+val.cid;
+	}
+	
+	var arrObjects = orm("gT2",[["Объекты","Широта","Долгота","Масштаб на карте"],[],[],false,["`Широта`", "`Долгота`", "`id_Объекты`","`Масштаб на карте`"]]);
+	var mapObjects = mapLoad(arrObjects, {}, markerClick);
+
+	markers.clearLayers();
+	markers = mapObjects.markers;
+	markers.addTo(map);
+	return mapObjects;
+	
+	
+}
+
+function mapLoad(arrLatLon, opts, click){
+	var ObjectIcon = L.Icon.extend({
+		options: {
+			iconSize:     [40, 40],
+			iconAnchor:   [20, 40],
+			popupAnchor:  [0, -40]
+		}
+	});
+
+	var objectIcons = [
+		new ObjectIcon({iconUrl: opts && opts.marker || 'images/marker00.png'}), 
+	];
+
+	var minLat = 1000, minLon = 1000, maxLat = 0, maxLon = 0;
+	var markers = L.layerGroup();
+	var arrLat = [];
+	var arrLon = [];
+	var arrOid = [];
+	var arrZoom = [];
+	
+	$.each(arrLatLon, function(ind, value){
+		var lat = value[0];
+		var lon = value[1];
+		var oid = value[2];
+		var zoom = value[3] || 18;
+		var cid = orm("gO",["Объекты",true]);
+
+		minLat = Math.min(lat, minLat);
+		minLon = Math.min(lon, minLon);
+		maxLat = Math.max(lat, maxLat);
+		maxLon = Math.max(lon, maxLon);
+		
+		var icon = {icon:objectIcons[0]};
+		
+		var marker = L.marker([lat, lon], icon)
+			.addTo(markers)
+			.on("click", function(){
+				click( {"lat":lat, "lon":lon, "oid":oid, "cid":cid} )
+			});
+
+		arrOid.push(oid);
+		arrLat.push(lat);
+		arrLon.push(lon);
+		arrZoom.push(zoom);
+
+	});
+	
+	return {
+		"markers":markers, 
+		"objects":{"oid": arrOid, "lat" : arrLat, "lon" : arrLon, "zoom" : arrZoom},
+		"bounds":{
+			"minLat":minLat, 
+			"minLon":minLon, 
+			"maxLat":maxLat, 
+			"maxLon":maxLon
+		}
+	};
+	
+}
+
+function mapPaint(coords, funcL, paramsL, map, cid){
+	if (!coords || !coords.length) return;
+	var ret = [];
+	var poly = [];
+	paramsL = paramsL || {};
+	funcL = funcL || L.polygon;
+	
+	var polyId = coords[0][1];
+	function onmouseover(e) {
+		if (!this.options.opacity) return;
+		this.setStyle({color:"#ff0000", weight:2}); 
+	}
+	function onmouseout(e) { 
+		if (!this.options.opacity) return;
+		this.setStyle(paramsL); 
+	}
+	function onmouseclick(){
+		if (isPaintMode && this.options.opacity) {
+			if (selectedPoly) {
+				selectedPoly.disableEdit();
+			}
+			selectedPoly = this;
+			selectedPoly.enableEdit();
+
+		} else {
+			location.href = "#oid="+this.oid+"&cid="+this.cid;
+		}
+	}
+
+	function endPaint(){
+		var funcL_ = funcL;
+		var paramsL_ = paramsL;
+		var poly_ = poly;
+		if (poly.length==1) {
+			funcL_ = L.circle;
+			paramsL_.radius = 2;
+			poly_ = L.latLng(poly[0].lat, poly[0].lng);
+		}
+		var p = funcL_(poly_, paramsL_).addTo(map);
+		p.oid = oid;
+		p.objid = objid;
+		p.polyId = polyId;
+		p.cid = cid;
+		p.on('mouseover', onmouseover);
+		p.on('mouseout', onmouseout);
+		p.on('click', onmouseclick);
+
+		ret.push(p);
+		
+	}
+	
+	for (var i=0; i < coords.length; i++){
+		var oid;
+		var objid;
+		if (polyId != coords[i][1] && poly.length) {
+			endPaint();
+			poly = [];
+		}
+		oid = coords[i][2];
+		objid = 0;//coords[i][3];
+		var coord = coords[i][0].split(" ");
+		poly.push(L.latLng(coord));
+		polyId = coords[i][1];
+		if (i == coords.length-1){
+			endPaint();
+			
+		}
+	}
+	return ret;
+}
 
 
 

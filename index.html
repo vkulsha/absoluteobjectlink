@@ -77,19 +77,24 @@ function endPaint(layer){
 			var func = obj.drawFunc;
 			var params = "";
 			var latlngs = layer[obj.getLatLngFunc]();
-			if (confirm((layer.oid ? "Изменить" : "Привязать")+" отрисовку к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
-				var coords = JSON.stringify(latlngs,["lat","lng"]);
-				var _oid = orm("createPolygonObject",[oid, func, params, coords]);
-				console.log("create drawing:",_oid);
-				
-				if (layer.oid && layer.lid) {
-					orm("nO",[layer.oid]);
-					console.log("delete old drawing:", layer.oid);
+			var coords = JSON.stringify(latlngs,["lat","lng"]);
+			if (coords.length > 1024) {
+				window.alert("Количество координат превышает допустимое количество (20)!");
+				layer.remove();
+			} else {
+				if (confirm((layer.oid ? "Изменить" : "Привязать")+" отрисовку к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
+					var _oid = orm("createPolygonObject",[oid, func, params, coords]);
+					console.log("create drawing:",_oid);
+					
+					if (layer.oid && layer.lid) {
+						orm("nO",[layer.oid]);
+						console.log("delete old drawing:", layer.oid);
+					} else {
+						layer.remove();
+					}
 				} else {
 					layer.remove();
 				}
-			} else {
-				layer.remove();
 			}
 			currentEditingType = "";
 			//var ll = L[obj.drawFunc.toLowerCase()](latlngs);

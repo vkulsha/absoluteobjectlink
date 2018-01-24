@@ -17,12 +17,12 @@ class ObjectLink {
 			$sqlLink = file_get_contents(($this->link).".sql");
 			if ($sqlObject) $retO = $this->sql->sql([$sqlObject]);
 			if ($sqlLink) $retL = $this->sql->sql([$sqlLink]);
+			return ($retO && $retL);
 			
 		} catch (Exception $e) {
 			print($e);
-			$ret = null;
+			return null;
 		}
-		return ($retO && $retL);
 	}
 	
 	public function cO($params, $notPolicy=false){//create object and link
@@ -31,27 +31,45 @@ class ObjectLink {
 		try {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
-			$u = $this->u;//isset($params[2]) ? $params[2] : 1;
+			$u = $this->u;
 
-			if ($n) {
+			$id = 0;
+			if ($n && $u) {
 				if ($pid) {
-					//$id = 0;
-					$id = $this->gO([$n, null, null, [$pid]]);
+					$id = $this->gO([$n, [$pid]]);
 				}
-				
+					
 				if (!$id) {
 					$id = $this->sql->iT([$this->object, "n,u", "'$n',$u"]);
-					
-					if ($pid) {
-						$this->cL([$id, $pid, $u]);
-					}
-
 				}
-
-				$ret = $id;
-			} else {
-				$ret = 0;
 			}
+			
+			if ($id && $pid) {
+				$this->cL([$id, $pid]);
+			}
+
+			return $id;
+			
+		} catch (Exception $e) {
+			print($e);
+			return null;
+		}
+	}
+
+	public function gO($params){//get object id by name
+		try {
+			$link = $this->link;
+			$n = $params[0];
+			$classes = isset($params[1]) && $params[1] ? (is_array($params[1]) ? $params[1] : ($params[1] ? [(int)$params[1]] : null)) : null;
+			$inClass = $classes ? " and id in ( select o1 from $link where o2 in (".join(",",$classes).") and o2 in (select o1 from $link where o2 = 1) ) " : "";
+			//$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from $link where o2 = 1) " : "";
+			$isLike = isset($params[2]) && $params[2];
+			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
+			if (!$inClass)
+				$inClass = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where o2 = 1) ) " : "";
+
+			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : ""]);
+			return $ret ? ($isLike /*|| (is_array($ret) && count($ret)>1)*/ ? $ret : $ret[0][0]) : null;
 			
 		} catch (Exception $e) {
 			print($e);
@@ -68,49 +86,23 @@ class ObjectLink {
 		try {
 			$o1 = $params[0];
 			$o2 = $params[1];
-			$u = $this->u;//isset($params[2]) ? $params[2] : 1;
+			$c = isset($params[2]) ? $params[2] : 1;
+			$u = $this->u;
 			
-			$lid = $this->sql->sT([$this->link, "id", "and ( (o1 = $o1 and o2 = $o2) or (o1 = $o2 and o2 = $o1) )"]);  
-			$lid = $lid ? $lid[0][0] : null;
-			
-			if (!$lid) {
-				$ret = $this->sql->iT([$this->link, "o1, o2, u", "$o1,$o2,$u"]);  
+			$lid = 0;
+			$cond = "";
+			if ($o1 != $o2){
+				$lid = $this->gL([$o1, $o2]);
+				$cond = "and id = $lid";
 			} else {
-				$ret = $this->sql->uT([$this->link, "d = CURRENT_TIMESTAMP, u = $u, c = 1", "and id = $lid"]);  
+				$cond = "and (o1 = $o1 or o2 = $o1)";
 			}
 			
-		} catch (Exception $e) {
-			print($e);
-			$ret = null;
-		}
-		return $ret;
-	}
-
-	public function gO($params){//get object id by name
-		try {
-			$link = $this->link;
-			$n = $params[0];
-			$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from $link where o2 = 1) " : "";
-			$isLike = isset($params[2]) && $params[2];
-			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
-			//$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from link where o2 = ".$params[3]." and o1 not in (select o1 from link where o2 = 1) ) " : "";
-			$inClass  = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where o2 = 1) ) " : "";
-			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $isClass $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : "limit 1"]);
-			return $ret ? ($isLike ? $ret : $ret[0][0]) : null;
-			
-		} catch (Exception $e) {
-			print($e);
-			$ret = null;
-		}
-		return $ret;
-	}
-	
-	public function gN($params){//get object name by id
-		try {
-			$id = $params[0];
-			
-			$ret = $this->sql->sT([$this->object, "n", "and id = '$id'", "", "limit 1"]);
-			return $ret ? $ret[0][0] : null;
+			if (!$lid) {
+				$ret = $this->sql->iT([$this->link, "o1, o2, c, u", "$o1,$o2,$c,$u"]);  
+			} else {
+				$ret = $this->sql->uT([$this->link, "c = $c, d = CURRENT_TIMESTAMP, u = $u", $cond]);  
+			}
 			
 		} catch (Exception $e) {
 			print($e);
@@ -124,7 +116,20 @@ class ObjectLink {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			
-			$ret = $this->sql->sT([$this->link, "id", "and ((o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1')) ", "", ""]);
+			$ret = $this->sql->sT([$this->link, "id", "and ( (o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1') ) ", "", ""]);
+			return count($ret) ? $ret[0][0] : null;
+			
+		} catch (Exception $e) {
+			print($e);
+			return null;
+		}
+	}
+	
+	public function gN($params){//get object name by id
+		try {
+			$id = $params[0];
+			
+			$ret = $this->sql->sT([$this->object, "n", "and id = '$id'", "", "limit 1"]);
 			return $ret ? $ret[0][0] : null;
 			
 		} catch (Exception $e) {
@@ -210,9 +215,9 @@ class ObjectLink {
 		try {
 			$o1 = $params[0];
 			$o2 = $params[1];
-			$u = $this->u;//isset($params[2]) ? $params[2] : 1;
+			$u = $this->u;
 			
-			$ret = $this->sql->uT([$this->link, "c=0,u=".$u, "and ((o1=$o1 and o2=$o2) or (o2=$o1 and o1=$o2))"]);  
+			$ret = $this->cL([$o1, $o2, 0]);  
 			return $ret;
 			
 		} catch (Exception $e) {
@@ -569,8 +574,8 @@ class ObjectLink {
 	}
 	
 	public function getPolicyLazy(){
-		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u]); 
-		return $this->u>1 && $this->gL([$this->gO(["Пользователи"]),$this->u]); 
+		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u])[0][0]; 
+		return $this->u>1 && $this->gL([$this->gO(["Пользователи"]),$this->u]);
 	}
 	
 	public function iii($params, $notPolicy=false){
@@ -638,7 +643,7 @@ class ObjectLink {
 			$this->cL([$maplink_oid, $oid]);
 			
 			$func_cid = $this->gO(["Функции отрисовки", true]);
-			$func_oid = $this->gO([$func, false, null, [$func_cid]]);
+			$func_oid = $this->gO([$func, [$func_cid]]);
 			$this->cL([$func_oid, $maplink_oid]);
 
 			$params_cid = $this->gO(["Параметры функции отрисовки", true]);
@@ -898,7 +903,7 @@ class ObjectLink {
 		try {
 			$map = $params[0];
 			$cid = $this->gO(["Карта", true]);
-			$oid = $cid ? $this->gO([$map, false, null, [$cid]]) : $this->gO([$map]);
+			$oid = $cid ? $this->gO([$map, [$cid]]) : $this->gO([$map]);
 			
 			$cid = $this->gO(["tileLayer", true]);
 			$tileLayer = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;

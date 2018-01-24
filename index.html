@@ -53,7 +53,6 @@ var isPaintMode = false;
 var selectedPoly;
 var currentEditing;
 var currentEditingType;
-var mapPaints = []
 
 map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
 	if (isPaintMode) endPaint(e.layer);
@@ -118,13 +117,10 @@ function hashchange(mapObjects_){
 	
 	var coord;
 	if (ret.frm.isPaint) {
-		for (var i=0; i < mapPaints.length; i++){
-			if (mapPaints[i].lid == ret.oids) {
-				//coord = mapPaints[i].paintFunc == "Marker" || mapPaints[i].paintFunc == "Circle" ? mapPaints[i].getLatLng() : mapPaints[i].getCenter();
-				mapProps.mapFunctions.forEach(function(prop){ if (mapPaints[i].paintFunc == prop.drawFunc) coord = mapPaints[i][prop.getLatLngFunc](); })
-				if (coord.length) coord = coord[0];
-				break;
-			}
+		var p = getPaint(ret.oids);
+		if (p) {
+			mapProps.mapFunctions.forEach(function(prop){ if (p.paintFunc == prop.drawFunc) coord = p[prop.getLatLngFunc](); })
+			if (coord.length) coord = coord[0];
 		}
 	}
 	
@@ -135,6 +131,18 @@ function hashchange(mapObjects_){
 	  if (~ind) map.setView([mapObjects_.objects.lat[ind], mapObjects_.objects.lon[ind]], mapObjects_.objects.zoom[ind] || 16);
 	}*/
 	
+}
+
+function getPaint(oid){
+	var findLayer = null;
+	map.eachLayer(function(layer){
+		var lid = layer.lid || layer.oid;
+		if (lid && lid == oid) {
+			findLayer = layer;
+			return;
+		}
+	});
+	return findLayer;
 }
 
 function href(oid_, cid_, reload){
@@ -543,6 +551,33 @@ function fillCard(params){
 			}
 		}
 	}
+	
+	cell.onmouseover = function(){
+		var layer
+		if (this.layer) {
+			layer = this.layer;
+		} else {
+			layer = getPaint(this.oid);
+		}
+		if (layer && layer.paintFunc != "Marker") {
+			this.layer = layer;
+			layer.setStyle({color:"#ff0000", weight:2});
+		}
+	}
+	
+	cell.onmouseout = function(){
+		var layer
+		if (this.layer) {
+			layer = this.layer;
+		} else {
+			this.layer = layer;
+			layer = getPaint(this.oid);
+		}
+		if (layer && layer.paintFunc != "Marker") {
+			layer.setStyle(layer.paintFuncParams);
+		}
+	}
+	
 }
 
 function reloadFrm(frm){
@@ -660,10 +695,16 @@ function mapPaintNew(params){
 	function onmouseover(e) {
 		if (this.paintFunc != "Marker") 
 			this.setStyle({color:"#ff0000", weight:2}); 
+		
+		var cell = gDom("b"+this.lid);
+		if (cell) cell.style.color = "#ff9999";
 	}
 	function onmouseout(e) { 
 		if (this.paintFunc != "Marker")
 			this.setStyle(this.paintFuncParams); 
+			
+		var cell = gDom("b"+this.lid);
+		if (cell) cell.style.color = "#fff";
 	}
 	function onclick(){
 		if (isPaintMode && this.paintFunc != "Marker") {
@@ -715,6 +756,82 @@ function mapPaintNew(params){
 			p.on('mouseout', onmouseout);
 			p.on('click', onclick);
 			p.on('contextmenu', oncontextmenu);
+		}
+	}
+	return ret;
+}
+
+function mapPaint(coords, funcL, paramsL, map, cid){
+	if (!coords || !coords.length) return;
+	var ret = [];
+	var poly = [];
+	paramsL = paramsL || {};
+	funcL = funcL || L.polygon;
+	
+	var polyId = coords[0][1];
+	function onmouseover(e) {
+		if (!this.options.opacity) return;
+		this.setStyle({color:"#ff0000", weight:2}); 
+		var cell = gDom("b"+this.oid);
+		if (cell) cell.style.color = "#ff9999";
+	}
+	function onmouseout(e) { 
+		if (!this.options.opacity) return;
+		this.setStyle(paramsL); 
+		var cell = gDom("b"+this.oid);
+		if (cell) cell.style.color = "#fff";
+	}
+	function onmouseclick(){
+		if (isPaintMode && this.options.opacity) {
+			if (selectedPoly) {
+				selectedPoly.disableEdit();
+			}
+			selectedPoly = this;
+			selectedPoly.enableEdit();
+
+		} else {
+			href(this.oid, this.cid);
+		}
+	}
+
+	function endPaint(){
+		var funcL_ = funcL;
+		var paramsL_ = paramsL;
+		var poly_ = poly;
+		if (poly.length==1) {
+			funcL_ = L.circle;
+			paramsL_.radius = 2;
+			poly_ = L.latLng(poly[0].lat, poly[0].lng);
+		}
+		var p = funcL_(poly_, paramsL_).addTo(map);
+		p.oid = oid;
+		p.objid = objid;
+		p.polyId = polyId;
+		p.cid = cid;
+		p.paintFuncParams = paramsL_;
+		p.on('mouseover', onmouseover);
+		p.on('mouseout', onmouseout);
+		p.on('click', onmouseclick);
+
+		ret.push(p);
+		
+	}
+	
+	for (var i=0; i < coords.length; i++){
+		var oid;
+		var objid;
+		if (polyId != coords[i][1] && poly.length) {
+			endPaint();
+			poly = [];
+		}
+		oid = coords[i][2];
+		objid = 0;//coords[i][3];
+		var coord = coords[i][0].split(" ");
+		poly.push(L.latLng(coord));
+		polyId = coords[i][1];
+		if (i == coords.length-1){
+			endPaint();
+			
 		}
 	}
 	return ret;
@@ -780,7 +897,7 @@ function loadPaintLayers(map, frm, mapLinkClassName, notClearFrmBody){
 				if (mapLinkClassName == "Полигоны на карте") {
 					loadAndPaint(this.n, this.layer, paintfunc, paintfuncparam);
 				} else {
-					mapPaints = mapPaints.concat(loadAndPaintNew(this.n, this.layer, this.filter)) ;//filter = {"className":"","value":"Кирпичный"} or {"className":"Территориальные подразделения","value":"Центральное ТП"}
+					loadAndPaintNew(this.n, this.layer, this.filter) ;//filter = {"className":"","value":"Кирпичный"} or {"className":"Территориальные подразделения","value":"Центральное ТП"}
 				}
 				this.layer.addTo(map);
 			} else {
@@ -919,77 +1036,6 @@ function mapLoad(arrLatLon, opts, click){
 		}
 	};
 	
-}
-
-function mapPaint(coords, funcL, paramsL, map, cid){
-	if (!coords || !coords.length) return;
-	var ret = [];
-	var poly = [];
-	paramsL = paramsL || {};
-	funcL = funcL || L.polygon;
-	
-	var polyId = coords[0][1];
-	function onmouseover(e) {
-		if (!this.options.opacity) return;
-		this.setStyle({color:"#ff0000", weight:2}); 
-	}
-	function onmouseout(e) { 
-		if (!this.options.opacity) return;
-		this.setStyle(paramsL); 
-	}
-	function onmouseclick(){
-		if (isPaintMode && this.options.opacity) {
-			if (selectedPoly) {
-				selectedPoly.disableEdit();
-			}
-			selectedPoly = this;
-			selectedPoly.enableEdit();
-
-		} else {
-			href(this.oid, this.cid);
-		}
-	}
-
-	function endPaint(){
-		var funcL_ = funcL;
-		var paramsL_ = paramsL;
-		var poly_ = poly;
-		if (poly.length==1) {
-			funcL_ = L.circle;
-			paramsL_.radius = 2;
-			poly_ = L.latLng(poly[0].lat, poly[0].lng);
-		}
-		var p = funcL_(poly_, paramsL_).addTo(map);
-		p.oid = oid;
-		p.objid = objid;
-		p.polyId = polyId;
-		p.cid = cid;
-		p.on('mouseover', onmouseover);
-		p.on('mouseout', onmouseout);
-		p.on('click', onmouseclick);
-
-		ret.push(p);
-		
-	}
-	
-	for (var i=0; i < coords.length; i++){
-		var oid;
-		var objid;
-		if (polyId != coords[i][1] && poly.length) {
-			endPaint();
-			poly = [];
-		}
-		oid = coords[i][2];
-		objid = 0;//coords[i][3];
-		var coord = coords[i][0].split(" ");
-		poly.push(L.latLng(coord));
-		polyId = coords[i][1];
-		if (i == coords.length-1){
-			endPaint();
-			
-		}
-	}
-	return ret;
 }
 
 function test(){

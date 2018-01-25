@@ -477,8 +477,8 @@ class ObjectLink {
 			$count = count($params[0]);
 			$fields = isset($params[1]) ? $params[1] : "*";
 			$notIsClass = isset($params[2]) && $params[2] ? "not in (select o1 from $link where o2 = 1)" : "";
-			$notIsClass1 = $notIsClass ? "and o1 $notIsClass" : "";
-			$notIsClass2 = $notIsClass ? "and o2 $notIsClass" : "";
+			$notIsClass1 = $notIsClass ? "and o1 <> 1 and o1 $notIsClass " : "";
+			$notIsClass2 = $notIsClass ? "and o2 <> 1 and o2 $notIsClass" : "";
 			$cond = isset($params[3]) ? $params[3] : "";
 			$parent = isset($params[4]) && $params[4] ? "and parent" : (isset($params[4]) ? "and not parent" : "");
 			$isClass = isset($params[5]) && $params[5] ? "in (select o1 from $link where o2 = 1)" : "";
@@ -576,6 +576,43 @@ class ObjectLink {
 	public function getPolicyLazy(){
 		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u])[0][0]; 
 		return $this->u>1 && $this->gL([$this->gO(["Пользователи"]),$this->u]);
+	}
+			
+/*
+[Login]
+	login1
+	...
+	[Password]
+		password1
+		...
+	[Role]
+		role1
+		...
+		[Rule]
+		...
+			rule1
+			...
+			[RuleFunc]
+				cL
+				gAnd
+				getTableQuery2
+			[Class1]
+			...
+*/		
+	public function getAccess($params){//olp.php?f=getAccess&p=["cL",42212]&u=42975
+		//$time_start = microtime(true);
+		$u = $this->u;
+		$func = $params[0];
+		$cid = $params[1];
+		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
+		$ruleCid = $this->gO(["Rule", true], true);
+		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
+		$rule = $this->gAnd([[$cid, $ruleCid, $ruleFuncOid],"id",false,"and id <> 1"], true);
+		$rule = count($rule) ? $rule[0][0] : 0;
+		$res = $this->gT2([["Rule","Role","Login"],[[2,1]],[],false,null,"and `id_Rule`=$rule and `id_Login` = $u"],true);
+		//$time_end = microtime(true);
+		//$time = $time_end - $time_start;//0.099
+		return !!$res;
 	}
 	
 	public function iii($params, $notPolicy=false){

@@ -61,12 +61,12 @@ class ObjectLink {
 			$link = $this->link;
 			$n = $params[0];
 			$classes = isset($params[1]) && $params[1] ? (is_array($params[1]) ? $params[1] : ($params[1] ? [(int)$params[1]] : null)) : null;
-			$inClass = $classes ? " and id in ( select o1 from $link where o2 in (".join(",",$classes).") and o2 in (select o1 from $link where o2 = 1) ) " : "";
+			$inClass = $classes ? " and id in ( select o1 from $link where c>0 and o2 in (".join(",",$classes).") and o2 in (select o1 from $link where c>0 and o2 = 1) ) " : "";
 			//$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from $link where o2 = 1) " : "";
 			$isLike = isset($params[2]) && $params[2];
 			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
 			if (!$inClass)
-				$inClass = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where o2 = 1) ) " : "";
+				$inClass = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where c>0 and o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where c>0 and o2 = 1) ) " : "";
 
 			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : ""]);
 			return $ret ? ($isLike /*|| (is_array($ret) && count($ret)>1)*/ ? $ret : $ret[0][0]) : null;
@@ -116,12 +116,12 @@ class ObjectLink {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			
-			$ret = $this->sql->sT([$this->link, "id", "and ( (o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1') ) ", "", ""]);
-			return count($ret) ? $ret[0][0] : null;
+			$ret = $this->sql->sT([$this->link, "id", "and c>0 and ( (o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1') ) ", "", ""]);
+			return count($ret) ? $ret[0][0] : 0;
 			
 		} catch (Exception $e) {
 			print($e);
-			return null;
+			return 0;
 		}
 	}
 	
@@ -609,10 +609,35 @@ class ObjectLink {
 		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
 		$rule = $this->gAnd([[$cid, $ruleCid, $ruleFuncOid],"id",false,"and id <> 1"], true);
 		$rule = count($rule) ? $rule[0][0] : 0;
-		$res = $this->gT2([["Rule","Role","Login"],[[2,1]],[],false,null,"and `id_Rule`=$rule and `id_Login` = $u"],true);
+		$res = $this->gT2([["Rule","Role","Пользователи"],[[2,1]],[],false,null,"and `id_Rule`=$rule and `id_Пользователи` = $u"],true);
 		//$time_end = microtime(true);
 		//$time = $time_end - $time_start;//0.099
 		return !!$res;
+	}
+	
+	public function getRecurseLink($params, $ret=[], $level=0){
+		$o1 = +$params[0];
+		$o2 = +$params[1];
+		$notOnlyClasses = isset($params[2]) ? !!$params[2] : false;
+		
+		$link = $this->gL([$o1, $o2]);
+		if (!$link) {
+			$and = $this->gAnd([[$o1],"id",false,"and id <> 1",true, !$notOnlyClasses], true);
+			forEach ($and as $obj){
+				$oid = +$obj[0];
+				$ret[] = $oid;
+				$level++;
+				$res = $this->getRecurseLink([$oid, $o2, $notOnlyClasses], $ret, $level);
+				if ($res) {
+					return $res;
+				} else {
+					array_splice($ret,count($ret)-1);
+				}
+			}
+			return false;
+		} else {
+			return $ret;
+		}
 	}
 	
 	public function iii($params, $notPolicy=false){
@@ -703,7 +728,7 @@ class ObjectLink {
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$n = $params[0];
-			return $this->sql->sT([$this->object, "id, n", " and n like '%$n%' and id not in (select o1 from $link where o2 = 1)", "order by id", ""]);
+			return $this->sql->sT([$this->object, "id, n", " and n like '%$n%' and id not in (select o1 from $link where c>0 and o2 = 1)", "order by id", ""]);
 			
 		} catch (Exception $e){
 			print($e);
@@ -716,9 +741,9 @@ class ObjectLink {
 		return "".
 			"left join ".
 			"( ".
-			" select o1, o2 from $link where 1=1 $isClass1 ".
+			" select o1, o2 from $link where c>0 and 1=1 $isClass1 ".
 			" union all ".
-			" select o2, o1 from $link where 1=1 $isClass2 ".
+			" select o2, o1 from $link where c>0 and 1=1 $isClass2 ".
 			")l$ind on l$prev.o2 = l$ind.o1 ".
 			"";
 	}
@@ -732,7 +757,7 @@ class ObjectLink {
 			$isClass = isset($params[3]) && $params[3] ? true : false;
 			$excludeClasses = isset($params[4]) ? "1,".join(",",$params[4]) : "1,1410";
 			
-			$isClass12 = $isClass ? " in (select o1 from $link where o2 = 1 and o1 not in ($excludeClasses)) " : "";
+			$isClass12 = $isClass ? " in (select o1 from $link where c>0 and o2 = 1 and o1 not in ($excludeClasses)) " : "";
 			$isClass1 = $isClass ? " and o1 $isClass12 " : " and o1 not in ($excludeClasses) ";
 			$isClass2 = $isClass ? " and o2 $isClass12 " : " and o2 not in ($excludeClasses) ";
 			
@@ -741,9 +766,9 @@ class ObjectLink {
 			
 			$body = "".
 				"from ( ".
-				" select o1, o2 from $link where 1=1 $isClass1 ".
+				" select o1, o2 from $link where c>0 $isClass1 ".
 				" union all ".
-				" select o2, o1 from $link where 1=1 $isClass2 ".
+				" select o2, o1 from $link where c>0 $isClass2 ".
 				")l1 ";
 			$cond = " where l1.o1 = $cid1 and (l1.o2 = $cid2 ";
 			$fields = "fondLevel, oid, l1";
@@ -813,7 +838,7 @@ class ObjectLink {
 			$object = $this->object;
 			$link = $this->link;
 			$cid = $params[0];
-			return "select * from $object where id in ( select o1 from $link where o2 = $cid and o1 not in (select o1 from $link where o2 = 1) ) ";
+			return "select * from $object where id in ( select o1 from $link where c>0 and o2 = $cid and o1 not in (select o1 from $link where c>0 and o2 = 1) ) ";
 			
 		} catch (Exception $e){
 			print($e);

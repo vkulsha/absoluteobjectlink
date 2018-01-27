@@ -578,137 +578,31 @@ class ObjectLink {
 		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u])[0][0]; 
 		return $this->u>1 && $this->gL([$this->gO(["Пользователи"]),$this->u]);
 	}
-			
-/*
-[Login]
-	login1
-	...
-	[Password]
-		password1
-		...
-	[Role]
-		role1
-		...
-		[Rule]
-		...
-			rule1
-			...
-			[RuleFunc]
-				cL
-				gAnd
-				getTableQuery2
-			[Class1]
-			...
-*/		
-	public function getAccessSimple($params){//Login->Role->Rule->RuleFunc,->Rule1Classes; login1->role1->rule1->func1,->rule1classes1; Rule1Classes->Class1 (func=func1, cid=Class1)
+	
+	public function getAccess($params){//ClassGroup->Role->Role1Class->RoleFunc,User,Class1; role1class1->rolefunc1,u; (func=rolefunc1, cid=Class1)
 		//$time_start = microtime(true);
-		$u = $this->u;
 		$func = $params[0];
 		$cid = $params[1];
-		$ruleCid = $this->gO(["Rule", true], true);
+		$u = $this->u;
 
-		$rules_classes = $this->gAnd([[$ruleCid,$cid],"id",false,"and id<>1"]);
-		foreach ($rules_classes as $rules_class){
-			$rules_class = $rules_class[0];
-			$rules = $this->gT2([["Role","Rule","Пользователи"],[],[],false,null,"and `id_Пользователи` = $u"],true);
-			foreach ($rules as $rule){
-				$rule = +$rule[2];
-				$access = $this->gAnd([[$rules_class,$rule],"id",true]);//2.28
-				//$access = $this->gL([$rules_class,$rule]);//0.15; Rule1Classes->rule1, Rule1Classes>X>rule1classes1
-				if ($access && count($access)) {
-					//$time_end = microtime(true); $time = $time_end - $time_start; return $time;//0.28
-					return +$access[0][0];
-				}
+		$userCid = $this->gO(["Пользователи", true], true);
+		$roleFuncCid = $this->gO(["RoleFunc", true], true);
+		if ($cid == $roleFuncCid) return false;
+		$roleCid = $this->gO(["Role", true], true);
+		$roleFuncOid = $this->gO([$func, [$roleFuncCid]], true);
+		$roleCids = $cid && $roleFuncCid && $roleCid && $u ? $this->gAnd([[$cid, $roleFuncCid, $roleCid],"id",false,"and id <> 1",null,true], true) : [];
+		foreach ($roleCids as $roleCid){
+			$roleCid = +$roleCid[0];
+			$q = $this->gOCQ([$roleCid]);
+			$roleOid = $this->sql->sT(["(select id from ($q)x)x","*"]);
+			$roleOid = ($roleOid && count($roleOid)) ? $roleOid[0][0] : 0;
+			$ret = $this->gL([$roleOid, $u]) && $this->gL([$roleOid, $roleFuncOid]);
+			if ($ret) {
+				//$time_end = microtime(true); $time = $time_end - $time_start; return $time." ".$ret;//0.085-0.09
+				return !!$ret;
 			}
 		}
-		return 0;
-	}
-
-	public function getAccessSimpleFaster($params){//Login->Role->Rule->RuleFunc,->Rule1Classes; login1->role1->rule1->func1,->rule1classes1; Rule1Classes->Class1 (func=func1, cid=Class1)
-		//$time_start = microtime(true);
-		$u = $this->u;
-		$func = $params[0];
-		$cid = $params[1];
-		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
-		$ruleCid = $this->gO(["Rule", true], true);
-		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
-
-		$rules = $this->gAnd([[$ruleCid, $ruleFuncOid],"id",true,"and id <> 1"], true);
-		foreach ($rules as $rule){
-			$rule = +$rule[0];
-			
-			$rules_classes = $this->gAnd([[$ruleCid,$cid],"id",false,"and id<>1"]);
-			foreach ($rules_classes as $rules_class){
-				$rules_class = $rules_class[0];
-				
-				$access = $this->gAnd([[$rules_class,$rule],"id",true]);
-				if ($access && count($access)) {
-					//$time_end = microtime(true); $time = $time_end - $time_start; return $time;//0.23
-					return +$access[0][0];
-				}
-				
-			}
-		}
-		return 0;
-	}
-	
-	public function getAccessFastest($params){//Login->Role->Rule->RuleFunc; login1->role1->rule1->func1; rule1->Class1 (func=func1, cid=Class1)
-		//$time_start = microtime(true);
-		$u = $this->u;
-		$func = $params[0];
-		$cid = $params[1];
-		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
-		$ruleCid = $this->gO(["Rule", true], true);
-		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
-		$rule = $this->gAnd([[$cid, $ruleCid, $ruleFuncOid],"id",false,"and id <> 1"], true);
-		$rule = count($rule) ? $rule[0][0] : 0;
-		$res = $this->gT2([["Role","Rule","Пользователи"],[],[],false,null,"and `id_Rule`=$rule and `id_Пользователи` = $u"],true);
-		//$time_end = microtime(true); $time = $time_end - $time_start; return $time;//0.088-0.097 
-		return !!$res;
-	}
-	
-	public function getAccessRecurse($params){//Login->Role->Rule->RuleFunc; login1->role1->rule1->func1; rule1->Class1; Class1->Class2 (func=func1, cid=Class2)
-		$u = $this->u;
-		$func = $params[0];
-		$cid = $params[1];
-		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
-		$ruleCid = $this->gO(["Rule", true], true);
-		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
-
-		$rules = $this->gT2([["Role","Rule","Пользователи"],[],[],false,null,"and `id_Пользователи` = $u"],true);
-		foreach ($rules as $rule){
-			$rule = +$rule[2];
-			$cid2 = $this->gAnd([[$rule],"id",false,"and id <> 1",false,true], true);
-			$cid2 = count($cid2) ? +$cid2[0][0] : 0;
-			return is_array($this->getRecurseLink([$cid, $cid2]));
-			//echo $cid2."<br>";
-			
-		}
-	}
-	
-	public function getRecurseLink($params, $ret=[], $level=0){//cid1,cid5 => [cid2,cid3,cid4]
-		$o1 = +$params[0];
-		$o2 = +$params[1];
-		$notOnlyClasses = isset($params[2]) ? !!$params[2] : false;
-		if ($level > 3) return false;
-		$link = $this->gL([$o1, $o2]);
-		if (!$link) {
-			$and = $this->gAnd([[$o1],"id",false,"and id <> 1",true, !$notOnlyClasses], true);
-			forEach ($and as $obj){
-				$oid = +$obj[0];
-				$ret[] = $oid;
-				$level++;
-				$res = $this->getRecurseLink([$oid, $o2, $notOnlyClasses], $ret, $level);
-				if ($res) {
-					return $res;
-				} else {
-					array_splice($ret,count($ret)-1);
-				}
-			}
-			return false;
-		} else {
-			return $ret;
-		}
+		return false;
 	}
 	
 	public function iii($params, $notPolicy=false){
@@ -1080,6 +974,134 @@ class ObjectLink {
 }
 
 
+			
+/*	
+	public function getAccessSimple($params){//Login->Role->Rule->RuleFunc,->Rule1Classes; login1->role1->rule1->func1,->rule1classes1; Rule1Classes->Class1 (func=func1, cid=Class1)
+		//$time_start = microtime(true);
+		$u = $this->u;
+		$func = $params[0];
+		$cid = $params[1];
+		$ruleCid = $this->gO(["Rule", true], true);
+
+		$rules_classes = $this->gAnd([[$ruleCid,$cid],"id",false,"and id<>1"]);
+		foreach ($rules_classes as $rules_class){
+			$rules_class = $rules_class[0];
+			$rules = $this->gT2([["Role","Rule","Пользователи"],[],[],false,null,"and `id_Пользователи` = $u"],true);
+			foreach ($rules as $rule){
+				$rule = +$rule[2];
+				$access = $this->gAnd([[$rules_class,$rule],"id",true]);//2.28
+				//$access = $this->gL([$rules_class,$rule]);//0.15; Rule1Classes->rule1, Rule1Classes>X>rule1classes1
+				if ($access && count($access)) {
+					//$time_end = microtime(true); $time = $time_end - $time_start; return $time;//0.28
+					return +$access[0][0];
+				}
+			}
+		}
+		return 0;
+	}
+
+	public function getAccessSimpleFaster($params){//Login->Role->Rule->RuleFunc,->Rule1Classes; login1->role1->rule1->func1,->rule1classes1; Rule1Classes->Class1 (func=func1, cid=Class1)
+		//$time_start = microtime(true);
+		$u = $this->u;
+		$func = $params[0];
+		$cid = $params[1];
+		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
+		$ruleCid = $this->gO(["Rule", true], true);
+		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
+
+		$rules = $this->gAnd([[$ruleCid, $ruleFuncOid],"id",true,"and id <> 1"], true);
+		foreach ($rules as $rule){
+			$rule = +$rule[0];
+			
+			$rules_classes = $this->gAnd([[$ruleCid,$cid],"id",false,"and id<>1"]);
+			foreach ($rules_classes as $rules_class){
+				$rules_class = $rules_class[0];
+				
+				$access = $this->gAnd([[$rules_class,$rule],"id",true]);
+				if ($access && count($access)) {
+					//$time_end = microtime(true); $time = $time_end - $time_start; return $time;//0.23
+					return +$access[0][0];
+				}
+				
+			}
+		}
+		return 0;
+	}
+	
+	public function getAccessFastest($params){//Login->Role->Rule->RuleFunc; login1->role1->rule1->func1; rule1->Class1 (func=func1, cid=Class1)
+		$time_start = microtime(true);
+		$u = $this->u;
+		$func = $params[0];
+		$cid = $params[1];
+		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
+		$ruleCid = $this->gO(["Rule", true], true);
+		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
+		$rule = $this->gAnd([[$cid, $ruleCid, $ruleFuncOid],"id",false,"and id <> 1"], true);
+		$rule = count($rule) ? $rule[0][0] : 0;
+		$res = $this->gT2([["Role","Rule","Пользователи"],[],[],false,null,"and `id_Rule`=$rule and `id_Пользователи` = $u"],true);
+		$time_end = microtime(true); $time = $time_end - $time_start; return $time." ".+!!$res;//0.088-0.097 
+		return !!$res;
+	}
+	
+	public function getAccessRecurse($params){//Login->Role->Rule->RuleFunc; login1->role1->rule1->func1; rule1->Class1; Class1->Class2 (func=func1, cid=Class2)
+		$u = $this->u;
+		$func = $params[0];
+		$cid = $params[1];
+		$ruleFuncCid = $this->gO(["RuleFunc", true], true);
+		$ruleCid = $this->gO(["Rule", true], true);
+		$ruleFuncOid = $this->gO([$func, [$ruleFuncCid]]);
+
+		$rules = $this->gT2([["Role","Rule","Пользователи"],[],[],false,null,"and `id_Пользователи` = $u"],true);
+		foreach ($rules as $rule){
+			$rule = +$rule[2];
+			$cid2 = $this->gAnd([[$rule],"id",false,"and id <> 1",false,true], true);
+			$cid2 = count($cid2) ? +$cid2[0][0] : 0;
+			return is_array($this->getRecurseLink([$cid, $cid2]));
+			//echo $cid2."<br>";
+			
+		}
+	}
+	
+	public function getRecurseLink($params, $ret=[], $level=0){//cid1,cid5 => [cid2,cid3,cid4]
+		$o1 = +$params[0];
+		$o2 = +$params[1];
+		$notOnlyClasses = isset($params[2]) ? !!$params[2] : false;
+		if ($level > 3) return false;
+		$link = $this->gL([$o1, $o2]);
+		if (!$link) {
+			$and = $this->gAnd([[$o1],"id",false,"and id <> 1",true, !$notOnlyClasses], true);
+			forEach ($and as $obj){
+				$oid = +$obj[0];
+				$ret[] = $oid;
+				$level++;
+				$res = $this->getRecurseLink([$oid, $o2, $notOnlyClasses], $ret, $level);
+				if ($res) {
+					return $res;
+				} else {
+					array_splice($ret,count($ret)-1);
+				}
+			}
+			return false;
+		} else {
+			return $ret;
+		}
+	}
+	
+	public function getAccessFastestRole($params){//User->Role->RoleFunc; u->role1->func1; role1->Class1 (func=func1, cid=Class1)
+		$time_start = microtime(true);
+		$func = $params[0];
+		$cid = $params[1];
+		$u = $this->u;
+
+		$roleFuncCid = $this->gO(["RoleFunc", true], true);
+		$roleCid = $this->gO(["Role", true], true);
+		$roleFuncOid = $this->gO([$func, [$roleFuncCid]], true);
+		$ret = $cid && $roleFuncOid && $roleCid && $u ? $this->gAnd([[$cid, $roleCid, $roleFuncOid, $u],"id",true,"and id <> 1"], true) : [];
+		$time_end = microtime(true); $time = $time_end - $time_start; return $time." ".+!!$ret;//0.085-0.09
+		return !!$ret;
+	}
+	
+*/	
 
 
 

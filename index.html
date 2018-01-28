@@ -337,7 +337,6 @@ function loadData(frm, body){
 		var arr = [cell1.oid];
 		if (frm.oid) arr.push(frm.oid);
 		var arrObj = frm.cid == 1 ? [] : getObjects(arr);
-
 		if (cell1.isClassGroup) { cell1.innerHTML = "["+cell1.innerHTML+"...]"; }
 		else if (arrObj.length != 1) { cell1.innerHTML += " ("+arrObj.length+"):" }
 		else cell1.innerHTML += ":";

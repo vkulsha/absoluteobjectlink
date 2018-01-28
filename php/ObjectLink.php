@@ -474,6 +474,7 @@ class ObjectLink {
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
 			$link = $this->link;
+			$object = $this->object;
 			$objects = join(",",$params[0]);
 			$count = count($params[0]);
 			$fields = isset($params[1]) ? $params[1] : "*";
@@ -485,7 +486,7 @@ class ObjectLink {
 			$isClass = isset($params[5]) && $params[5] ? "in (select o1 from $link where o2 = 1)" : "";
 			$isClass1 = $isClass ? "and o1 $isClass" : "";
 			$isClass2 = $isClass ? "and o2 $isClass" : "";
-			
+/*			
 			$sel = "and c>0 and id in ( ".
 					"select o1 from ( ".
 					"select o1, o2, false parent from $link where c>0 and o2 in ($objects) $notIsClass1 $isClass1 ".
@@ -496,7 +497,21 @@ class ObjectLink {
 					"group by o1 ".
 					"having count(o1) = $count ".
 				") $cond";
-			return $this->sql->sT([$this->object, $fields, $sel]);
+*/
+			$sel = "select o.* from ( ".
+				"	select o1 from ( ".
+					"select o1, o2, false parent from $link where c>0 and o2 in ($objects) $notIsClass1 $isClass1 ".
+					"union all ".
+					"select o2, o1, true  parent from $link where c>0 and o1 in ($objects) $notIsClass2 $isClass2 ".
+				"	)l where 1=1 ".
+				"	$parent ".
+				"	group by o1 having count(o1) = $count ".
+				")l ".
+				"left join $object o on o.id = l.o1 ";
+			//return $this->sql->sT([$this->object, $fields, $sel]);
+			
+			return $sel ? $this->sql->sT(["(".$sel.")x ", $fields, $cond]) : [];
+
 		} catch (Exception $e){
 			print($e);
 			return null;

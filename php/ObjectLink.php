@@ -673,7 +673,7 @@ class ObjectLink {
 		try {
 			$oid = (isset($params[0]) && $params[0]) ? $params[0] : 0;
 			$func = (isset($params[1]) && $params[1]) ? $params[1] : "Marker";
-			$param = (isset($params[2]) && $params[2]) ? $params[2] : '{"weight":1, "color":"#ffff00"}';
+			$param = (isset($params[2]) && $params[2]) ? $params[2] : ($func == "Marker" ? '' : '{"weight":1, "color":"#ffff00"}');
 			$coords = (isset($params[3]) && $params[3]) ? $params[3] : "";
 			if (!$oid) return 0;
 			

@@ -80,7 +80,7 @@ function endPaint(layer){
 			var cid = layer.cid ? layer.cid : frm.cid;
 			var oid = layer.lid ? layer.lid : frm.oid;
 			var func = prop.drawFunc;
-			var params = "";
+			var params = cid == classes["Арендаторы"] ? '{"iconUrl":"images/arendator.png"}' : "";
 			var latlngs = layer[prop.getLatLngFunc]();
 			var coords = JSON.stringify(latlngs,["lat","lng"]);
 			if (coords.length > 1024) {
@@ -747,7 +747,8 @@ function mapPaintNew(params){
 		var paintFuncParams = JSON.parse(paint[2]);
 		var oid = parseInt(paint[3]);
 		var lid = parseInt(paint[4]);
-		if (paintFunc == "Marker") paintFuncParams = {"icon":L.icon(paintFuncParams)};
+		if (paintFunc == "Marker") paintFuncParams = paintFuncParams ? {"icon":L.icon(paintFuncParams)} : 
+		(cid == classes["Арендаторы"] ? {"icon":L.icon({"iconUrl":"images/arendator.png"})} : null) ;
 		if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; console.log(oid)}
 		if (latlngs) {
 			var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);

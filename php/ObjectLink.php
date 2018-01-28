@@ -584,12 +584,12 @@ class ObjectLink {
 		$func = $params[0];
 		$cid = $params[1];
 		$u = $this->u;
-
+		
 		$userCid = $this->gO(["Пользователи", true], true);
-		$roleFuncCid = $this->gO(["RoleFunc", true], true);
+		$roleFuncCid = +$this->gO(["RoleFunc", true], true);
 		if ($cid == $roleFuncCid) return false;
-		$roleCid = $this->gO(["Role", true], true);
-		$roleFuncOid = $this->gO([$func, [$roleFuncCid]], true);
+		$roleCid = +$this->gO(["Role", true], true);
+		$roleFuncOid = +$this->gO([$func, [$roleFuncCid]], true);
 		$roleCids = $cid && $roleFuncCid && $roleCid && $u ? $this->gAnd([[$cid, $roleFuncCid, $roleCid],"id",false,"and id <> 1",null,true], true) : [];
 		foreach ($roleCids as $roleCid){
 			$roleCid = +$roleCid[0];

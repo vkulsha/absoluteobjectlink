@@ -464,6 +464,8 @@ function fillCard(params){
 						
 						if (cell.isFile){
 							uploadFileToObject(frm, oid_, cid);
+						} else if (cell.isPaint) {
+							alert('Привязка к карте создается редактором линий на карте!');
 						} else {
 							var objname = orm("gN",[oid_]);
 							var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+(objname ? " "+objname : ""));
@@ -527,9 +529,13 @@ function fillCard(params){
 						var cid_ = frm.cid;
 						var o1 = cell.oid;
 						var o2 = (cell.isClass ? (o1 == cid_ ? 1 : cid_) : oid_) || cid_;
-						if ( confirm("Удалить запись '"+orm("gN",[o1])+"' из '"+orm("gN",[o2])+"'?") ){
-							var res = orm("nL",[o1, o2])
-							if (res) cell.remove();
+						if (cell.isPaint) {
+							alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
+						} else {
+							if ( confirm("Удалить запись '"+orm("gN",[o1])+"' из '"+orm("gN",[o2])+"'?") ){
+								var res = orm("nL",[o1, o2])
+								if (res) cell.remove();
+							}
 						}
 					}, this);
 				var miArr = [miStruct, miDict];

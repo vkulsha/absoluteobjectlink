@@ -77,6 +77,11 @@ function endPaint(layer){
 	mapProps.mapFunctions.forEach(function(prop){
 		if (currentEditingType == prop.drawFunc){
 			var frm = frmsData[frmsData.length-1];
+			if (!frm.isPaint) {
+				alert("Данный объект не привязан к карте!");
+				layer.remove();
+				return;
+			}
 			var cid = layer.cid ? layer.cid : frm.cid;
 			var oid = layer.lid ? layer.lid : frm.oid;
 			var func = prop.drawFunc;
@@ -334,6 +339,7 @@ function loadData(frm, body){
 		fillCard({"data":arrCls[i], "cell":cell1, "frm":frm, "cid":frm.cid});
 		frm.isFile = frm.isFile || cell1.isFile;
 		frm.isPaint = frm.isPaint || cell1.isPaint;
+		//if (cell1.isPaint) {_tr.hidden = true; continue;}
 		var arr = [cell1.oid];
 		if (frm.oid) arr.push(frm.oid);
 		var arrObj = frm.cid == 1 ? [] : getObjects(arr);

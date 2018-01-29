@@ -384,10 +384,21 @@ function fillCard(params){
 	cell.style.fontSize = cell.isClass ? fs+1+"px" : fs+"px"; 
 	cell.isFile = cell.cid == classes["Файлы"] || cell.cid == classes["Фото"];
 	cell.isPaint = cell.cid == classes["Привязка к карте"];
+	cell.isScript = cell.cid == classes["Скрипты"];
 
 	cell.frm = frm;
 	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
 	cell.onclick = function(){ 
+		if (this.isScript) {
+			var func = orm("gAnd",[[this.oid, classes["Функция скрипта"]],"id,n",true]);
+			funcid = func && func.length ? func[0][0] : undefined;
+			funcn = func && func.length ? func[0][1] : undefined;
+			var params = orm("gAnd",[[funcid, classes["Параметры функции скрипта"]],"id,n",true]);
+			params = params && params.length ? JSON.parse(params[0][1]) : undefined;
+			if (funcn){window[funcn](params)};
+			return;
+		}
+		
 		if (this.isClass) {
 			//href(this.frm.oid ? 0 : this.oid, this.oid);
 			if (this.isClassGroup) { 
@@ -1074,8 +1085,9 @@ function test(){
 	return false;
 }
 
-function reportZatrat(oid, year){
-	year = year || 2018;
+function reportZatrat(params){
+	var oid = params.oid || 0;
+	var year = params.year || 2018;
 	
 	function getZatratDogInMonth(oid, year, month, dog){
 		var data = orm("gT2",[ 
@@ -1106,6 +1118,19 @@ function reportZatrat(oid, year){
 		return arr;
 	}
 
+	function getArendatorSum(oid){
+		var data = orm("gT2",[ 
+			[ "Арендаторы","Договоры аренды","Стоимость аренды","Объекты" ],
+			[[2,1]],[],false,[],
+			"and `id_Объекты`="+oid
+			]);
+		var sum = 0;
+		for (var i=0; i < data.length; i++){
+			var pay = +parseFloat(data[i][5]);
+			sum += pay;
+		}
+		return sum.toFixed(2);
+	}
 	
 	var frm = new Form();
 	frmPaintLayers.setCaption(cDom("LABEL","Отчет по затратам за "+year+":")).style.color = "#ffdd00";
@@ -1114,6 +1139,7 @@ function reportZatrat(oid, year){
 	cnt.innerHTML = "";
 	var arrDogs = getDogsInYear(oid, year)
 	var months = ["янв","фев","март","апр","май","июнь","июль","авг","сент","окт","нояб","дек"];
+	var arendatorMoneyMonth = getArendatorSum(oid);
 	
 	var tb = cnt.appendChild(cDom("TABLE"));
 	tb.style.width = '100%';
@@ -1147,7 +1173,7 @@ function reportZatrat(oid, year){
 			var zat = +arrSum[0].toFixed(2);
 			var per = +arrSum[1].toFixed(2);
 			var sum = +arrSum[2].toFixed(2);
-			td.innerHTML = "<label style='color:#ff0000'>"+zat+"</label><br><label style='color:#00ddff'>"+per+"</label><br><label style='color:#00ff00'>"+sum+"</label>";
+			td.innerHTML = "<label style='color:#ff0000'>"+(""+zat).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#00ddff'>"+(""+per).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#ffdd00'>"+(""+sum).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
 			dogSum[0] += zat;
 			dogSum[1] += per;
 			dogSum[2] += sum;
@@ -1157,25 +1183,67 @@ function reportZatrat(oid, year){
 		}
 		var td = tr.appendChild(cDom("TD"));
 		td.style.textAlign = "right";
-		td.innerHTML = "<label style='color:#ff0000; font-weight:bold'>"+dogSum[0].toFixed(2)+"</label><br><label style='color:#00ddff; font-weight:bold'>"+dogSum[1].toFixed(2)+"</label><br><label style='color:#00ff00; font-weight:bold'>"+dogSum[2].toFixed(2)+"</label>";
+		td.innerHTML = "<label style='color:#ff0000; font-weight:bold'>"+(dogSum[0].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#00ddff; font-weight:bold'>"+(dogSum[1].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#ffdd00; font-weight:bold'>"+(dogSum[2].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
 		monthSum[0][12] += +dogSum[0].toFixed(2);
 		monthSum[1][12] += +dogSum[1].toFixed(2);
 		monthSum[2][12] += +dogSum[2].toFixed(2);
 		
 	}
-	
+/////
+	var tr = tb.appendChild(cDom("TR"));
+	tr.style.height = "10px";
 	var tr = tb.appendChild(cDom("TR"));
 	var td = tr.appendChild(cDom("TD"));
-	td.innerHTML = "Итого";
+	td.innerHTML = "Итого расход";
 
 	for (var month=1; month <= 12; month++){
 		var td = tr.appendChild(cDom("TD"));
 		td.style.textAlign = "right";
-		td.innerHTML = "<label style='color:#ff0000; font-weight:bold'>"+monthSum[0][month-1].toFixed(2)+"</label><br><label style='color:#00ddff; font-weight:bold'>"+monthSum[1][month-1].toFixed(2)+"</label><br><label style='color:#00ff00; font-weight:bold'>"+monthSum[2][month-1].toFixed(2)+"</label>";
+		td.innerHTML = "<label style='color:#ff0000; font-weight:bold'>"+(monthSum[0][month-1].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#00ddff; font-weight:bold'>"+(monthSum[1][month-1].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#ffdd00; font-weight:bold'>"+(monthSum[2][month-1].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
 	}
+
 	var td = tr.appendChild(cDom("TD"));
 	td.style.textAlign = "right";
-	td.innerHTML = "<label style='color:#ff0000; font-weight:bold; font-size:14px'>"+monthSum[0][12].toFixed(2)+"</label><br><label style='color:#00ddff; font-weight:bold'>"+monthSum[1][12].toFixed(2)+"</label><br><label style='color:#00ff00; font-weight:bold'>"+monthSum[2][12].toFixed(2)+"</label>";
+	td.innerHTML = "<label style='color:#ff0000; font-weight:bold; font-size:14px'>"+(monthSum[0][12].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#00ddff; font-weight:bold'>"+(monthSum[1][12].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label><br><label style='color:#ffdd00; font-weight:bold'>"+(monthSum[2][12].toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
+/////
+	var tr = tb.appendChild(cDom("TR"));
+	tr.style.height = "10px";
+	var tr = tb.appendChild(cDom("TR"));
+	var td = tr.appendChild(cDom("TD"));
+	td.innerHTML = "Доход от аренды";
+	
+	var arendatorMoneyMonthSum = 0;
+	for (var month=1; month <= 12; month++){
+		var td = tr.appendChild(cDom("TD"));
+		td.style.textAlign = "right";
+		td.innerHTML = "<label style='color:#00ff00; font-weight:bold'>"+(""+arendatorMoneyMonth).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
+		arendatorMoneyMonthSum += +arendatorMoneyMonth;
+	}
+
+	var td = tr.appendChild(cDom("TD"));
+	td.style.textAlign = "right";
+	td.innerHTML = "<label style='color:#00ff00; font-weight:bold; font-size:14px'>"+(arendatorMoneyMonthSum.toFixed(2)).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
+/////	
+	var tr = tb.appendChild(cDom("TR"));
+	tr.style.height = "10px";
+	var tr = tb.appendChild(cDom("TR"));
+	var td = tr.appendChild(cDom("TD"));
+	td.innerHTML = "Итого Экк.эфф";
+	
+	var ekkeffSum = 0;
+	for (var month=1; month <= 12; month++){
+		var td = tr.appendChild(cDom("TD"));
+		td.style.textAlign = "right";
+		ekkeff = (+arendatorMoneyMonth - +monthSum[2][month-1]).toFixed(2);
+		ekkeffSum += +ekkeff;
+		td.innerHTML = "<label style='color:#fff; font-weight:bold'>"+(""+ekkeff).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
+	}
+
+	var td = tr.appendChild(cDom("TD"));
+	td.style.textAlign = "right";
+	td.innerHTML = "<label style='color:#fff; font-weight:bold; font-size:16px'>"+(""+ekkeffSum).replace(/(\d)(?=(\d{3})+\.)/g, '$1 ')+"</label>";
+/////	
+
 	
 	return true;
 }

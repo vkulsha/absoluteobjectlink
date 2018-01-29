@@ -1074,11 +1074,111 @@ function test(){
 	return false;
 }
 
+function reportZatrat(oid, year){
+	year = year || 2018;
+	
+	function getZatratDogInMonth(oid, year, month, dog){
+		var data = orm("gT2",[ 
+		[ "Затраты","Сумма выставленных затрат","Сумма перевыставленных затрат","Год выставления затрат","Месяц выставления затрат","Предмет договора","Объекты" ],
+			[],[],false,[],
+			"and `Год выставления затрат`="+year+" and `Месяц выставления затрат`="+month+" and `Предмет договора`= '"+dog+"' and `id_Объекты`="+oid
+			]);
+		data = data && data.length ? data[0] : [];
+		var sumz = data[3] ? parseFloat(data[3]) || 0 : 0;
+		var sump = data[5] ? parseFloat(data[5]) || 0 : 0;
+		var sums = sumz-sump;
+		
+		return [sumz, sump, sums];
+	}
 
+	function getDogsInYear(oid, year){
+		var data = orm("gT2",[ 
+			[ "Затраты","Год выставления затрат","Предмет договора","Объекты" ],
+			[],[],false,[],
+			"and `Год выставления затрат`="+year+" and `id_Объекты`="+oid
+			]);
+		var arr = [];
+		for (var i=0; i < data.length; i++){
+			var dog = data[i][5];
+			if (arr.indexOf(dog)<0) arr.push(dog);
+		}
+			
+		return arr;
+	}
 
+	
+	var frm = new Form();
+	frmPaintLayers.setCaption(cDom("LABEL","Отчет по затратам за "+year+":")).style.color = "#ffdd00";
+	frm.setVisible(true);
+	var cnt = frm.getBody();
+	cnt.innerHTML = "";
+	var arrDogs = getDogsInYear(oid, year)
+	var months = ["янв","фев","март","апр","май","июнь","июль","авг","сент","окт","нояб","дек"];
+	
+	var tb = cnt.appendChild(cDom("TABLE"));
+	tb.style.width = '100%';
+	tb.border = 1;
+	
+	var tr = tb.appendChild(cDom("TR"));
+	var td = tr.appendChild(cDom("TD"));
+	td.innerHTML = "Услуга / месяц";
 
+	for (var month=1; month <= 12; month++){
+		var td = tr.appendChild(cDom("TD"));
+		td.style.textAlign = "center";
+		td.innerHTML = months[month-1];
+	}
+	var td = tr.appendChild(cDom("TD"));
+	td.style.textAlign = "center";
+	td.innerHTML = "<b>Итого</b>";
 
+	var monthSum = [[0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0]];
+	for (var i=0; i < arrDogs.length; i++){
+		var dog = arrDogs[i];
+		var tr = tb.appendChild(cDom("TR"));
+		var td = tr.appendChild(cDom("TD"));
+		td.innerHTML = dog;
+		var dogSum = [0,0,0];
+		
+		for (var month=1; month <= 12; month++){
+			var td = tr.appendChild(cDom("TD"));
+			td.style.textAlign = "right";
+			var arrSum = getZatratDogInMonth(oid, year, month, dog);
+			var zat = +arrSum[0].toFixed(2);
+			var per = +arrSum[1].toFixed(2);
+			var sum = +arrSum[2].toFixed(2);
+			td.innerHTML = "<label style='color:#ff0000'>"+zat+"</label><br><label style='color:#00ddff'>"+per+"</label><br><label style='color:#00ff00'>"+sum+"</label>";
+			dogSum[0] += zat;
+			dogSum[1] += per;
+			dogSum[2] += sum;
+			monthSum[0][month-1] += zat;
+			monthSum[1][month-1] += per;
+			monthSum[2][month-1] += sum;
+		}
+		var td = tr.appendChild(cDom("TD"));
+		td.style.textAlign = "right";
+		td.innerHTML = "<label style='color:#ff0000; font-weight:bold'>"+dogSum[0].toFixed(2)+"</label><br><label style='color:#00ddff; font-weight:bold'>"+dogSum[1].toFixed(2)+"</label><br><label style='color:#00ff00; font-weight:bold'>"+dogSum[2].toFixed(2)+"</label>";
+		monthSum[0][12] += +dogSum[0].toFixed(2);
+		monthSum[1][12] += +dogSum[1].toFixed(2);
+		monthSum[2][12] += +dogSum[2].toFixed(2);
+		
+	}
+	
+	var tr = tb.appendChild(cDom("TR"));
+	var td = tr.appendChild(cDom("TD"));
+	td.innerHTML = "Итого";
 
+	for (var month=1; month <= 12; month++){
+		var td = tr.appendChild(cDom("TD"));
+		td.style.textAlign = "right";
+		td.innerHTML = "<label style='color:#ff0000; font-weight:bold'>"+monthSum[0][month-1].toFixed(2)+"</label><br><label style='color:#00ddff; font-weight:bold'>"+monthSum[1][month-1].toFixed(2)+"</label><br><label style='color:#00ff00; font-weight:bold'>"+monthSum[2][month-1].toFixed(2)+"</label>";
+	}
+	var td = tr.appendChild(cDom("TD"));
+	td.style.textAlign = "right";
+	td.innerHTML = "<label style='color:#ff0000; font-weight:bold; font-size:14px'>"+monthSum[0][12].toFixed(2)+"</label><br><label style='color:#00ddff; font-weight:bold'>"+monthSum[1][12].toFixed(2)+"</label><br><label style='color:#00ff00; font-weight:bold'>"+monthSum[2][12].toFixed(2)+"</label>";
+	
+	return true;
+}
 
 
 

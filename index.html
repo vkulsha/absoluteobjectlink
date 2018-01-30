@@ -9,7 +9,7 @@
 		<link rel="stylesheet" href="modules/leaflet/leaflet_1.2.0.css" />
 		<link rel="stylesheet" type="text/css" href="main.css?@">
 
-		<script src="modules/jquery/jquery-3.2.1.min.js"></script>
+	<!--<script src="modules/jquery/jquery-3.2.1.min.js"></script>-->
 		<script src="modules/leaflet/leaflet_1.2.0.js"></script>
 		<script src="modules/leafletEditable/Leaflet.Editable.js"></script>
 		<script src="modules/md5/md5.js"></script>
@@ -125,7 +125,7 @@ function hashchange(mapObjects_){
 		var p = getPaint(ret.oids);
 		if (p) {
 			mapProps.mapFunctions.forEach(function(prop){ if (p.paintFunc == prop.drawFunc) coord = p[prop.getLatLngFunc](); })
-			if (coord.length) coord = coord[0];
+			if (coord && coord.length) coord = coord[0];
 		}
 	}
 	
@@ -1256,7 +1256,14 @@ function reportZatrat(params){
 	return true;
 }
 
-
+function struct(){
+	var arr = [];
+	for (var i=0; i < classes2.length; i++){
+		//console.log(cid, orm("gAnd",[[cid],"id",false,"and id <> 1",true,true]));
+		
+		return 
+	}
+}
 
 
 

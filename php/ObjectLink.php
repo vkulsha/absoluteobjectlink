@@ -352,7 +352,7 @@ class ObjectLink {
 			for ($i=0; $i < count($inClassArr); $i++){
 				$opts[$inClassArr[$i]]["inClass"] = true;
 			}
-			return $this->getTableQuery2([$opts, $groupByInd, $includeLinkDate], true);
+			return $this->getTableQuery2([$opts, $groupByInd, $includeLinkDate], $notPolicy);
 			
 		} catch (Exception $e){
 			print($e);
@@ -367,7 +367,7 @@ class ObjectLink {
 			$includeLinkDate = isset($params[6]) && $params[6] ? true : false;
 			$idsNotN = isset($params[7]) && $params[7] ? true : false;
 
-			$sel = $this->gTq2($params, true);
+			$sel = $this->gTq2($params, $notPolicy);
 			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
 			
 		} catch (Exception $e){
@@ -391,7 +391,7 @@ class ObjectLink {
 			if (!isset($params[6])) { $params[] = $includeLinkDate; }
 			if (!isset($params[7])) { $params[] = $idsNotN; }
 
-			$sel = $this->gTq2($params, true);
+			$sel = $this->gTq2($params, $notPolicy);
 			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
 			
 		} catch (Exception $e){
@@ -447,7 +447,7 @@ class ObjectLink {
 			for ($i=0; $i < count($inClassArr); $i++){
 				$opts[$inClassArr[$i]]["inClass"] = true;
 			}
-			return $this->getTableQuery2([$opts, $groupByInd]);
+			return $this->getTableQuery2([$opts, $groupByInd], $notPolicy);
 			
 		} catch (Exception $e){
 			print($e);
@@ -461,7 +461,7 @@ class ObjectLink {
 			$fields = isset($params[5]) ? join(",", $params[5]) : "`".join("`,`", $nArr)."`";
 			$cond = isset($params[6]) ? $params[6] : "";
 			
-			$sel = $this->gTq3($params, true);
+			$sel = $this->gTq3($params, $notPolicy);
 			return $sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : [];
 			
 		} catch (Exception $e){
@@ -964,7 +964,7 @@ class ObjectLink {
 			$setViewZoom = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
 			$setViewZoom = $setViewZoom && count($setViewZoom)? $setViewZoom[0][0] : "3";
 
-			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"],[],[],false,null,"order by `Функции отрисовки`"]);
+			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"],[],[],false,null,"order by `Функции отрисовки`"], true);
 			$mapFunctions = Array();
 			if ($mapFunctionsArr && count($mapFunctionsArr)){
 				foreach ($mapFunctionsArr as $obj){

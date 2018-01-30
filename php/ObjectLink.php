@@ -26,12 +26,12 @@ class ObjectLink {
 	}
 	
 	public function cO($params, $notPolicy=false){//create object and link
-		$func = debug_backtrace()[0]['function'];
-		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		//$func = debug_backtrace()[0]['function'];
 		try {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
 			$u = $this->u;
+			if ($notPolicy || $this->getPolicy(["cL", $pid])) {} else {return 0;};
 
 			$id = 0;
 			if ($n && $u) {
@@ -68,7 +68,7 @@ class ObjectLink {
 			if (!$inClass)
 				$inClass = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where c>0 and o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where c>0 and o2 = 1) ) " : "";
 
-			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$isLikeTxt $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : ""]);
+			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "and c>0 $isLikeTxt $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : ""]);
 			return $ret ? ($isLike /*|| (is_array($ret) && count($ret)>1)*/ ? $ret : $ret[0][0]) : null;
 			
 		} catch (Exception $e) {
@@ -79,15 +79,13 @@ class ObjectLink {
 	}
 
 	public function cL($params, $notPolicy=false){//link objects
-		$func = debug_backtrace()[0]['function'];
-		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
-
 		$ret = 0;
 		try {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			$c = isset($params[2]) ? $params[2] : 1;
 			$u = $this->u;
+			if ($notPolicy || $this->getPolicy(["cL", $o2])) {} else {return 0;};
 			
 			$lid = 0;
 			$cond = "";
@@ -141,8 +139,7 @@ class ObjectLink {
 	}
 	
 	public function uO($params, $notPolicy=false){//update object name by id
-		$func = debug_backtrace()[0]['function'];
-		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
+		if (!$notPolicy && !$this->getPolicy(["cL",1])) return 0;
 		try {
 			$id = $params[0];
 			$n = $params[1];
@@ -159,12 +156,11 @@ class ObjectLink {
 	}
 	
 	public function mO($params, $notPolicy=false){
-		$func = debug_backtrace()[0]['function'];
-		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
 		try {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
 			$mid = $params[2];
+			if (!$notPolicy && !$this->getPolicy(["cL",$pid])) return 0;
 			
 			$oid = $this->cO([$n, $pid],true);
 			$linksArr = $this->gAnd([[$mid],"id,n",true,"",false], true);
@@ -182,9 +178,7 @@ class ObjectLink {
 	}
 	
 	public function eO($params, $notPolicy=false){//erase object from database
-		$func = debug_backtrace()[0]['function'];
-		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
-		return $this->nO($params);
+		return $this->nO($params, $notPolicy);
 	}
 	
 	public function nO($params){//update object status
@@ -192,6 +186,7 @@ class ObjectLink {
 			$id = $params[0];
 			$fn = isset($params[1]) ? $params[1] : null;
 			$u = $this->u;//isset($params[2]) ? $params[2] : 1;
+			if (!$notPolicy && !$this->getPolicy(["cL",1])) return 0;
 			
 			if ($fn) {
 				try {
@@ -217,6 +212,7 @@ class ObjectLink {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			$u = $this->u;
+			if ($notPolicy || ($this->getPolicy(["cL", $o1]) && $this->getPolicy(["cL", $o2]))) {} else {return 0;};
 			
 			$ret = $this->cL([$o1, $o2, 0]);  
 			return $ret;
@@ -229,11 +225,19 @@ class ObjectLink {
 	}
 		
 	public function eL($params, $notPolicy=false){//erase link from database
-		$func = debug_backtrace()[0]['function'];
-		if (!$notPolicy && !$this->getPolicy([$this->u, [$func, "iii"]])) return 0;
-		return $this->nL($params);
+		return $this->nL($params, $notPolicy);
 	}
 
+	public function gC($params){
+		$oid = isset($params[0]) && $params[0] ? $params[0] : 0;
+		$arr = $this->sql->sT([$this->link, "o2", " and c>0 and o1 = $oid and o2 in (select o1 from link where o2 = 1)", "", ""]);
+		$ret = [];
+		foreach($arr as $cid){
+			$ret[] = +$cid[0]; 
+		}
+		return $ret;
+	}
+	
 	public function getTableQuery2($params, $notPolicy=false){//[{id:1331, n:"ик", parentCol:0, inClass:false}]
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {
@@ -580,18 +584,26 @@ class ObjectLink {
 	}
 
 	public function getPolicy($params){
-		$user = isset($params[0]) ? $params[0] : 0;
-		$func = isset($params[1]) ? $params[1] : [""];
-		
-		$func = "('".(join("','", $func))."')";
+		$func = isset($params[0]) && $params[0] ? $params[0] : "";
+		$oid = isset($params[1]) && $params[1] ? $params[1] : 1;
+		/*if ($this->getAccess([$func, $oid])) return true;
+		if ($this->gL([$oid,1])) return false;
+		$pids = $this->gC([$oid]);
+		foreach ($pids as $pid){
+			if ($this->getAccess([$func, $pid])) return true;
+		}*/
+		//$func = "('".(join("','", $func))."')";
 		//$res = $this->gT2([["Роли системы","Корневой класс роли системы","Пользователи системы","Правила группы функций системы","Функции системы"],[[4,3]],[],false,null,"and `id_Пользователи системы`=$user and `Функции системы` in $func"],true);
 		//return $res && count($res);
-		return $user == 1577 || $user == 1578 || $user == 41000;
+		
+		$u = $this->u;
+		return $u == 1577 || $u == 1578 || $u == 41000;
+		return false;
 	}
 	
 	public function getPolicyLazy(){
 		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u])[0][0]; 
-		return $this->u>1 && $this->gL([$this->gO(["Пользователи"]),$this->u]);
+		return $this->u>1 && $this->gL([$this->gO(["Пользователи",true]),$this->u]);
 	}
 	
 	public function getAccess($params){//ClassGroup->Role->Role1Class->RoleFunc,User,Class1; role1class1->rolefunc1,u; (func=rolefunc1, cid=Class1)
@@ -600,12 +612,13 @@ class ObjectLink {
 		$cid = $params[1];
 		$u = $this->u;
 		
-		$userCid = $this->gO(["Пользователи", true], true);
+		$userCid = +$this->gO(["Пользователи", true], true);
 		$roleFuncCid = +$this->gO(["RoleFunc", true], true);
 		if ($cid == $roleFuncCid) return false;
 		$roleCid = +$this->gO(["Role", true], true);
 		$roleFuncOid = +$this->gO([$func, [$roleFuncCid]], true);
-		$roleCids = $cid && $roleFuncCid && $roleCid && $u ? $this->gAnd([[$cid, $roleFuncCid, $roleCid],"id",false,"and id <> 1",null,true], true) : [];
+		$roleCids = $cid && $roleFuncCid && $roleCid && $u ? $this->gAnd([[$cid, $roleFuncCid/*,$roleCid*/],"id",false,"and id <> 1",true/*null*/,true], true) : [];
+
 		foreach ($roleCids as $roleCid){
 			$roleCid = +$roleCid[0];
 			$q = $this->gOCQ([$roleCid]);
@@ -621,8 +634,7 @@ class ObjectLink {
 	}
 	
 	public function iii($params, $notPolicy=false){
-		$func = debug_backtrace()[0]['function'];
-		if (!$this->getPolicy([$this->u, [$func,"eO"]])) return [];
+		if ($notPolicy || $this->getPolicy(["cL", 1])) {} else {return 0;};
 
 		try {
 			$object = $this->object;
@@ -645,7 +657,11 @@ class ObjectLink {
 	}
 	
 	public function test($params){
-		return $params->oid;
+		$t = microtime(true);
+		//$this->gT2([["Объекты","Здания и сооружения"]]);
+		//$func = debug_backtrace()[0]['function'];
+		$func = "function";
+		return microtime(true)-$t;
 	}
 	
 	public function objectsFromText($params, $notPolicy=false){

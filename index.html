@@ -376,6 +376,7 @@ function fillCard(params){
 	cell.isClass = classes2.indexOf(cell.oid) >= 0 || cell.oid == 1;
 	cell.isClassGroup = (classesGroup.indexOf(cell.oid) >= 0);
 	cell.innerHTML = cell.isClass ? data[1] : "&nbsp&nbsp&nbsp"+data[1];
+	cell.n = data[1];
 	cell.cid = cell.isClass ? cell.oid : cid;
 	cell.style.width = "100%"; 
 	cell.style.textAlign = "left"; 
@@ -385,6 +386,7 @@ function fillCard(params){
 	cell.isFile = cell.cid == classes["Файлы"] || cell.cid == classes["Фото"];
 	cell.isPaint = cell.cid == classes["Привязка к карте"];
 	cell.isScript = cell.cid == classes["Скрипты"];
+	cell.isLink = cell.cid == classes["Ссылки"];
 
 	cell.frm = frm;
 	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
@@ -396,6 +398,12 @@ function fillCard(params){
 			var params = orm("gAnd",[[funcid, classes["Параметры функции скрипта"]],"id,n",true]);
 			params = params && params.length ? JSON.parse(params[0][1]) : undefined;
 			if (funcn){window[funcn](params)};
+			return;
+		}
+		if (this.isLink) {
+			var ind = this.n.indexOf("(");
+			var uri = ind >=0 ? this.n.slice(ind+1,-1) : this.n;
+			openWindow(uri);
 			return;
 		}
 		

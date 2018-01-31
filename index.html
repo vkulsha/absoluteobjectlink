@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+f<!DOCTYPE html>
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -57,14 +57,19 @@ var currentEditingType;
 map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){
 	if (isPaintMode) endPaint(e.layer);
 })
-map.editTools.on('editable:enable',function(e){
-	/*if (isPaintMode) {
-		if (currentEditing) currentEditing.disableEdit();
-		currentEditing = e.layer;
-	}*/
-});
 
 function endPaint(layer){
+	var frm = frmsData[frmsData.length-1];
+	var cid = layer.cid ? layer.cid : frm.cid;
+	var oid = layer.lid ? layer.lid : frm.oid;
+	var isPaint = orm("gL",[cid, classes["Привязка к карте"]]);
+
+	if (!isPaint || !getPolicy(oid)) {
+		alert(!isPaint ? "Элемент '"+orm("gN",[cid])+": "+orm("gN",[oid])+"' нельзя привязать к карте!" : "У вас нет прав для привязки к карте!");
+		layer.remove();
+		return;
+	}
+	
 	if (!currentEditingType){
 		var paintfunc = layer.paintFunc;
 		if (!paintfunc) {
@@ -76,14 +81,11 @@ function endPaint(layer){
 
 	mapProps.mapFunctions.forEach(function(prop){
 		if (currentEditingType == prop.drawFunc){
-			var frm = frmsData[frmsData.length-1];
 			if (!frm.isPaint) {
 				alert("Данный объект не привязан к карте!");
 				layer.remove();
 				return;
 			}
-			var cid = layer.cid ? layer.cid : frm.cid;
-			var oid = layer.lid ? layer.lid : frm.oid;
 			var func = prop.drawFunc;
 			var params = cid == classes["Арендаторы"] ? '{"iconUrl":"images/arendator.png"}' : "";
 			var latlngs = layer[prop.getLatLngFunc]();
@@ -209,7 +211,7 @@ function closeFrmsDataTillInd(ind){
 	}	
 }
 
-function getPolicy(arrFunctions){ return orm("getPolicy",[currentUser.uid, arrFunctions]); }
+function getPolicy(oid){ return orm("getPolicy",["cL",oid]); }
 
 gDom("bLogin").onclick = function(){
 	var auth = false;
@@ -300,7 +302,7 @@ function initFrmData(frm) {
 	bC.innerHTML = "Класс (+) ";
 	bC.frm = frm;
 	bC.onclick = function(){
-		if (getPolicy(["cO","cL"]) && (currentUser.uid == 41000 || currentUser.uid == 1577)) {
+		if (getPolicy(1)) {
 			var frm = this.frm;
 			var cid = frm.cid;
 			var oid = frm.oid;
@@ -309,7 +311,7 @@ function initFrmData(frm) {
 			var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
 			if (newoid) href(oid, cid);
 			return false;
-		}
+		} else { alert("У вас нет прав для добавления класса!"); }
 	}
 }
 
@@ -478,7 +480,7 @@ function fillCard(params){
 				}, this);
 			}
 
-			if (isPaintMode && getPolicy(["cO","cL"])) {
+			if (isPaintMode) {
 				var miAdd = new ContextMenuItem("Добавить запись", function(){
 						var cell = this.ctx;
 						var cid = cell.oid;
@@ -486,19 +488,21 @@ function fillCard(params){
 						var oid_ = frm.oid;
 						var classname = classes3(cid);
 						
-						if (cell.isFile){
-							uploadFileToObject(frm, oid_, cid);
-						} else if (cell.isPaint) {
-							alert('Привязка к карте создается редактором линий на карте!');
-						} else {
-							var objname = orm("gN",[oid_]);
-							var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+(objname ? " "+objname : ""));
-							var newoid = n ? orm("cO",[n, cid]) : 0;
-							var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-							if (newoid){
-								reloadFrm(frm);
+						if (getPolicy(cid) || getPolicy(oid_)) {
+							if (cell.isFile){
+								uploadFileToObject(frm, oid_, cid); 
+							} else if (cell.isPaint) {
+								alert('Привязка к карте создается редактором линий на карте!');
+							} else {
+								var objname = orm("gN",[oid_]);
+								var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+(objname ? " "+objname : ""));
+								var newoid = n ? orm("cO",[n, cid]) : 0;
+								var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+								if (newoid){
+									reloadFrm(frm);
+								}
 							}
-						}
+						} else { alert("У вас нет прав для добавления в класс '"+classname+"'!") };
 					}, this);
 					
 				var miUpd = new ContextMenuItem("Изменить запись", function(){
@@ -508,42 +512,22 @@ function fillCard(params){
 						var cid_ = frm.cid;
 						var o1 = cell.oid;
 						var o2 = oid_ || cid_;
-						var cid = cell.cid;
+						var cid = cell.isClass ? 1 : cell.cid;
 						var _n = orm("gN",[o1]);
-						/*
-						var linksArr = orm("gAnd",[[o1],null,true,"",true]);
-						var links = "";
-						var update = true;
-						for (var i=0; i<linksArr.length; i++){
-							links += "  "+linksArr[i][1]+"\n";
-						}
-						if (linksArr.length > 1 && links){
-							//update = confirm("Данная запись связана с несколькими записями:\n"+links+"\nЕе отображение в этих записях будет изменено!\nВы уверены, что хотите изменить эту запись?");
-							update = confirm("Данная запись связана с несколькими записями:\n"+links+"\nИзменить это значение во всех записях (Да) или только в текущей записи (Нет)?");
-						}
+
+						if (getPolicy(cid)) {
+							var n = prompt("Изменить запись", _n);
+							if ( n && n != _n ){
+								var newoid = orm("mO",[n, cid, o1]);
+								if (newoid) {
+									orm("cL",[newoid, o2]);
+									orm("nL",[o1, o2]);
+								}
+								console.log(n, cid, o1, o2);
+							}
+							reloadFrm(frm);
+						} else { alert("У вас нет прав для изменения записи '"+_n+"'!") };
 						
-						var n = prompt("Изменить запись", _n);
-						if ( n && n != _n ){
-							if (update){
-								var res = orm("uO",[o1, n]);
-							} else {
-								var newoid = orm("cO",[n, cid]);
-								var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
-								if (newlink) orm("nL",[o1, o2]);
-							}
-						}*/
-
-						var n = prompt("Изменить запись", _n);
-						if ( n && n != _n ){
-							var newoid = orm("mO",[n, cid, o1]);
-							if (newoid) {
-								orm("cL",[newoid, o2]);
-								orm("nL",[o1, o2]);
-							}
-							console.log(n, cid, o1, o1, o2);
-						}
-						reloadFrm(frm);
-
 					}, this);
 					
 				var miDel = new ContextMenuItem("Удалить запись", function(){ 
@@ -553,18 +537,22 @@ function fillCard(params){
 						var cid_ = frm.cid;
 						var o1 = cell.oid;
 						var o2 = (cell.isClass ? (o1 == cid_ ? 1 : cid_) : oid_) || cid_;
-						if (cell.isPaint) {
-							alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
-						} else {
-							if ( confirm("Удалить запись '"+orm("gN",[o1])+"' из '"+orm("gN",[o2])+"'?") ){
-								var res = orm("nL",[o1, o2])
-								if (res) cell.remove();
+						var n_ = orm("gN",[o1]);
+
+						if (getPolicy(o1)) {
+							if (cell.isPaint) {
+								alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
+							} else {
+								if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[o2])+"'?") ){
+									var res = orm("nL",[o1, o2]);
+									if (res) cell.remove();
+								}
 							}
-						}
+						} else { alert("У вас нет прав для удаления записи '"+n_+"'!") };
 					}, this);
 				var miArr = [miStruct, miDict];
 				if (this.isClass) miArr.push(miAdd);
-				if (!this.isClass || currentUser.uid == 41000 || currentUser.uid == 1577) {
+				if (!this.isClass || getPolicy(1) || currentUser.uid == 41000 || currentUser.uid == 1577) {
 					miArr.push(miUpd);
 					miArr.push(miDel);
 				}
@@ -629,21 +617,17 @@ function uploadFileToObject(frm, oid, cids){
 	bSend.frm = frm;
 	bSend.dF = dF;
 	bSend.onclick = function(){
-		if (getPolicy(["cO","cL"])) {
-			var frm = this.frm;
-			var cid = frm.cid;
-			var oid = frm.oid;
+		var frm = this.frm;
+		var oid = frm.oid;
 			
-			for (var i=0; i < this.domSelFiles.files.length; i++) {
-				var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": JSON.stringify([cids]), "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
-				getXmlHttpReq(function(result){
-					console.log(result);
-				}, "php/uploadFiles.php", formData, false, true)
-			};
-			reloadFrm(frm);
-			//href(oid, cid, true);
-			this.dF.remove();
-		}
+		for (var i=0; i < this.domSelFiles.files.length; i++) {
+			var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": JSON.stringify([cids]), "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
+			getXmlHttpReq(function(result){
+				console.log(result);
+			}, "php/uploadFiles.php", formData, false, true)
+		};
+		reloadFrm(frm);
+		this.dF.remove();
 	}
 }
 
@@ -1070,7 +1054,7 @@ function mapLoad(arrLatLon, opts, click){
 }
 
 function test(){
-	if (confirm("Создать привязку к карте для всех объектов???")){
+/*	if (confirm("Создать привязку к карте для всех объектов???")){
 		orm("cL", [classes["Привязка на карте"],classes["Объекты"]]);
 		
 		var arr = orm("gT2",[["Объекты","Широта","Долгота"],[],[],false,["`id_Объекты`", "`Широта`", "`Долгота`"]]);
@@ -1090,7 +1074,7 @@ function test(){
 		}
 		return true;
 	}
-	return false;
+	return false;*/
 }
 
 function reportZatrat(params){

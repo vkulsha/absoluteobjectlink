@@ -146,7 +146,7 @@ function mapInit(map, frmsData){
 			return container;
 		}
 	});
-	if (getPolicy(["cO","cL"])) map.addControl(new L.NewPaintControl);
+	/*if (getPolicy(["cO","cL"]))*/ map.addControl(new L.NewPaintControl);
 	
 	return	[
 	]

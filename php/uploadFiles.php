@@ -41,16 +41,25 @@ try{
 	for($i=0; $i<count($files); $i++){
 		$filename = array_key_exists("photo", $files[$i]) ? $files[$i]["photo"] : $files[$i]["other"];
 
-		$oid = $objectlink->cO([$filename, $uploadid], true);
-		
-		if ($oid) {
-			//for ($j=0; $j<count($uploadcids); $j++){
-				if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
-				//if ($uploadcids[j]) { $objectlink->cL([$oid, $uploadcids[j]], true); }
-				if ($cidPhoto && array_key_exists("photo", $files[$i])) { $objectlink->cL([$oid, $cidPhoto], true);	}
-			//}
-		}
-		$oids[] = $oid;
+		if ( $objectlink->getPolicy(["cL", $cidFile]) || $objectlink->getPolicy(["cL", $cidPhoto]) ) {        
+			$oid = $objectlink->cO([$filename, $uploadid], true);
+			
+			if ($oid) {
+				//for ($j=0; $j<count($uploadcids); $j++){
+					if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
+					//if ($uploadcids[j]) { $objectlink->cL([$oid, $uploadcids[j]], true); }
+					if ($cidPhoto && array_key_exists("photo", $files[$i])) { $objectlink->cL([$oid, $cidPhoto], true);	}
+				//}
+			}
+			$oids[] = $oid;
+		} else { 
+			try { 
+				unlink(basename(mb_convert_encoding($filename, "cp1251", "UTF-8"))); 
+				return; 
+			} catch(Exception $e) { 
+				echo json_encode(false); 
+			} 
+		};
 	}
 
 	//header('Location: ' . $_SERVER['HTTP_REFERER']);

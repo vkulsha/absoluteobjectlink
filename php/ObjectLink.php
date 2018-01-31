@@ -36,7 +36,7 @@ class ObjectLink {
 			$id = 0;
 			if ($n && $u) {
 				if ($pid) {
-					$id = $this->gO([$n, [$pid]]);
+					$id = $this->gO([$n, [$pid], false, !!"c>=0"]);
 				}
 					
 				if (!$id) {
@@ -45,7 +45,8 @@ class ObjectLink {
 			}
 			
 			if ($id && $pid) {
-				$this->cL([$id, $pid]);
+				$this->cL([$id, $pid], $notPolicy);
+				$this->sql->uT([$this->object, "c = case c when 0 then 1 else c end", "and id=$id"]);  
 			}
 
 			return $id;
@@ -60,16 +61,20 @@ class ObjectLink {
 		try {
 			$link = $this->link;
 			$n = $params[0];
-			$classes = isset($params[1]) && $params[1] ? (is_array($params[1]) ? $params[1] : ($params[1] ? [(int)$params[1]] : null)) : null;
-			$inClass = $classes ? " and id in ( select o1 from $link where c>0 and o2 in (".join(",",$classes).") and o2 in (select o1 from $link where c>0 and o2 = 1) ) " : "";
+			$classes = isset($params[1]) && $params[1] ? (is_array($params[1]) && count($params[1]) ? $params[1] : [1]) : [1];
+			if (!$classes) return 0;
+
+			$c_null = isset($params[3]) && $params[3] ? "" : "and c>0";
+
+			$inClass = $classes ? " and id in ( select o1 from $link where 1=1 $c_null and o2 in (".join(",",$classes).") and o2 in (select o1 from $link where 1=1 $c_null and o2 = 1) ) " : "";
 			//$isClass = isset($params[1]) && $params[1] ? "and id in (select o1 from $link where o2 = 1) " : "";
 			$isLike = isset($params[2]) && $params[2];
 			$isLikeTxt = $isLike ? " and n like '%$n%' " : " and n = '$n' ";
-			if (!$inClass)
-				$inClass = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where c>0 and o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where c>0 and o2 = 1) ) " : "";
+			//if (!$inClass)
+			//	$inClass = isset($params[3]) && $params[3] ? " and id in ( select o1 from $link where c>0 and o2 in (".join(",",$params[3]).") and o2 in (select o1 from $link where c>0 and o2 = 1) ) " : "";
 
-			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "and c>0 $isLikeTxt $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : ""]);
-			return $ret ? ($isLike /*|| (is_array($ret) && count($ret)>1)*/ ? $ret : $ret[0][0]) : null;
+			$ret = $this->sql->sT([$this->object, $isLike ? "id,n" : "id", "$c_null $isLikeTxt $inClass", $isLike ? "order by n, c desc" : "order by c desc, d desc", $isLike ? "" : ""]);
+			return $ret ? ($isLike /*|| (is_array($ret) && count($ret)>1)*/ ? $ret : $ret[0][0]) : 0;
 			
 		} catch (Exception $e) {
 			print($e);
@@ -85,7 +90,7 @@ class ObjectLink {
 			$o2 = $params[1];
 			$c = isset($params[2]) ? $params[2] : 1;
 			$u = $this->u;
-			if ($notPolicy || $this->getPolicy(["cL", $o2])) {} else {return 0;};
+			if ( $notPolicy || $this->getPolicy(["cL", $o1]) || ( $this->getPolicy(["cL", $o2]) && $c>0 )/*если getPolicy($o2): добавлять связь можно, удалять нельзя*/ ) {} else {return 0;};
 			
 			$lid = 0;
 			$cond = "";
@@ -161,7 +166,7 @@ class ObjectLink {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
 			$mid = $params[2];
-			if (!$notPolicy && !$this->getPolicy(["cL",$pid])) return 0;
+			if (!$notPolicy && !$this->getPolicy(["cL",$mid])) return 0;
 			
 			$oid = $this->cO([$n, $pid],true);
 			$linksArr = $this->gAnd([[$mid],"id,n",true,"",false], true);
@@ -169,7 +174,6 @@ class ObjectLink {
 			forEach ($linksArr as $link) {
 				$lid = $this->cL([$link[0], $oid],true);
 			}
-			$lid = $this->cL([$oid, $pid],true);
 			return $oid;
 			
 		} catch (Exception $e) {
@@ -182,7 +186,7 @@ class ObjectLink {
 		return $this->nO($params, $notPolicy);
 	}
 	
-	public function nO($params){//update object status
+	public function nO($params, $notPolicy=false){//update object status
 		try {
 			$id = $params[0];
 			$fn = isset($params[1]) ? $params[1] : null;
@@ -208,14 +212,12 @@ class ObjectLink {
 		return $ret;
 	}
 	
-	public function nL($params){//update link status
+	public function nL($params, $notPolicy=false){//update link status
 		try {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			$u = $this->u;
-			if ($notPolicy || ($this->getPolicy(["cL", $o1]) && $this->getPolicy(["cL", $o2]))) {} else {return 0;};
-			
-			$ret = $this->cL([$o1, $o2, 0]);  
+			$ret = $this->cL([$o1, $o2, 0],$notPolicy);  
 			return $ret;
 			
 		} catch (Exception $e) {
@@ -491,18 +493,7 @@ class ObjectLink {
 			$isClass = isset($params[5]) && $params[5] ? "in (select o1 from $link where o2 = 1)" : "";
 			$isClass1 = $isClass ? "and o1 $isClass" : "";
 			$isClass2 = $isClass ? "and o2 $isClass" : "";
-/*			
-			$sel = "and c>0 and id in ( ".
-					"select o1 from ( ".
-					"select o1, o2, false parent from $link where c>0 and o2 in ($objects) $notIsClass1 $isClass1 ".
-					"union all ".
-					"select o2, o1, true  parent from $link where c>0 and o1 in ($objects) $notIsClass2 $isClass2 ".
-					")x where 1=1 ".
-					"$parent ".
-					"group by o1 ".
-					"having count(o1) = $count ".
-				") $cond";
-*/
+
 			$sel = "select o.* from ( ".
 				"	select o1 from ( ".
 					"select o1, o2, false parent from $link where c>0 and o2 in ($objects) $notIsClass1 $isClass1 ".
@@ -513,8 +504,7 @@ class ObjectLink {
 				"	group by o1 having count(o1) = $count ".
 				")l ".
 				"left join $object o on o.id = l.o1 ";
-			//return $this->sql->sT([$this->object, $fields, $sel]);
-			
+
 			return $sel ? $this->sql->sT(["(".$sel.")x ", $fields, $cond]) : [];
 
 		} catch (Exception $e){
@@ -587,27 +577,48 @@ class ObjectLink {
 	public function getPolicy($params){
 		$func = isset($params[0]) && $params[0] ? $params[0] : "";
 		$oid = isset($params[1]) && $params[1] ? $params[1] : 1;
-		/*if ($this->getAccess([$func, $oid])) return true;
+		if ($this->u == 1577 || $this->u == 41000 || $this->getAccess([$func, $oid]) || $this->getAccess([$func, 1])) return true;
 		if ($this->gL([$oid,1])) return false;
 		$pids = $this->gC([$oid]);
 		foreach ($pids as $pid){
 			if ($this->getAccess([$func, $pid])) return true;
-		}*/
-		//$func = "('".(join("','", $func))."')";
-		//$res = $this->gT2([["Роли системы","Корневой класс роли системы","Пользователи системы","Правила группы функций системы","Функции системы"],[[4,3]],[],false,null,"and `id_Пользователи системы`=$user and `Функции системы` in $func"],true);
-		//return $res && count($res);
-		
-		$u = $this->u;
-		return $u == 1577 || $u == 1578 || $u == 41000;
+		}
 		return false;
 	}
 	
 	public function getPolicyLazy(){
-		//return $this->u>1 && $this->gL([$this->gO(["Пользователи системы"]),$this->u])[0][0]; 
 		return $this->u>1 && $this->gL([$this->gO(["Пользователи",true]),$this->u]);
 	}
+
+	public function getAccess($params){//Role->RoleFunc,User,Role1Class->Class1; role1->func,u,role1class1; (func=rolefunc1,cid=Class1)
+		//$t = microtime(true);
+		$func = $params[0];
+		$cid = $params[1];
+		$u = +$this->u;
+		
+		$cRole = +$this->gO(["Role", true]);
+		$cRoleFunc = +$this->gO(["RoleFunc", true]);
+		$roleFuncOid = +$this->gO([$func, [$cRoleFunc]]);
+		$sql = "(select o1 from (select o1 from link where c>0 and o2 in ($cRole) and o1 in (select o1 from link where o2=1) union all select o2 from link where c>0 and o1 in ($cid) and o2 in (select o1 from link where o2=1) )l group by o1 having count(o1)=2)x";
+		$roleCids = $cid && $cRole && $u ? $this->sql->sT([$sql,"*"]) : [];
+		//$roleCids = $cid && $cRole && $u ? $this->gAnd([[$cid, $cRole],"id",false,"and id <> 1",null,true], true) : [];
+
+		foreach ($roleCids as $roleCid){
+			$roleCid = +$roleCid[0];
+			$q = $this->gOCQ([$roleCid]);
+			$oRoleCid = $this->sql->sT(["(select id from ($q)x)x","*"]);
+			$oRoleCid = ($oRoleCid && count($oRoleCid)) ? +$oRoleCid[0][0] : 0;
+			$ret = $oRoleCid && $u && $cRole ? $this->gAnd([[$oRoleCid, $u, $roleFuncOid, $cRole],"id",true], true) : [];
+			if ($ret && count($ret)) {
+				//return microtime(true)-$t;//0.002-0.01
+				return !!$ret;
+			}
+		}
+		return false;
+	}
+
 	
-	public function getAccess($params){//ClassGroup->Role->Role1Class->RoleFunc,User,Class1; role1class1->rolefunc1,u; (func=rolefunc1, cid=Class1)
+	public function getAccess2($params){//Role->Role1Class->RoleFunc,User,Class1; role1->role1class1->rolefunc1,u; (func=rolefunc1, cid=Class1)
 		//$time_start = microtime(true);
 		$func = $params[0];
 		$cid = $params[1];
@@ -616,9 +627,8 @@ class ObjectLink {
 		$userCid = +$this->gO(["Пользователи", true]);
 		$roleFuncCid = +$this->gO(["RoleFunc", true]);
 		if ($cid == $roleFuncCid) return false;
-		$roleCid = +$this->gO(["Role", true]);
 		$roleFuncOid = +$this->gO([$func, [$roleFuncCid]]);
-		$roleCids = $cid && $roleFuncCid && $roleCid && $u ? $this->gAnd([[$cid, $roleFuncCid/*,$roleCid*/],"id",false,"and id <> 1",true/*null*/,true], true) : [];
+		$roleCids = $cid && $roleFuncCid && $u ? $this->gAnd([[$cid, $roleFuncCid],"id",false,"and id <> 1",true,true], true) : [];
 
 		foreach ($roleCids as $roleCid){
 			$roleCid = +$roleCid[0];

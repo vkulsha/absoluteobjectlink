@@ -221,7 +221,7 @@ gDom("bLogin").onclick = function(){
 		classes = hash4arr(classes_);
 		var arr = orm("gAnd",[[1],"id"]);
 		for (var i=0; i < arr.length; i++) classes2.push(parseInt(arr[i][0]));
-		var arr = orm("gAnd",[[1,orm("gO",["Группа классов"])],"id"]);
+		var arr = orm("gAnd",[[1,orm("gO",["Группа классов",true])],"id"]);
 		for (var i=0; i < arr.length; i++) classesGroup.push(parseInt(arr[i][0]));
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;

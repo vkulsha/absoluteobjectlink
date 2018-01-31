@@ -90,7 +90,7 @@ class ObjectLink {
 			$lid = 0;
 			$cond = "";
 			if ($o1 != $o2){
-				$lid = $this->gL([$o1, $o2, !!"c>=0"]);
+				$lid = $this->gL([$o1, $o2, !!"c>=0", true]);
 				$cond = "and id = $lid";
 			} else {
 				$cond = "and (o1 = $o1 or o2 = $o1)";
@@ -114,8 +114,9 @@ class ObjectLink {
 			$o1 = $params[0];
 			$o2 = $params[1];
 			$c_null = isset($params[2]) && $params[2] ? "" : "and c>0";
+			$o1o2 = isset($params[3]) && $params[3] ? "" : "or (o1 = '$o2' and o2 = '$o1')";
 			
-			$ret = $this->sql->sT([$this->link, "id", "$c_null and ( (o1 = '$o1' and o2 = '$o2') or (o1 = '$o2' and o2 = '$o1') ) ", "", ""]);
+			$ret = $this->sql->sT([$this->link, "id", "$c_null and ( (o1 = '$o1' and o2 = '$o2') $o1o2 ) ", "", ""]);
 			return count($ret) ? $ret[0][0] : 0;
 			
 		} catch (Exception $e) {
@@ -551,13 +552,13 @@ class ObjectLink {
 			$loginClassName = isset($params[3]) ? $params[3] : "Логин пользователя системы";
 			$passClassName = isset($params[4]) ? $params[4] : "Пароль пользователя системы";
 			
-			$loginclass = $this->gO([$loginClassName]);
+			$loginclass = $this->gO([$loginClassName, true]);
 			$l = $this->gAnd([[$loginclass],"id",false,"and n='$login'"],true);
 			$l = $l && count($l) && count($l[0]) ? $l[0][0] : 0;
-			$passclass = $this->gO([$passClassName]);
+			$passclass = $this->gO([$passClassName, true]);
 			$p = $this->gAnd([[$passclass],"id",false,"and n='$pass'"],true);
 			$p = $p && count($p) && count($p[0]) ? $p[0][0] : 0;
-			$userclass = $this->gO([$userClassName]);
+			$userclass = $this->gO([$userClassName, true]);
 			$u = $this->gAnd([[$l, $p, $userclass],"id"],true);
 			$u = $u && count($u) && count($u[0]) ? $u[0][0] : 0;
 			$u2 = $this->gAnd([[$l, $userclass],"id"],true);
@@ -612,11 +613,11 @@ class ObjectLink {
 		$cid = $params[1];
 		$u = $this->u;
 		
-		$userCid = +$this->gO(["Пользователи", true], true);
-		$roleFuncCid = +$this->gO(["RoleFunc", true], true);
+		$userCid = +$this->gO(["Пользователи", true]);
+		$roleFuncCid = +$this->gO(["RoleFunc", true]);
 		if ($cid == $roleFuncCid) return false;
-		$roleCid = +$this->gO(["Role", true], true);
-		$roleFuncOid = +$this->gO([$func, [$roleFuncCid]], true);
+		$roleCid = +$this->gO(["Role", true]);
+		$roleFuncOid = +$this->gO([$func, [$roleFuncCid]]);
 		$roleCids = $cid && $roleFuncCid && $roleCid && $u ? $this->gAnd([[$cid, $roleFuncCid/*,$roleCid*/],"id",false,"and id <> 1",true/*null*/,true], true) : [];
 
 		foreach ($roleCids as $roleCid){
@@ -962,7 +963,7 @@ class ObjectLink {
 		try {
 			$map = $params[0];
 			$cid = $this->gO(["Карта", true]);
-			$oid = $cid ? $this->gO([$map, [$cid]]) : $this->gO([$map]);
+			$oid = $cid ? $this->gO([$map, [$cid]]) : 0;
 			
 			$cid = $this->gO(["tileLayer", true]);
 			$tileLayer = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;

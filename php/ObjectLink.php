@@ -25,6 +25,18 @@ class ObjectLink {
 		}
 	}
 	
+	function lnk($params){
+		$o1 = $params[0];
+		$o2 = $params[1];
+		$c = isset($params[2]) ? $params[2] : 1;
+		$u = $this->u;
+		if (is_integer($o1)){
+			return $this->cL([$o1, $o2, $c]);
+		} else {
+			return $this->cO([$o1, $o2]);
+		};
+	}
+	
 	public function cO($params, $notPolicy=false){//create object and link
 		//$func = debug_backtrace()[0]['function'];
 		try {

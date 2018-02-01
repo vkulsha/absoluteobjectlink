@@ -1249,6 +1249,97 @@ function struct(){
 	}
 }
 
+function objectFormItem(params){
+	var ret = new Object();
+	var tb = cDom("table");
+		var tr = cDom("tr","",tb);
+			var td = cDom("td","",tb);
+				var tb2 = cDom("table","",td);
+					var tr2 = cDom("tr","",tb2);
+						var td2 = cDom("td","",tr2);
+						var sel =  cInp("checkbox","",td2);
+						sel.classList.add("checkbox-custom");
+						var td2 = cDom("td","",tr2);
+						var but = cDom("button","",td2);
+						but.innerHTML = params.n;
+						but.style.color = params.isClass ? "#ffdd00" : "fff";
+						but.style.weight = params.isClass ? "bold" : "none";
+		var tr1 = cDom("tr","",tb);
+			var td1 = cDom("td","",tr1);
+		var tr2 = cDom("tr","",tb);
+			var td2 = cDom("td","",tr2);
+
+	td1.style.textAlign = "left";
+	td2.style.textAlign = "left";
+	but.style.textAlign = "left";
+	tr1.hidden = true;
+	tr2.hidden = true;
+	ret.cnt = tb;
+	ret.but = but;
+	ret.sel = sel;
+	ret.tr1 = tr1;
+	ret.tr2 = tr2;
+	ret.td1 = td1;
+	ret.td2 = td2;
+	ret.n = params.n;
+	ret.id = params.id;
+	ret.cid = params.cid;
+	ret.pid = params.pid;
+	ret.isClass = params.isClass;
+	ret.isGroup = params.isGroup;
+	ret.pobject = params.pobject;
+	but.object = ret;
+	params.cnt.appendChild(tb);
+	
+	but.onclick = function(){
+		this.visible = !this.visible;
+		this.object.sel.checked = !this.object.sel.checked;
+		if (this.visible) {
+			var and = [this.object.isClass ? this.object.id : this.object.cid];
+			if (this.object.isClass && !this.object.isGroup && this.object.pid) and.push(this.object.pid);
+			var objects = orm("gAnd",[and, "id,n", this.object.isClass && !this.object.isGroup, "and id<>1", false, !this.object.isClass]);
+			var tb = this.object.td1.appendChild(cDom("table"));
+			this.object.tr1.hidden = !objects.length;
+			for (var i=0; i < objects.length; i++){
+				var o = objects[i];
+				var tr = tb.appendChild(cDom("tr"));
+				var td = tr.appendChild(cDom("td"));
+				var isGroup = classesGroup.indexOf(+o[0]) >= 0;
+				var params = {
+					id: +o[0], 
+					n: o[1], 
+					cid: +(!this.object.isClass || isGroup ? this.object.cid : this.object.id), 
+					pid: +(this.object.isClass && !isGroup ? this.object.pid : this.object.id), 
+					isClass: (classes2.indexOf(+o[0])>=0), 
+					"isGroup": isGroup,
+					cnt: tb, 
+					pobject: this.object};
+				var _object = objectFormItem(params);
+			}
+			if (this.object.pobject) {
+				this.object.pobject.td2.appendChild(this.object.cnt);
+				this.object.pobject.tr2.hidden = false;
+				this.object.pobject.tr1.hidden = true;
+			}
+		} else {
+			this.object.td1.innerHTML = "";
+			this.object.td2.innerHTML = "";
+		}
+	}
+	
+	return ret;
+}
+
+window.onkeydown = function(e){
+	if (e.key == "F2") {
+		var frm = new Form(true);
+		frm.setVisible(true);
+		var n = orm("gN",[1384]);
+		var object = objectFormItem({id:1384, cid:1383, pid:null, n:n, isClass:false, cnt:frm.getBody()});
+		
+		
+	}
+}
 
 
 

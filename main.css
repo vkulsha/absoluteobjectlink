@@ -54,3 +54,11 @@ button:hover{
 ::-webkit-scrollbar-thumb {
     -webkit-box-shadow: inset 0 0 6px rgba(255,255,255,0.5); 
 }
+
+.checkbox-custom {
+    opacity: 0.1;
+}
+
+.checkbox-custom:checked, .checkbox-custom:hover {
+    opacity: 1;
+}

@@ -19,6 +19,18 @@ html, body {
 	
 }
 
+table.tbobject
+{
+    border: 0px;
+    border-collapse: collapse;
+    border-spacing: 0px;
+}
+
+table.tbobject td
+{
+    padding: 0px 0px 0px 10px;
+}
+
 .centered {
     position: absolute;
     left: 50%;
@@ -29,6 +41,12 @@ html, body {
 button, select, option {
 	background-color: rgba(0,0,0,0.3);
 	border: none;
+	color : #eee;
+}
+
+input.eobject, button.eobject {
+	background-color: rgba(0,0,0,0.3);
+	border: 1px solid #555;
 	color : #eee;
 }
 

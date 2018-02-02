@@ -1215,6 +1215,43 @@ var storageObjects = JSON.parse(storageObjectsLS);
 var objectStorageFields = ["id", "n", "cid", "pid", "isClass"];
 console.log("storageObjects:",storageObjects);
 var specialLinkedClasses;
+var frmObject;
+
+window.onkeydown = function(e){
+	if (e.key == "F2") {
+		frmsData[0].setVisible(false);
+
+		specialLinkedClasses = getSpecLinkedClasses()
+		frmObject = new Form(false);
+		var frm = frmObject;
+		frm.setVisible(true);
+		frm.setWidth("500px");
+		initializeForm(frm);
+		
+		var id = currentUser.oid;
+		var n = orm("gN",[id]);
+		var cid = currentUser.cid;
+		var isClass = false;
+		var rootObject = {"id":id, "cid":cid, "pid":0, "n":n, "isClass":isClass};
+		rootObject.cnt = frm.getBody();
+		
+		if (window.localStorage && storageObjects.length && storageObjects[0].id != rootObject.id) {
+			storageObjects = [];
+			window.localStorage.storageObjects = "";
+		}
+		objectLoad(rootObject);
+		console.time();
+		var _storageObjects = storageObjects.slice();
+		for (var i=0; i < _storageObjects.length; i++){
+			var object = _storageObjects[i];
+			var but = gDom("but.object.id"+object.id+"pid"+object.pid);
+			if (but) but.onclick(i == _storageObjects.length-1 ? true : false);
+		}
+		console.timeEnd();
+		
+
+	}
+}
 
 function getSpecLinkedClasses(){
 	return {map: getMapLinkedClasses()};
@@ -1235,50 +1272,101 @@ function getLinkedClasses(id){
 	return ret;
 }
 
-window.onkeydown = function(e){
-	if (e.key == "F2") {
-		specialLinkedClasses = getSpecLinkedClasses()
-
-		var frm = new Form(false);
-		frm.setVisible(true);
-		frm.setWidth("500px");
-		var id = currentUser.oid;
-		var n = orm("gN",[id]);
-		var cid = currentUser.cid;
-		var isClass = false;
-		var rootObject = {"id":id, "cid":cid, "pid":0, "n":n, "isClass":isClass};
-		rootObject.cnt = frm.getBody();
-		
-		if (window.localStorage && storageObjects.length && storageObjects[0].id != rootObject.id) {
-			storageObjects = [];
-			window.localStorage.storageObjects = "";
+function initializeForm(frm){
+	var cap = frm.getCaption();
+	var tb = cDom("table","",cap);
+		var tr =  cDom("tr","",tb);
+			var td =  cDom("td","",tr);
+				var eFilter =  cInp("edit","",td);
+				eFilter.classList.add("eobject");
+				eFilter.placeholder = "поиск по базе данных";
+			var td =  cDom("td","",tr);
+				var bAdd =  cDom("button","",td);
+				bAdd.innerHTML = "+";
+				bAdd.classList.add("eobject");
+			var td =  cDom("td","",tr);
+				var bDel =  cDom("button","",td);
+				bDel.innerHTML = "-";
+				bDel.classList.add("eobject");
+	
+	bAdd.onclick = function(){
+		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
+		if (!object) return;
+		if (!object.isClass) {
+			if (getPolicy(1)) {
+				var cid = object.cid;
+				var oid = object.id;
+				var n = prompt("Добавить новый класс в класс '"+orm("gN",[cid])+"':","");
+				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
+				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
+				if (classes2.indexOf(newoid)==-1) classes2.push(+newoid);
+				object.but.click(true);
+			} else { alert("У вас нет прав для добавления класса!"); }
+		} else {
+			var cid = object.id;
+			var oid_ = object.pobject.id;
+			var classname = classes3(cid);
+			
+			if (getPolicy(cid) || getPolicy(oid_)) {
+				if (object.isFile){
+					var frm = new Form(false);
+					frm.setVisible(true);
+					objectUploadFile(frm, object); 
+				} else if (object.isMap) {
+					alert('Привязка к карте создается редактором линий на карте!');
+				} else {
+					var objname = orm("gN",[oid_]);
+					var n = prompt("Добавить новое значение '"+classname+"'"+(oid_ ? " к записи '"+objname+"'" : "")+":",classname+(objname ? " "+objname : ""));
+					var newoid = n ? orm("cO",[n, cid]) : 0;
+					var newlink = newoid && oid_ ? orm("cL",[newoid, oid_]) : 0;
+					if (newoid){
+						object.but.click(true);
+					}
+				}
+			} else { alert("У вас нет прав для добавления в класс '"+classname+"'!") };
+			
 		}
-		objectLoad(rootObject);
-		console.time();
-		var _storageObjects = storageObjects.slice();
-		for (var i=0; i < _storageObjects.length; i++){
-			var object = _storageObjects[i];
-			var but = gDom("but.object.id"+object.id+"pid"+object.pid);
-			if (but) but.onclick();
-		}
-		console.timeEnd();
 		
+		return false;
+	}
+	
+	bDel.onclick = function(){
+		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
+		if (!object) return;
+		var oid_ = object.pobject.id;
+		var cid_ = object.pobject.cid;
+		var o1 = object.id;
+		var o2 = (object.isClass ? (o1 == cid_ ? 1 : cid_) : oid_) || cid_;
+		var n_ = orm("gN",[o1]);
 
+		if (getPolicy(o1)) {
+			if (object.isMap) {
+				alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
+			} else {
+				if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[o2])+"'?") ){
+					var res = orm("nL",[o1, o2]);
+					if (res) {} object.pobject.but.click(true);
+				}
+			}
+		} else { alert("У вас нет прав для удаления записи '"+n_+"'!") };
 	}
 }
 
-function objectLoad(params){
+function objectLoad(params, isCount){
 	var object = {};//new Object();
 	var tb = cDom("table");
+	tb.classList.add("tbobject");
 		var tr = cDom("tr","",tb);
 			var td = cDom("td","",tb);
 				var tb2 = cDom("table","",td);
+				tb2.classList.add("tbobject");
 					var tr2 = cDom("tr","",tb2);
 						var td2 = cDom("td","",tr2);
 						var sel =  cInp("checkbox","",td2);
 						sel.classList.add("checkbox-custom");
 						var td2 = cDom("td","",tr2);
 						var but = cDom("button","",td2);
+						td2.style.width = "100%";
 		var tr1 = cDom("tr","",tb);
 			var td1 = cDom("td","",tr1);
 		var tr2 = cDom("tr","",tb);
@@ -1286,6 +1374,8 @@ function objectLoad(params){
 
 	td1.style.textAlign = "left";
 	td2.style.textAlign = "left";
+	tb.style.width = "100%";
+	tb2.style.width = "100%";
 	tr1.hidden = true;
 	tr2.hidden = true;
 
@@ -1303,17 +1393,22 @@ function objectLoad(params){
 	object.isClass = params.isClass;
 	object.isGroup = params.isGroup;
 	object.pobject = params.pobject;
+	object.isFile = object.isClass && (object.id == classes["Файлы"] || object.id == classes["Фото"]);
+	object.isMap = object.isClass && object.id == classes["Привязка к карте"];
+	object.isScript = object.isClass && object.id == classes["Скрипты"];
+	object.isLink = object.isClass && object.id == classes["Ссылки"];
 	
 	but.caption = object.isGroup ? "["+object.n+"...]" : object.n;
 	but.innerHTML = but.caption;
 	but.style.textAlign = "left";
+	but.style.width = "100%";
 	but.style.color = object.isClass ? ( object.isGroup ? "#dd9900" : "#ffdd00" ) : "fff";
 	but.style.fontWeight = object.isClass ? "bold" : "none";
-	but.style.fontSize = object.isClass ? 13+"px" : 12+"px"; 
+	but.style.fontSize = object.isClass ? 12+"px" : 11+"px"; 
 	but.object = object;
 	but.id = "but.object.id"+object.id+"pid"+object.pid;
 
-	if (object.isClass && !object.isGroup) {
+	if (object.isClass && !object.isGroup && isCount) {
 		var objectsCount = gAndObject(object).length;//speed 152ms vs 470ms in 16st => 3/1-2/1
 		but.innerHTML = but.caption + " ("+objectsCount+")";
 	}
@@ -1333,13 +1428,15 @@ function ifObjectSetClick(_object){
 }
 
 function ifObjectStandartSetClick(_object){
-	_object.but.onclick = function(){
+	_object.but.onclick = function(isCount){
 		storageObjectsAdd(this.object);
 		if (window.localStorage) window.localStorage.storageObjects = JSON.stringify(storageObjects, objectStorageFields);
 		this.object.td1.innerHTML = "";
 		this.object.td2.innerHTML = "";
 		var objects = gAndObject(this.object);
 		var tb = this.object.td1.appendChild(cDom("table"));
+		tb.style.width = "100%";
+		tb.classList.add("tbobject");
 		this.object.tr1.hidden = !objects.length;
 		if (this.object.isClass && !this.object.isGroup) this.innerHTML = this.caption + " ("+objects.length+")";
 		for (var i=0; i < objects.length; i++){
@@ -1357,7 +1454,7 @@ function ifObjectStandartSetClick(_object){
 				"cnt"		: tb, 
 				"pobject"	: this.object
 			};
-			var _object = objectLoad(params);
+			var _object = objectLoad(params, isCount);
 		}
 		if (this.object.pobject) {
 			this.object.pobject.td2.appendChild(this.object.cnt);
@@ -1461,7 +1558,7 @@ function ifObjectMapSetLoad(_object){
 	} else if (!_object.isClass) {//speed test without specialLinkedClasses with gAnd ~ 150ms vs 400ms in 8st and 400ms vs 800ms in 16st => 1/2-1/3
 		var object = _object;
 
-		object.isMap = specialLinkedClasses.map.indexOf(object.cid);
+		object.isMap = specialLinkedClasses.map.indexOf(object.cid)>=0;
 
 		if (object.isMap){
 			object.but.onmouseover = function(){
@@ -1512,6 +1609,29 @@ function gAndObject(object){
 	return orm("gAnd",[and, "id,n", object.isClass && !object.isGroup, "and id<>1 order by c desc, n ", false, !object.isClass]);
 }
 
+function objectUploadFile(frm, object){
+	var cids = [object.id] || [classes["Файлы"]];
+	var dF = frm.getBody().appendChild(cDom("DIV"));
+	var domSelFiles = cInp("FILE");
+	dF.appendChild(domSelFiles);
+	domSelFiles.multiple = true;
+	var bSend = cDom("BUTTON","Загрузить файлы",dF);
+	bSend.domSelFiles = domSelFiles;
+	bSend.object = object;
+	bSend.frm = frm;
+	bSend.dF = dF;
+	bSend.onclick = function(){
+		var oid = this.object.pobject.id;
+		for (var i=0; i < this.domSelFiles.files.length; i++) {
+			var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": JSON.stringify([cids]), "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
+			getXmlHttpReq(function(result){
+				console.log(result);
+			}, "php/uploadFiles.php", formData, false, true)
+		};
+		object.but.click(true);
+		this.frm.setVisible(false);
+	}
+}
 
 
 

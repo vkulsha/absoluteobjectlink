@@ -30,8 +30,7 @@
 					<tr><td colspan=2 align='center'><button id='bLogin'>Войти</button></td></tr>
 				</table>
 				</form>
-			</div>
-		</div>
+			</div></div>
 	
 <script lang="javascript">
 var classes_;
@@ -392,23 +391,9 @@ function fillCard(params){
 
 	cell.frm = frm;
 	if (!cell.isClass && frm.oid == currentUser.oid && frm.cid == currentUser.cid) { cell.style.height = "50px"; cell.style.fontSize = "14px"; cell.style.textAlign = "center" }
+	cell.object = {id:cell.oid, n:cell.n, cid:cell.cid, isClass:cell.isClass, but:cell};
+	
 	cell.onclick = function(){ 
-		if (this.isScript) {
-			var func = orm("gAnd",[[this.oid, classes["Функция скрипта"]],"id,n",true]);
-			funcid = func && func.length ? func[0][0] : undefined;
-			funcn = func && func.length ? func[0][1] : undefined;
-			var params = orm("gAnd",[[funcid, classes["Параметры функции скрипта"]],"id,n",true]);
-			params = params && params.length ? JSON.parse(params[0][1]) : undefined;
-			if (funcn){window[funcn](params)};
-			return;
-		}
-		if (this.isLink) {
-			var ind = this.n.indexOf("(");
-			var uri = ind >=0 ? this.n.slice(ind+1,-1) : this.n;
-			openWindow(uri);
-			return;
-		}
-		
 		if (this.isClass) {
 			//href(this.frm.oid ? 0 : this.oid, this.oid);
 			if (this.isClassGroup) { 
@@ -434,39 +419,12 @@ function fillCard(params){
 		this.frm.buttons.forEach(function(e){ e.style.border = "none"; });
 		this.style.border = "2px solid rgba(255,221,0,0.3)";
 	}
+
+	ifObjectScriptSetClick(cell.object);
+	ifObjectLinkSetClick(cell.object);
+	ifObjectFileSetClick(cell.object);
 	
-	if (cell.isFile && !cell.isClass) {
-		var txt = {value: orm("gN",[cell.oid])};
-		var img = new Image();
-		var fn = txt.value;
 
-		var arr = fn.split(".");
-		var arrIm = ['jpg','bmp','png','gif','tif','JPG','BMP','PNG','GIF','TIF'];
-		var ext = arr[arr.length-1];
-
-		img.fn = fn;
-		cell.fn = fn;
-		var cap = (fn) ? fn.split("/")[fn.split("/").length-1] : "";
-
-		if (arr && arr.length && ~arrIm.indexOf(ext)) {
-			img.src = domain+url2cp1251(fn);
-			img.width = 32;
-			cap = "";
-		} else {
-			var iconFile = getIconFile(fn);
-			img.src = domain+iconFile;
-			img.width = 16;
-		}
-
-		
-		cell.innerHTML = cap;
-		img.style.cursor = "pointer";
-		cell.onclick = function(){
-			openWindow(domain+url2cp1251(this.fn));
-		}
-		cell.appendChild(img);
-	}
-		
 	cell.oncontextmenu = function(e){
 		if (e.target == this) {
 			if (this.isClass){
@@ -1249,8 +1207,68 @@ function struct(){
 	}
 }
 
-function objectFormItem(params){
-	var ret = new Object();
+////////////////////
+////////////////////
+////////////////////
+var storageObjectsLS = (window.localStorage && window.localStorage.storageObjects) ? window.localStorage.storageObjects : "[]";
+var storageObjects = JSON.parse(storageObjectsLS);
+var objectStorageFields = ["id", "n", "cid", "pid", "isClass"];
+console.log("storageObjects:",storageObjects);
+var specialLinkedClasses;
+
+function getSpecLinkedClasses(){
+	return {map: getMapLinkedClasses()};
+}
+
+function getMapLinkedClasses(){
+	return getLinkedClasses(classes["Полигоны на карте"]).concat(
+		getLinkedClasses(classes["Привязка к карте"])
+	)
+}
+
+function getLinkedClasses(id){
+	var arr = orm("gAnd",[[id],"id,n",false,"",true,true]);
+	var ret = [];
+	for (var i=0; i < arr.length; i++){
+		ret.push(+arr[i][0]);
+	}
+	return ret;
+}
+
+window.onkeydown = function(e){
+	if (e.key == "F2") {
+		specialLinkedClasses = getSpecLinkedClasses()
+
+		var frm = new Form(false);
+		frm.setVisible(true);
+		frm.setWidth("500px");
+		var id = currentUser.oid;
+		var n = orm("gN",[id]);
+		var cid = currentUser.cid;
+		var isClass = false;
+		var rootObject = {"id":id, "cid":cid, "pid":0, "n":n, "isClass":isClass};
+		rootObject.cnt = frm.getBody();
+		
+		if (window.localStorage && storageObjects.length && storageObjects[0].id != rootObject.id) {
+			storageObjects = [];
+			window.localStorage.storageObjects = "";
+		}
+		objectLoad(rootObject);
+		console.time();
+		var _storageObjects = storageObjects.slice();
+		for (var i=0; i < _storageObjects.length; i++){
+			var object = _storageObjects[i];
+			var but = gDom("but.object.id"+object.id+"pid"+object.pid);
+			if (but) but.onclick();
+		}
+		console.timeEnd();
+		
+
+	}
+}
+
+function objectLoad(params){
+	var object = {};//new Object();
 	var tb = cDom("table");
 		var tr = cDom("tr","",tb);
 			var td = cDom("td","",tb);
@@ -1261,9 +1279,6 @@ function objectFormItem(params){
 						sel.classList.add("checkbox-custom");
 						var td2 = cDom("td","",tr2);
 						var but = cDom("button","",td2);
-						but.innerHTML = params.n;
-						but.style.color = params.isClass ? "#ffdd00" : "fff";
-						but.style.weight = params.isClass ? "bold" : "none";
 		var tr1 = cDom("tr","",tb);
 			var td1 = cDom("td","",tr1);
 		var tr2 = cDom("tr","",tb);
@@ -1271,79 +1286,231 @@ function objectFormItem(params){
 
 	td1.style.textAlign = "left";
 	td2.style.textAlign = "left";
-	but.style.textAlign = "left";
 	tr1.hidden = true;
 	tr2.hidden = true;
-	ret.cnt = tb;
-	ret.but = but;
-	ret.sel = sel;
-	ret.tr1 = tr1;
-	ret.tr2 = tr2;
-	ret.td1 = td1;
-	ret.td2 = td2;
-	ret.n = params.n;
-	ret.id = params.id;
-	ret.cid = params.cid;
-	ret.pid = params.pid;
-	ret.isClass = params.isClass;
-	ret.isGroup = params.isGroup;
-	ret.pobject = params.pobject;
-	but.object = ret;
-	params.cnt.appendChild(tb);
+
+	object.cnt = tb;
+	object.but = but;
+	object.sel = sel;
+	object.tr1 = tr1;
+	object.tr2 = tr2;
+	object.td1 = td1;
+	object.td2 = td2;
+	object.n = params.n;
+	object.id = params.id;
+	object.cid = params.cid;
+	object.pid = params.pid;
+	object.isClass = params.isClass;
+	object.isGroup = params.isGroup;
+	object.pobject = params.pobject;
 	
-	but.onclick = function(){
-		this.visible = !this.visible;
-		this.object.sel.checked = !this.object.sel.checked;
-		if (this.visible) {
-			var and = [this.object.isClass ? this.object.id : this.object.cid];
-			if (this.object.isClass && !this.object.isGroup && this.object.pid) and.push(this.object.pid);
-			var objects = orm("gAnd",[and, "id,n", this.object.isClass && !this.object.isGroup, "and id<>1", false, !this.object.isClass]);
-			var tb = this.object.td1.appendChild(cDom("table"));
-			this.object.tr1.hidden = !objects.length;
-			for (var i=0; i < objects.length; i++){
-				var o = objects[i];
-				var tr = tb.appendChild(cDom("tr"));
-				var td = tr.appendChild(cDom("td"));
-				var isGroup = classesGroup.indexOf(+o[0]) >= 0;
-				var params = {
-					id: +o[0], 
-					n: o[1], 
-					cid: +(!this.object.isClass || isGroup ? this.object.cid : this.object.id), 
-					pid: +(this.object.isClass && !isGroup ? this.object.pid : this.object.id), 
-					isClass: (classes2.indexOf(+o[0])>=0), 
-					"isGroup": isGroup,
-					cnt: tb, 
-					pobject: this.object};
-				var _object = objectFormItem(params);
-			}
-			if (this.object.pobject) {
-				this.object.pobject.td2.appendChild(this.object.cnt);
-				this.object.pobject.tr2.hidden = false;
-				this.object.pobject.tr1.hidden = true;
-			}
-		} else {
-			this.object.td1.innerHTML = "";
-			this.object.td2.innerHTML = "";
+	but.caption = object.isGroup ? "["+object.n+"...]" : object.n;
+	but.innerHTML = but.caption;
+	but.style.textAlign = "left";
+	but.style.color = object.isClass ? ( object.isGroup ? "#dd9900" : "#ffdd00" ) : "fff";
+	but.style.fontWeight = object.isClass ? "bold" : "none";
+	but.style.fontSize = object.isClass ? 13+"px" : 12+"px"; 
+	but.object = object;
+	but.id = "but.object.id"+object.id+"pid"+object.pid;
+
+	if (object.isClass && !object.isGroup) {
+		var objectsCount = gAndObject(object).length;//speed 152ms vs 470ms in 16st => 3/1-2/1
+		but.innerHTML = but.caption + " ("+objectsCount+")";
+	}
+
+	params.cnt.appendChild(tb);
+	ifObjectSetClick(object);
+	
+	return object;
+}
+
+function ifObjectSetClick(_object){
+	ifObjectStandartSetClick(_object);
+	ifObjectScriptSetClick(_object);
+	ifObjectLinkSetClick(_object);
+	ifObjectFileSetClick(_object);
+	ifObjectMapSetLoad(_object);
+}
+
+function ifObjectStandartSetClick(_object){
+	_object.but.onclick = function(){
+		storageObjectsAdd(this.object);
+		if (window.localStorage) window.localStorage.storageObjects = JSON.stringify(storageObjects, objectStorageFields);
+		this.object.td1.innerHTML = "";
+		this.object.td2.innerHTML = "";
+		var objects = gAndObject(this.object);
+		var tb = this.object.td1.appendChild(cDom("table"));
+		this.object.tr1.hidden = !objects.length;
+		if (this.object.isClass && !this.object.isGroup) this.innerHTML = this.caption + " ("+objects.length+")";
+		for (var i=0; i < objects.length; i++){
+			var o = objects[i];
+			var tr = tb.appendChild(cDom("tr"));
+			var td = tr.appendChild(cDom("td"));
+			var isGroup = classesGroup.indexOf(+o[0]) >= 0;
+			var params = {
+				"id"		: +o[0], 
+				"n"			: o[1], 
+				"cid"		: +(!this.object.isClass || isGroup ? this.object.cid : this.object.id), 
+				"pid"		: +(this.object.isClass ? this.object.pid : this.object.id), 
+				"isClass"	: (classes2.indexOf(+o[0])>=0), 
+				"isGroup"	: isGroup,
+				"cnt"		: tb, 
+				"pobject"	: this.object
+			};
+			var _object = objectLoad(params);
+		}
+		if (this.object.pobject) {
+			this.object.pobject.td2.appendChild(this.object.cnt);
+			this.object.pobject.tr2.hidden = false;
+			this.object.pobject.tr1.hidden = true;
 		}
 	}
+	return true;
+}
+
+function ifObjectScriptSetClick(_object){
+	if (!_object.isClass && _object.cid == classes["Скрипты"]){
+		_object.but.onclick = function(){
+			var object = this.object;
+			object.isScript = true;
+			
+			var func = orm("gAnd",[[object.id, classes["Функция скрипта"]],"id,n",true]);
+			funcid = func && func.length ? func[0][0] : undefined;
+			funcn = func && func.length ? func[0][1] : undefined;
+			var params = orm("gAnd",[[funcid, classes["Параметры функции скрипта"]],"id,n",true]);
+			params = params && params.length ? JSON.parse(params[0][1]) : undefined;
+			if (funcn){window[funcn](params)};
+			
+		}
+		return true;
+	} else return false;
 	
-	return ret;
 }
 
-window.onkeydown = function(e){
-	if (e.key == "F2") {
-		var frm = new Form(true);
-		frm.setVisible(true);
-		var n = orm("gN",[1384]);
-		var object = objectFormItem({id:1384, cid:1383, pid:null, n:n, isClass:false, cnt:frm.getBody()});
+function ifObjectLinkSetClick(_object){
+	if (!_object.isClass && _object.cid == classes["Ссылки"]){
+		_object.but.onclick = function(){
+			var object = this.object;
+			object.isLink = true;
+
+			var ind = object.n.indexOf("(");
+			var uri = ind >=0 ? object.n.slice(ind+1,-1) : object.n;
+			openWindow(uri);
+
+		}
+		return true;
+	} else return false;
+}
+
+function ifObjectFileSetClick(_object){
+	if ( !_object.isClass && (_object.cid == classes["Файлы"] || _object.cid == classes["Фото"]) ){
+		var object = _object;
+
+		object.isFile = true;
+		var txt = {value: orm("gN",[object.id])};
+		var img = new Image();
+		var fn = txt.value;
+
+		var arr = fn.split(".");
+		var arrIm = ['jpg','bmp','png','gif','tif','JPG','BMP','PNG','GIF','TIF'];
+		var ext = arr[arr.length-1];
+
+		img.fn = fn;
+		var cap = (fn) ? fn.split("/")[fn.split("/").length-1] : "";
+
+		if (arr && arr.length && ~arrIm.indexOf(ext)) {
+			img.src = domain+url2cp1251(fn);
+			img.width = 32;
+			cap = "";
+		} else {
+			var iconFile = getIconFile(fn);
+			img.src = domain+iconFile;
+			img.width = 16;
+		}
+
+		object.but.innerHTML = cap;
+		img.style.cursor = "pointer";
+		object.but.fn = fn;
+		object.but.onclick = function(){
+			openWindow(domain+url2cp1251(this.fn));
+		}
+		object.but.appendChild(img);
 		
+		return true;
+	} else return false;
+}
+
+function ifObjectMapSetLoad(_object){
+	if ( _object.isClass && _object.id == classes["Привязка к карте"] ){
+		var object = _object;
 		
+		object.isMap = true;
+
+		var coord;
+		var p = getPaint(object.pid);
+
+		if (p) {
+			mapProps.mapFunctions.forEach(function(prop){ if (p.paintFunc == prop.drawFunc) coord = p[prop.getLatLngFunc](); })
+			if (coord && coord.length) coord = coord[0];
+		}
+		
+		if (coord) {
+			map.setView([coord.lat, coord.lng], 18);
+		}
+		return true;
+	} else if (!_object.isClass) {//speed test without specialLinkedClasses with gAnd ~ 150ms vs 400ms in 8st and 400ms vs 800ms in 16st => 1/2-1/3
+		var object = _object;
+
+		object.isMap = specialLinkedClasses.map.indexOf(object.cid);
+
+		if (object.isMap){
+			object.but.onmouseover = function(){
+				var layer = getObjectMapLayer(this.object);
+				if (layer && layer.paintFunc != "Marker") {
+					this.object.layer = layer;
+					layer.setStyle({color:"#ff0000", weight:2});
+				}
+			}
+			
+			object.but.onmouseout = function(){
+				var layer = getObjectMapLayer(this.object);
+				if (layer && layer.paintFunc != "Marker") {
+					layer.setStyle(layer.paintFuncParams);
+				}
+			}
+		}
+	
+	} else return false;
+}
+
+function getObjectMapLayer(object){
+	var layer;
+	if (object.layer) {
+		layer = object.layer;
+	} else {
+		object.layer = layer;
+		layer = getPaint(object.id);
 	}
+	return layer;
 }
 
+function storageObjectsAdd(_object){
+	for (var i=0; i < storageObjects.length; i++){
+		var object = storageObjects[i];
+		if (_object.id == object.id) {
+			storageObjects.splice(i);
+			break;
+		}
+	}
+	storageObjects.push(_object);
+	return _object
+}
 
-
-
+function gAndObject(object){
+	var and = [object.isClass ? object.id : object.cid];
+	if (object.isClass && !object.isGroup && object.pid) and.push(object.pid);
+	return orm("gAnd",[and, "id,n", object.isClass && !object.isGroup, "and id<>1 order by c desc, n ", false, !object.isClass]);
+}
 
 
 

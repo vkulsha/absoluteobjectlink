@@ -1212,6 +1212,7 @@ function struct(){
 ////////////////////
 var storageObjectsLS = (window.localStorage && window.localStorage.storageObjects) ? window.localStorage.storageObjects : "[]";
 var storageObjects = JSON.parse(storageObjectsLS);
+var selectedObjects = [];
 var objectStorageFields = ["id", "n", "cid", "pid", "isClass"];
 console.log("storageObjects:",storageObjects);
 var specialLinkedClasses;
@@ -1284,10 +1285,17 @@ function initializeForm(frm){
 				var bAdd =  cDom("button","",td);
 				bAdd.innerHTML = "+";
 				bAdd.classList.add("eobject");
+				bAdd.alt = "Добавление элемента в текщий элемент";
 			var td =  cDom("td","",tr);
 				var bDel =  cDom("button","",td);
 				bDel.innerHTML = "-";
 				bDel.classList.add("eobject");
+				bDel.alt = "Удаление выделенных элементов";
+			var td =  cDom("td","",tr);
+				var bTree =  cDom("button","",td);
+				bTree.innerHTML = "#";
+				bTree.classList.add("eobject");
+				bTree.alt = "Таблица";
 	
 	bAdd.onclick = function(){
 		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
@@ -1309,9 +1317,7 @@ function initializeForm(frm){
 			
 			if (getPolicy(cid) || getPolicy(oid_)) {
 				if (object.isFile){
-					var frm = new Form(false);
-					frm.setVisible(true);
-					objectUploadFile(frm, object); 
+					objectUploadFile(object); 
 				} else if (object.isMap) {
 					alert('Привязка к карте создается редактором линий на карте!');
 				} else {
@@ -1331,25 +1337,57 @@ function initializeForm(frm){
 	}
 	
 	bDel.onclick = function(){
-		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
-		if (!object) return;
-		var oid_ = object.pobject.id;
-		var cid_ = object.pobject.cid;
-		var o1 = object.id;
-		var o2 = (object.isClass ? (o1 == cid_ ? 1 : cid_) : oid_) || cid_;
-		var n_ = orm("gN",[o1]);
+		var pobject;
+		
+		for (var i=0; i < selectedObjects.length; i++) {
+			var object = selectedObjects[i];
+			var oid_ = object.pobject.id;
+			var cid_ = object.pobject.cid;
+			var o1 = object.id;
+			var o2 = (object.isClass ? (o1 == cid_ ? 1 : cid_) : oid_) || cid_;
+			var n_ = orm("gN",[o1]);
 
-		if (getPolicy(o1)) {
-			if (object.isMap) {
-				alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
-			} else {
-				if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[o2])+"'?") ){
-					var res = orm("nL",[o1, o2]);
-					if (res) {} object.pobject.but.click(true);
+			if (getPolicy(o1)) {
+				if (object.isMap) {
+					alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
+				} else {
+					if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[o2])+"'?") ){
+						var res = orm("nL",[o1, o2]);
+						if (res) { pobject = object.pobject; };
+					}
 				}
-			}
-		} else { alert("У вас нет прав для удаления записи '"+n_+"'!") };
+			} else { alert("У вас нет прав для удаления записи '"+n_+"'!") };
+		}
+		if (pobject) pobject.but.click(true);
 	}
+	
+	bTree.onclick = function(){
+		var objects = storageObjects;
+		var classes = [];
+		var links = [];
+		var cond = "";
+		var n = 0;
+		var n2 = 0;
+		for (var i=0; i < objects.length; i++){
+			var object = objects[i];
+			if (object.isClass && !object.isGroup) {
+				classes.push(object.n);
+				if (n > 0) links.push([n,n-1]);
+				n++;
+			} else if (!object.isClass) {
+				if (n2 > 0) cond += " and `"+classes[n2-1]+"` = '"+object.n+"' ";
+				n2++;
+			}
+		}
+		console.log(cond);
+		var ret = orm("gT2",[classes,links,[],false,decorateArr(classes, "`"),cond]);
+		var domtable = getOrmObject({columns:classes, data:ret}, "all2domtable");
+		domtable.setAttribute("border",1);
+		var frm = new Form(true);
+		frm.setVisible(true);
+		frm.getBody().appendChild(domtable);
+	}
+	
 }
 
 function objectLoad(params, isCount){
@@ -1397,6 +1435,7 @@ function objectLoad(params, isCount){
 	object.isMap = object.isClass && object.id == classes["Привязка к карте"];
 	object.isScript = object.isClass && object.id == classes["Скрипты"];
 	object.isLink = object.isClass && object.id == classes["Ссылки"];
+	object.childobjects = [];
 	
 	but.caption = object.isGroup ? "["+object.n+"...]" : object.n;
 	but.innerHTML = but.caption;
@@ -1408,11 +1447,15 @@ function objectLoad(params, isCount){
 	but.object = object;
 	but.id = "but.object.id"+object.id+"pid"+object.pid;
 
+	sel.object = object;
+	sel.disabled = true;
+	sel.checked = false;
+
 	if (object.isClass && !object.isGroup && isCount) {
 		var objectsCount = gAndObject(object).length;//speed 152ms vs 470ms in 16st => 3/1-2/1
 		but.innerHTML = but.caption + " ("+objectsCount+")";
 	}
-
+	
 	params.cnt.appendChild(tb);
 	ifObjectSetClick(object);
 	
@@ -1430,6 +1473,7 @@ function ifObjectSetClick(_object){
 function ifObjectStandartSetClick(_object){
 	_object.but.onclick = function(isCount){
 		storageObjectsAdd(this.object);
+		selectedObjects = [];
 		if (window.localStorage) window.localStorage.storageObjects = JSON.stringify(storageObjects, objectStorageFields);
 		this.object.td1.innerHTML = "";
 		this.object.td2.innerHTML = "";
@@ -1439,6 +1483,7 @@ function ifObjectStandartSetClick(_object){
 		tb.classList.add("tbobject");
 		this.object.tr1.hidden = !objects.length;
 		if (this.object.isClass && !this.object.isGroup) this.innerHTML = this.caption + " ("+objects.length+")";
+		this.object.childobjects = [];
 		for (var i=0; i < objects.length; i++){
 			var o = objects[i];
 			var tr = tb.appendChild(cDom("tr"));
@@ -1455,12 +1500,50 @@ function ifObjectStandartSetClick(_object){
 				"pobject"	: this.object
 			};
 			var _object = objectLoad(params, isCount);
+			_object.pobject.childobjects.push(_object);
+			_object.sel.disabled = false;
+			_object.sel.checked = false;
+			
+			_object.sel.onchange = function(){
+				var object = this.object;
+				if (selectedObjects.length){
+					for (var i=0; i < selectedObjects.length; i++){
+						if ( selectedObjects[i].id == object.id ){
+							selectedObjects.splice(i,1)
+						}
+						if (this.checked) selectedObjects.push(object);
+					}
+				} else {
+					if (this.checked) selectedObjects.push(object);
+				}
+			}
+			
 		}
 		if (this.object.pobject) {
 			this.object.pobject.td2.appendChild(this.object.cnt);
 			this.object.pobject.tr2.hidden = false;
 			this.object.pobject.tr1.hidden = true;
 		}
+		
+		this.object.sel.onchange = function(){
+			selectedObjects = [];
+			var childobjects = this.object.childobjects;
+			if (childobjects && childobjects.length){
+				for (var j=0; j < childobjects.length; j++){
+					console.log(1);
+					var sel = childobjects[j].sel;
+					sel.checked = this.checked;
+					if (this.checked) selectedObjects.push(childobjects[j]);
+				}
+			}
+		}
+
+		if (this.object.pobject) {
+			this.object.pobject.sel.disabled = true;
+			this.object.pobject.sel.checked = false;
+		}
+		this.object.sel.disabled = false;
+		this.object.sel.checked = false;
 	}
 	return true;
 }
@@ -1609,17 +1692,13 @@ function gAndObject(object){
 	return orm("gAnd",[and, "id,n", object.isClass && !object.isGroup, "and id<>1 order by c desc, n ", false, !object.isClass]);
 }
 
-function objectUploadFile(frm, object){
+function objectUploadFile(object){
 	var cids = [object.id] || [classes["Файлы"]];
-	var dF = frm.getBody().appendChild(cDom("DIV"));
 	var domSelFiles = cInp("FILE");
-	dF.appendChild(domSelFiles);
 	domSelFiles.multiple = true;
-	var bSend = cDom("BUTTON","Загрузить файлы",dF);
+	var bSend = cDom("BUTTON","Загрузить файлы");
 	bSend.domSelFiles = domSelFiles;
 	bSend.object = object;
-	bSend.frm = frm;
-	bSend.dF = dF;
 	bSend.onclick = function(){
 		var oid = this.object.pobject.id;
 		for (var i=0; i < this.domSelFiles.files.length; i++) {
@@ -1629,7 +1708,10 @@ function objectUploadFile(frm, object){
 			}, "php/uploadFiles.php", formData, false, true)
 		};
 		object.but.click(true);
-		this.frm.setVisible(false);
+	}
+	domSelFiles.click();
+	domSelFiles.onchange = function(){
+		bSend.onclick();
 	}
 }
 

@@ -127,7 +127,26 @@ function Form (isModal, closeFunc, zIndex, visible, opacity){
 	dom.style.height = "100%";
 	dom.style.backgroundColor = "rgba(0,0,0,"+this.opacity+")";
 	this.dom = dom;
-
+	dom.pushed = false;
+	dom.frm = this;
+	dom.addEventListener("mousemove", function(e){
+		var border = parseInt(getComputedStyle(this).width) - e.clientX;
+		if ( border > 0 && border < 20 ){
+			dom.style.cursor = "e-resize";
+		} else {
+			dom.style.cursor = "default";
+		}
+		if (this.pushed) {
+			this.frm.setWidth(e.clientX+20+"px");
+		}
+	});
+	dom.onmousedown = function(e){
+		this.pushed = true && this.style.cursor == "e-resize";
+	}
+	dom.onmouseup = function(e){
+		this.pushed = false;
+	}
+	
 	var frm = dom.appendChild(cDom("DIV"));
 	this.frm = frm;
 	frm.style.overflowY = "scroll";

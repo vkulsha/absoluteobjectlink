@@ -31,6 +31,11 @@ table.tbobject td
     padding: 0px 0px 0px 10px;
 }
 
+table.tbobjectnotpadding td
+{
+    padding: 0px 0px 0px 0px;
+}
+
 .centered {
     position: absolute;
     left: 50%;

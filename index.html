@@ -1227,20 +1227,22 @@ var objectStorageFields = ["id", "n", "cid", "pid", "isClass"];
 console.log("storageObjects:",storageObjects);
 var specialLinkedClasses;
 var frmObject = new Form(false);;
-var storageMapLayers = {};
+var storageMapLayers = [];
+var isMapLinkEnabled = false;
+var setViewObject;
 
 window.onkeydown = function(e){
 	if (e.key == "F2") {
 		//frmsData[frmsData.length-1].setVisible(true);
-		href(currentUser.oid, currentUser.cid, !!location.hash);
+		//href(currentUser.oid, currentUser.cid, !!location.hash);
 	}
 }
 
-function frmMainSetVisibleTrue(clearmaplayers){
-	loadNewForm(currentUser.oid, currentUser.cid, clearmaplayers);
+function frmMainSetVisibleTrue(){
+	loadNewForm(currentUser.oid, currentUser.cid);
 }
 
-function loadNewForm(id, cid, clearmaplayers){
+function loadNewForm(id, cid){
 	if (frmsData.length) frmsData[frmsData.length-1].setVisible(false);
 
 	specialLinkedClasses = getSpecLinkedClasses()
@@ -1255,10 +1257,7 @@ function loadNewForm(id, cid, clearmaplayers){
 	var isClass = false;
 	var rootObject = {"id":id, "cid":cid, "pid":0, "n":n, "isClass":isClass};
 	rootObject.cnt = frm.getBody();
-	
-	if (clearmaplayers){
-		clearStorageMapLayers();
-	}
+
 	if (window.localStorage && storageObjects.length && storageObjects[0].id != rootObject.id) {
 		storageObjects = [];
 		window.localStorage.storageObjects = "";
@@ -1269,17 +1268,21 @@ function loadNewForm(id, cid, clearmaplayers){
 	if (!storageObjects.length) {
 		_rootObject.but.dispatchEvent(new Event("click"));
 	} else {
-		var _storageObjects = storageObjects.slice();
-		for (var i=0; i < _storageObjects.length; i++){
-			var object = _storageObjects[i];
-			var but = gDom("but.object.id"+object.id+"pid"+object.pid);
-			var event = new Event("click");
-			event.isNotCalsCount = (i == _storageObjects.length-1 ? false : true);
-			if (but) but.dispatchEvent(event);
-		}
+		runStorageObjects();
 	}
 	console.timeEnd();
 
+}
+
+function runStorageObjects(){
+	var _storageObjects = storageObjects.slice();
+	for (var i=0; i < _storageObjects.length; i++){
+		var object = _storageObjects[i];
+		var but = gDom("but.object.id"+object.id+"pid"+object.pid);
+		var event = new Event("click");
+		event.isNotCalsCount = (i == _storageObjects.length-1 ? false : true);
+		if (but) but.dispatchEvent(event);
+	}
 }
 
 function getSpecLinkedClasses(){
@@ -1313,17 +1316,22 @@ function initializeForm(frm){
 				var bAdd =  cDom("button","",td);
 				bAdd.innerHTML = "+";
 				bAdd.classList.add("eobject");
-				bAdd.alt = "Добавление элемента в текщий элемент";
+				bAdd.title = "Добавление элемента в текщий элемент";
 			var td =  cDom("td","",tr);
 				var bDel =  cDom("button","",td);
 				bDel.innerHTML = "-";
 				bDel.classList.add("eobject");
-				bDel.alt = "Удаление выделенных элементов";
+				bDel.title = "Удаление выделенных элементов";
 			var td =  cDom("td","",tr);
 				var bTree =  cDom("button","",td);
 				bTree.innerHTML = "#";
 				bTree.classList.add("eobject");
-				bTree.alt = "Таблица";
+				bTree.title = "Таблица";
+			var td =  cDom("td","",tr);
+				var bMap =  cDom("button","",td);
+				bMap.innerHTML = "🖈";
+				bMap.classList.add("eobject");
+				bMap.title = "Вкл/выкл привязку к карте";
 	
 	bAdd.onclick = function(){
 		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
@@ -1416,6 +1424,18 @@ function initializeForm(frm){
 		frm.getBody().appendChild(domtable);
 	}
 	
+	bMap.onclick = function(){
+		this.checked = !this.checked;
+		isMapLinkEnabled = this.checked;
+		
+		if (this.checked) {
+			this.style.backgroundColor = "rgba(255,0,0,0.3)";
+			runStorageObjects();
+		} else {
+			this.style.backgroundColor = "rgba(0,0,0,0.3)";
+			clearStorageMapLayers();
+		}
+	}
 }
 
 function objectLoad(params, isNotCalsCount, notPadding){
@@ -1672,9 +1692,9 @@ function ifObjectIsMap(object){
 	object.isMap = (cid == classes["Привязка к карте"] || cid == classes["Полигоны на карте"]);
 	
 	if ( object.isMap && object.isClass ){
+		setViewObject = object;
 		var coord;
 		var p = getPaint(object.pid);
-
 		if (p) {
 			mapProps.mapFunctions.forEach(function(prop){ if (p.paintFunc == prop.drawFunc) coord = p[prop.getLatLngFunc](); })
 			if (coord && coord.length) coord = coord[0];
@@ -1712,7 +1732,7 @@ function ifObjectIsMapLinked(object){
 		}
 		
 		return true;
-	} else if (object.isMapLinked && object.isClass){
+	} else if (object.isMapLinked && object.isClass && isMapLinkEnabled){
 		var objects = gAndObject(object);
 		
 		if (objects && objects.length){
@@ -1720,14 +1740,29 @@ function ifObjectIsMapLinked(object){
 			for (var i=0; i < objects.length; i++){
 				ids.push(objects[i][0]);
 			}
-			var layer = objectMapLayer({id:object.pid, cid:object.id, ids:ids});
-			layer.addTo(map);
 			
-			var lastobject = "id"+storageObjects[storageObjects.length-1].id;
-			if (!storageMapLayers[lastobject]) { storageMapLayers[lastobject] = []; };
-			storageMapLayers[lastobject].push(layer);
+			objectMapLayer({"id":object.pid, "cid":object.id, "ids":ids}, function(layer){
+				var exist = false;
+				for (var i=0; i < storageMapLayers.length; i++){
+					if (storageMapLayers[i].cid == layer.cid) {
+						var _layer = storageMapLayers[i];
+						storageMapLayers[i] = layer;
+						_layer.clearLayers();
+						_layer.remove();
+						exist = true;
+						break;
+					}
+				}
+				if (!exist) {
+					storageMapLayers.push(layer);
+					exist = true;
+				}
+				if (exist) {
+					layer.addTo(map);
+					ifObjectIsMap(setViewObject);
+				}
+			});
 		}
-	
 		return true;
 	}
 	return false;
@@ -1738,132 +1773,145 @@ function getObjectMapLayer(object){
 	if (object.layer) {
 		layer = object.layer;
 	} else {
-		object.layer = layer;
 		layer = getPaint(object.id);
+		object.layer = layer;
 	}
 	return layer;
 }
 
-function objectMapLayer(object){
-//console.time("id"+object.id);
-	var layer = L.layerGroup();
+function objectMapLayer(object, callback){
 	var cid = +object.cid;
 	var id = +object.id;
 	var ids = object.ids;///
 	var mapLinkCids = [classes["Полигоны на карте"],classes["Привязка к карте"]];
 	var paintFuncCid = classes["Функции отрисовки"];
 	var paintFuncParamsCid = classes["Параметры функции отрисовки"];
-	var mapCoordCid = classes["Координаты на карте"];
-
 	mapLinkCid = (cid == classes["Земельные участки"] || cid == classes["Здания и сооружения"]) ? mapLinkCids[0] : mapLinkCids[1];
-	var maplinks = orm("gT2id",[	[cid, mapLinkCid, paintFuncCid,paintFuncParamsCid], [[2,1],[3,1]],[],false,
+	
+	var _params1 = {"cid":cid, "id":id, "ids":ids};
+	orma("gT2id",[	[cid, mapLinkCid, paintFuncCid,paintFuncParamsCid], [[2,1],[3,1]],[],false,
 		["`id_o"+mapLinkCid+"`","`o"+paintFuncCid+"`","`o"+paintFuncParamsCid+"`","`id_o"+cid+"`"],
 		(ids && ids.length ? "and `id_o"+cid+"` in ("+ids.join(",")+")" : "and `id_o"+cid+"` = "+id)+
-		" and `id_o"+mapLinkCid+"` is not null order by `id_o"+mapLinkCid+"`" ]);
-		
-	for (var i=0; i < maplinks.length; i++){
-		var mapLink = maplinks[i];
-		var mapLinkId = mapLink[0];
-		var paintFunc = mapLink[1];
-		var paintFuncParams = JSON.parse(mapLink[2]);
-		var oid = ids && ids.length ? +mapLink[3] : id;
-		
-		if (paintFunc == "Marker") paintFuncParams = paintFuncParams ? {"icon":L.icon(paintFuncParams)} : 
-			(cid == classes["Арендаторы"] ? {"icon":L.icon({"iconUrl":"images/arendator.png"})} : null) ;
-		if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; }
+		" and `id_o"+mapLinkCid+"` is not null order by `id_o"+mapLinkCid+"`" ], function(maplinks, params1)
+		{
+//console.time("id"+object.id);
+			var layer = L.layerGroup();
 
-		var coords = orm("gAnd",[[mapLinkId, classes["Координаты на карте"]],"n",true]);
-		if (!paintFunc) {//Полигоны на карте
-			if (coords.length == 1){
-				paintFunc = "Marker";
-				paintFuncParams = {"icon":L.icon({"iconUrl":"images/marker00.png","iconSize":[32,32]})};
-			} else if (coords.length > 1) {
-				paintFunc = "Polygon";
-				paintFuncParams = {"weight":1, "color":"#ffff00"};
-			}
-		}
-
-		var latlngs = [];
-		for (var latLngInd=0; latLngInd < coords.length; latLngInd++){
-			var latlng = coords[latLngInd][0];
-			if (latlng && latlng[0] == "{" || latlng[0] == "[") {
-				latlngs = JSON.parse(latlng);
-			} else {
-				latlngs.push(latlng.split(" "));
-			}
-		}
-		if (latlngs) {
-			var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
-			p.oid = mapLinkId;
-			p.lid = oid;
-			p.cid = cid;
-			p.pid = id;
-			p.paintFunc = paintFunc;
-			p.paintFuncParams = paintFuncParams;
-			p.on('mouseover', onmouseover);
-			p.on('mouseout', onmouseout);
-			p.on('click', onclick);
-			p.on('contextmenu', oncontextmenu);
-		}
-		
-		function onmouseover(e) {
-			if (this.paintFunc != "Marker") 
-				this.setStyle({color:"#ff0000", weight:2}); 
-			
-			var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
-			if (cell) cell.style.color = "#ff9999";
-		}
-		function onmouseout(e) { 
-			if (this.paintFunc != "Marker")
-				this.setStyle(this.paintFuncParams); 
+			var res = 0;
+			for (var i=0; i < maplinks.length; i++){
+				var mapLink = maplinks[i];
+				var mapLinkId = mapLink[0];
+				var paintFunc = mapLink[1];
+				var paintFuncParams = JSON.parse(mapLink[2]);
+				var oid = params1.ids && params1.ids.length ? +mapLink[3] : params1.id;
 				
-			var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
-			if (cell) cell.style.color = "#fff";
-		}
-		function onclick(){
-			if (isPaintMode && this.paintFunc != "Marker") {
-				if (selectedPoly) {
-					selectedPoly.disableEdit();
-				}
-				selectedPoly = this;
-				selectedPoly.enableEdit();
-			} else {
-				loadNewForm(this.lid, this.cid);
-			}
-		}
-		function oncontextmenu(e) { 
-			if (this.paintFunc != "Marker" && isPaintMode && selectedPoly) {
-				new ContextMenu([
-					new ContextMenuItem("Удалить", function(){ 
-						if (confirm("Удалить выделенную линию класса "+classes3(this.ctx.cid)+" ?")){
-							var res = orm("nL",[selectedPoly.oid, selectedPoly.lid]);
-							if (res) {
-								selectedPoly.disableEdit();
-								selectedPoly.remove();
-								selectedPoly = this.ctx;
-							}
+				if (paintFunc == "Marker") paintFuncParams = paintFuncParams ? {"icon":L.icon(paintFuncParams)} : 
+					(params1.cid == classes["Арендаторы"] ? {"icon":L.icon({"iconUrl":"images/arendator.png"})} : null) ;
+				if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; }
+
+				/*var coords = */
+				var _params2 = {"layer":layer, "mapLinkId": mapLinkId, "oid": oid, "cid":params1.cid, "id":params1.id, "paintFunc":paintFunc, "paintFuncParams":paintFuncParams,
+					"onmouseover":onmouseover, "onmouseout":onmouseout, "onclick":onclick, "oncontextmenu":oncontextmenu};
+
+				orma("gAnd",[[mapLinkId, classes["Координаты на карте"]],"n",true], function(coords, params2){
+					res++;
+					if (!params2.paintFunc) {//Полигоны на карте
+						if (coords.length == 1){
+							params2.paintFunc = "Marker";
+							params2.paintFuncParams = {"icon":L.icon({"iconUrl":"images/marker00.png","iconSize":[32,32]})};
+						} else if (coords.length > 1) {
+							params2.paintFunc = "Polygon";
+							params2.paintFuncParams = {"weight":1, "color":"#ffff00"};
 						}
-					}, this), 
-					], e.containerPoint.x, e.containerPoint.y);
-				return false;
+					}
+
+					var latlngs = [];
+					for (var latLngInd=0; latLngInd < coords.length; latLngInd++){
+						var latlng = coords[latLngInd][0];
+						if (latlng && latlng[0] == "{" || latlng[0] == "[") {
+							latlngs = JSON.parse(latlng);
+						} else {
+							latlngs.push(latlng.split(" "));
+						}
+					}
+					if (latlngs) {
+						var p = L[params2.paintFunc.toLowerCase()](latlngs, params2.paintFuncParams).addTo(params2.layer);
+						p.oid = params2.mapLinkId;
+						p.lid = params2.oid;
+						p.cid = params2.cid;
+						p.pid = params2.id;
+						p.paintFunc = params2.paintFunc;
+						p.paintFuncParams = params2.paintFuncParams;
+						p.on('mouseover', params2.onmouseover);
+						p.on('mouseout', params2.onmouseout);
+						p.on('click', params2.onclick);
+						p.on('contextmenu', params2.oncontextmenu);
+						callbacklayerinner(res);
+					}
+				}, _params2);
+				
+				function onmouseover(e) {
+					if (this.paintFunc != "Marker") 
+						this.setStyle({color:"#ff0000", weight:2}); 
+					
+					var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
+					if (cell) cell.style.color = "#ff9999";
+				}
+				function onmouseout(e) { 
+					if (this.paintFunc != "Marker")
+						this.setStyle(this.paintFuncParams); 
+						
+					var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
+					if (cell) cell.style.color = "#fff";
+				}
+				function onclick(){
+					if (isPaintMode && this.paintFunc != "Marker") {
+						if (selectedPoly) {
+							selectedPoly.disableEdit();
+						}
+						selectedPoly = this;
+						selectedPoly.enableEdit();
+					} else {
+						loadNewForm(this.lid, this.cid);
+					}
+				}
+				function oncontextmenu(e) { 
+					if (this.paintFunc != "Marker" && isPaintMode && selectedPoly) {
+						new ContextMenu([
+							new ContextMenuItem("Удалить", function(){ 
+								if (confirm("Удалить выделенную линию класса "+classes3(this.ctx.cid)+" ?")){
+									var res = orm("nL",[selectedPoly.oid, selectedPoly.lid]);
+									if (res) {
+										selectedPoly.disableEdit();
+										selectedPoly.remove();
+										selectedPoly = this.ctx;
+									}
+								}
+							}, this), 
+							], e.containerPoint.x, e.containerPoint.y);
+						return false;
+					}
+				}
 			}
-		}
-		
-		
-	}
+			function callbacklayerinner(res){
+				if (res == maplinks.length){
+					layer.cid = params1.cid;
+					callback(layer);
+				}
+			}
+
+			
 //console.timeEnd("id"+object.id);
-	return layer;
+			//callback(layer);
+		}, _params1);
 }
 
-function clearStorageMapLayers(notThisObjectId){
-	for (key in storageMapLayers){
-		if (key != "id"+notThisObjectId) {
-			storageMapLayers[key].forEach(function(layer){
-				layer.clearLayers();
-				layer.remove();
-			})
-		}
-	}
+function clearStorageMapLayers(){
+	storageMapLayers.forEach(function(layer){
+		layer.clearLayers();
+		layer.remove();
+	});
+	storageMapLayers = [];
 }
 
 function storageObjectsAdd(_object){
@@ -1876,13 +1924,13 @@ function storageObjectsAdd(_object){
 			//storageObjects.splice(i);
 			//break;
 		}
-		if (objectInd >= 0 && i >= objectInd && storageMapLayers["id"+object.id]) {
+		/*if (objectInd >= 0 && i >= objectInd && storageMapLayers["id"+object.id]) {
 			storageMapLayers["id"+object.id].forEach(function(layer){
 				layer.clearLayers();
 				layer.remove();
 			})
 			storageMapLayers["id"+object.id] = undefined;
-		}
+		}*/
 	}
 	
 	if (objectInd >= 0) storageObjects.splice(objectInd);

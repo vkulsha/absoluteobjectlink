@@ -34,7 +34,11 @@ function orm(fName, fParams, func){
 	return ret;
 }
 
-function getXmlHttpReq(func, uri, postdata, async, isjson, funcError, funcFinnaly) {
+function orma(fName, fParams, func, funcparams){
+	getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, true, funcparams);
+}
+
+function getXmlHttpReq(func, uri, postdata, async, funcparams, isjson, funcError, funcFinnaly) {
 	if (async === undefined) async = true;
 	if (isjson === undefined) isjson = true;
 	var getpost = (uri.indexOf("?")>=0 && !postdata) ? "get" : "post";
@@ -66,7 +70,7 @@ function getXmlHttpReq(func, uri, postdata, async, isjson, funcError, funcFinnal
 			try {
 			if (req.readyState == 4) {
 				if (req.status == 200) {
-					func((isjson ? JSON.parse(req.response) : req.response));
+					func((isjson ? JSON.parse(req.response) : req.response), funcparams);
 				} else {
 					console.log("Не удалось получить данные:\n"+req.statusText);
 				}

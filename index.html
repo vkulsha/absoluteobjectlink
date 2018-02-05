@@ -230,9 +230,9 @@ gDom("bLogin").onclick = function(){
 		gDom("pLoginMain").hidden = true;
 		///
 		//mapObjects = initMapOld(map);///
-		loadPaintLayers(map, frmPaintLayers, "Полигоны на карте");
-		loadPaintLayers(map, frmPaintLayers, "Привязка к карте", true);
-		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
+		///loadPaintLayers(map, frmPaintLayers, "Полигоны на карте");
+		///loadPaintLayers(map, frmPaintLayers, "Привязка к карте", true);
+		///frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
 		mapInit(map, frmsData);
 		frmMainSetVisibleTrue();//
 		//href(currentUser.oid, currentUser.cid, !!location.hash);
@@ -1227,6 +1227,7 @@ var objectStorageFields = ["id", "n", "cid", "pid", "isClass"];
 console.log("storageObjects:",storageObjects);
 var specialLinkedClasses;
 var frmObject = new Form(false);;
+var storageMapLayers = {};
 
 window.onkeydown = function(e){
 	if (e.key == "F2") {
@@ -1235,11 +1236,11 @@ window.onkeydown = function(e){
 	}
 }
 
-function frmMainSetVisibleTrue(){
-	loadNewForm(currentUser.oid, currentUser.cid);
+function frmMainSetVisibleTrue(clearmaplayers){
+	loadNewForm(currentUser.oid, currentUser.cid, clearmaplayers);
 }
 
-function loadNewForm(id, cid){
+function loadNewForm(id, cid, clearmaplayers){
 	if (frmsData.length) frmsData[frmsData.length-1].setVisible(false);
 
 	specialLinkedClasses = getSpecLinkedClasses()
@@ -1255,6 +1256,9 @@ function loadNewForm(id, cid){
 	var rootObject = {"id":id, "cid":cid, "pid":0, "n":n, "isClass":isClass};
 	rootObject.cnt = frm.getBody();
 	
+	if (clearmaplayers){
+		clearStorageMapLayers();
+	}
 	if (window.localStorage && storageObjects.length && storageObjects[0].id != rootObject.id) {
 		storageObjects = [];
 		window.localStorage.storageObjects = "";
@@ -1665,7 +1669,7 @@ function ifObjectIsFile(object){
 
 function ifObjectIsMap(object){
 	var cid = object.isClass ? object.id : object.cid;
-	object.isMap = (cid == classes["Привязка к карте"]);
+	object.isMap = (cid == classes["Привязка к карте"] || cid == classes["Полигоны на карте"]);
 	
 	if ( object.isMap && object.isClass ){
 		var coord;
@@ -1673,6 +1677,7 @@ function ifObjectIsMap(object){
 
 		if (p) {
 			mapProps.mapFunctions.forEach(function(prop){ if (p.paintFunc == prop.drawFunc) coord = p[prop.getLatLngFunc](); })
+			if (coord && coord.length) coord = coord[0];
 			if (coord && coord.length) coord = coord[0];
 		}
 		
@@ -1705,12 +1710,24 @@ function ifObjectIsMapLinked(object){
 				layer.setStyle(layer.paintFuncParams);
 			}
 		}
+		
 		return true;
-	} else if ( object.isMapLinked && object.isClass ) {
-		/*object.but.addEventListener("click",  function(){
-			var object = this.object;
+	} else if (object.isMapLinked && object.isClass){
+		var objects = gAndObject(object);
+		
+		if (objects && objects.length){
+			var ids = [];
+			for (var i=0; i < objects.length; i++){
+				ids.push(objects[i][0]);
+			}
+			var layer = objectMapLayer({id:object.pid, cid:object.id, ids:ids});
+			layer.addTo(map);
 			
-		});*/
+			var lastobject = "id"+storageObjects[storageObjects.length-1].id;
+			if (!storageMapLayers[lastobject]) { storageMapLayers[lastobject] = []; };
+			storageMapLayers[lastobject].push(layer);
+		}
+	
 		return true;
 	}
 	return false;
@@ -1727,14 +1744,148 @@ function getObjectMapLayer(object){
 	return layer;
 }
 
+function objectMapLayer(object){
+//console.time("id"+object.id);
+	var layer = L.layerGroup();
+	var cid = +object.cid;
+	var id = +object.id;
+	var ids = object.ids;///
+	var mapLinkCids = [classes["Полигоны на карте"],classes["Привязка к карте"]];
+	var paintFuncCid = classes["Функции отрисовки"];
+	var paintFuncParamsCid = classes["Параметры функции отрисовки"];
+	var mapCoordCid = classes["Координаты на карте"];
+
+	mapLinkCid = (cid == classes["Земельные участки"] || cid == classes["Здания и сооружения"]) ? mapLinkCids[0] : mapLinkCids[1];
+	var maplinks = orm("gT2id",[	[cid, mapLinkCid, paintFuncCid,paintFuncParamsCid], [[2,1],[3,1]],[],false,
+		["`id_o"+mapLinkCid+"`","`o"+paintFuncCid+"`","`o"+paintFuncParamsCid+"`","`id_o"+cid+"`"],
+		(ids && ids.length ? "and `id_o"+cid+"` in ("+ids.join(",")+")" : "and `id_o"+cid+"` = "+id)+
+		" and `id_o"+mapLinkCid+"` is not null order by `id_o"+mapLinkCid+"`" ]);
+		
+	for (var i=0; i < maplinks.length; i++){
+		var mapLink = maplinks[i];
+		var mapLinkId = mapLink[0];
+		var paintFunc = mapLink[1];
+		var paintFuncParams = JSON.parse(mapLink[2]);
+		var oid = ids && ids.length ? +mapLink[3] : id;
+		
+		if (paintFunc == "Marker") paintFuncParams = paintFuncParams ? {"icon":L.icon(paintFuncParams)} : 
+			(cid == classes["Арендаторы"] ? {"icon":L.icon({"iconUrl":"images/arendator.png"})} : null) ;
+		if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; }
+
+		var coords = orm("gAnd",[[mapLinkId, classes["Координаты на карте"]],"n",true]);
+		if (!paintFunc) {//Полигоны на карте
+			if (coords.length == 1){
+				paintFunc = "Marker";
+				paintFuncParams = {"icon":L.icon({"iconUrl":"images/marker00.png","iconSize":[32,32]})};
+			} else if (coords.length > 1) {
+				paintFunc = "Polygon";
+				paintFuncParams = {"weight":1, "color":"#ffff00"};
+			}
+		}
+
+		var latlngs = [];
+		for (var latLngInd=0; latLngInd < coords.length; latLngInd++){
+			var latlng = coords[latLngInd][0];
+			if (latlng && latlng[0] == "{" || latlng[0] == "[") {
+				latlngs = JSON.parse(latlng);
+			} else {
+				latlngs.push(latlng.split(" "));
+			}
+		}
+		if (latlngs) {
+			var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
+			p.oid = mapLinkId;
+			p.lid = oid;
+			p.cid = cid;
+			p.pid = id;
+			p.paintFunc = paintFunc;
+			p.paintFuncParams = paintFuncParams;
+			p.on('mouseover', onmouseover);
+			p.on('mouseout', onmouseout);
+			p.on('click', onclick);
+			p.on('contextmenu', oncontextmenu);
+		}
+		
+		function onmouseover(e) {
+			if (this.paintFunc != "Marker") 
+				this.setStyle({color:"#ff0000", weight:2}); 
+			
+			var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
+			if (cell) cell.style.color = "#ff9999";
+		}
+		function onmouseout(e) { 
+			if (this.paintFunc != "Marker")
+				this.setStyle(this.paintFuncParams); 
+				
+			var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
+			if (cell) cell.style.color = "#fff";
+		}
+		function onclick(){
+			if (isPaintMode && this.paintFunc != "Marker") {
+				if (selectedPoly) {
+					selectedPoly.disableEdit();
+				}
+				selectedPoly = this;
+				selectedPoly.enableEdit();
+			} else {
+				loadNewForm(this.lid, this.cid);
+			}
+		}
+		function oncontextmenu(e) { 
+			if (this.paintFunc != "Marker" && isPaintMode && selectedPoly) {
+				new ContextMenu([
+					new ContextMenuItem("Удалить", function(){ 
+						if (confirm("Удалить выделенную линию класса "+classes3(this.ctx.cid)+" ?")){
+							var res = orm("nL",[selectedPoly.oid, selectedPoly.lid]);
+							if (res) {
+								selectedPoly.disableEdit();
+								selectedPoly.remove();
+								selectedPoly = this.ctx;
+							}
+						}
+					}, this), 
+					], e.containerPoint.x, e.containerPoint.y);
+				return false;
+			}
+		}
+		
+		
+	}
+//console.timeEnd("id"+object.id);
+	return layer;
+}
+
+function clearStorageMapLayers(notThisObjectId){
+	for (key in storageMapLayers){
+		if (key != "id"+notThisObjectId) {
+			storageMapLayers[key].forEach(function(layer){
+				layer.clearLayers();
+				layer.remove();
+			})
+		}
+	}
+}
+
 function storageObjectsAdd(_object){
+	var objectInd = -1;
+
 	for (var i=0; i < storageObjects.length; i++){
 		var object = storageObjects[i];
 		if (_object.id == object.id) {
-			storageObjects.splice(i);
-			break;
+			if (objectInd == -1) objectInd = i;
+			//storageObjects.splice(i);
+			//break;
+		}
+		if (objectInd >= 0 && i >= objectInd && storageMapLayers["id"+object.id]) {
+			storageMapLayers["id"+object.id].forEach(function(layer){
+				layer.clearLayers();
+				layer.remove();
+			})
+			storageMapLayers["id"+object.id] = undefined;
 		}
 	}
+	
+	if (objectInd >= 0) storageObjects.splice(objectInd);
 	storageObjects.push(_object);
 	return _object
 }

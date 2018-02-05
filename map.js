@@ -84,7 +84,7 @@ function mapInit(map, frmsData){
 			link.appendChild(img);
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
-						frmMainSetVisibleTrue();
+						frmMainSetVisibleTrue(true);
 					  }, this);
 		
 			return container;

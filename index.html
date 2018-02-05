@@ -1228,7 +1228,7 @@ console.log("storageObjects:",storageObjects);
 var specialLinkedClasses;
 var frmObject = new Form(false);;
 var storageMapLayers = [];
-var isMapLinkEnabled = false;
+var isMapLinkEnabled = (window.localStorage && window.localStorage.isMapLinkEnabled) ? true : false;
 var setViewObject;
 
 window.onkeydown = function(e){
@@ -1424,9 +1424,12 @@ function initializeForm(frm){
 		frm.getBody().appendChild(domtable);
 	}
 	
+	bMap.checked = !!isMapLinkEnabled;
+	if (bMap.checked) bMap.style.backgroundColor = "rgba(255,0,0,0.3)";
 	bMap.onclick = function(){
 		this.checked = !this.checked;
 		isMapLinkEnabled = this.checked;
+		window.localStorage.isMapLinkEnabled = isMapLinkEnabled ? "1" : "";
 		
 		if (this.checked) {
 			this.style.backgroundColor = "rgba(255,0,0,0.3)";

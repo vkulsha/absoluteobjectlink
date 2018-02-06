@@ -1318,6 +1318,12 @@ function initializeForm(frm){
 				bAdd.classList.add("eobject");
 				bAdd.title = "Добавление элемента в текщий элемент";
 			var td =  cDom("td","",tr);
+				var bUpd =  cDom("button","",td);
+				bUpd.innerHTML = "✎";
+				bUpd.style.fontFamily = "Windings 2";
+				bUpd.classList.add("eobject");
+				bUpd.title = "Изменение текущего элемента";
+			var td =  cDom("td","",tr);
 				var bDel =  cDom("button","",td);
 				bDel.innerHTML = "-";
 				bDel.classList.add("eobject");
@@ -1331,7 +1337,7 @@ function initializeForm(frm){
 				var bMap =  cDom("button","",td);
 				bMap.innerHTML = "🖈";
 				bMap.classList.add("eobject");
-				bMap.title = "Вкл/выкл привязку к карте";
+				bMap.title = "Вкл отображение на карте";
 	
 	bAdd.onclick = function(){
 		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
@@ -1370,6 +1376,33 @@ function initializeForm(frm){
 		}
 		
 		return false;
+	}
+	
+	bUpd.onclick = function(){
+		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
+		if (!object) return;
+
+		var pobject = object.pobject;
+		var oid_ = pobject.id;
+		var cid_ = pobject.cid;
+		var o1 = object.id;
+		var o2 = object.isClass ? object.pcid : object.pid;
+		var cid = object.isClass ? 1 : object.cid;
+		var _n = object.n;
+
+		if (getPolicy(cid)) {
+			var n = prompt("Изменить запись", _n);
+			if ( n && n != _n ){
+				var newoid = orm("mO",[n, cid, o1]);
+				if (newoid) {
+					orm("cL",[newoid, o2]);
+					orm("nL",[o1, o2]);
+				}
+				console.log(n, cid, o1, o2);
+				if (pobject) pobject.but.click(true);
+			}
+		} else { alert("У вас нет прав для изменения записи '"+_n+"'!") };
+	
 	}
 	
 	bDel.onclick = function(){
@@ -1430,6 +1463,7 @@ function initializeForm(frm){
 		this.checked = !this.checked;
 		isMapLinkEnabled = this.checked;
 		window.localStorage.isMapLinkEnabled = isMapLinkEnabled ? "1" : "";
+		bMap.title = (this.checked ? "Выкл" : "Вкл")+" отображение на карте";
 		
 		if (this.checked) {
 			this.style.backgroundColor = "rgba(255,0,0,0.3)";
@@ -1479,6 +1513,7 @@ function objectLoad(params, isNotCalsCount, notPadding){
 	object.id = params.id;
 	object.cid = params.cid;
 	object.pid = params.pid;
+	object.pcid = params.pcid;
 	object.isClass = params.isClass;
 	object.isGroup = params.isGroup;
 	object.pobject = params.pobject;
@@ -1546,6 +1581,7 @@ function ifObjectIsObject(object){
 				"n"			: o[1], 
 				"cid"		: +(!object.isClass || isGroup ? object.cid : object.id), 
 				"pid"		: +(object.isClass ? object.pid : object.id), 
+				"pcid"		: +(object.isClass ? object.id : object.cid), 
 				"isClass"	: (classes2.indexOf(+o[0])>=0), 
 				"isGroup"	: isGroup,
 				"cnt"		: tb, 
@@ -1650,6 +1686,7 @@ function ifObjectIsLink(object){
 	return false;
 }
 
+////////
 function ifObjectIsFile(object){
 	var cid = object.isClass ? object.id : object.cid;
 	object.isFile = ((cid == classes["Файлы"]) || (cid == classes["Фото"]));
@@ -1686,10 +1723,69 @@ function ifObjectIsFile(object){
 		});
 		object.but.appendChild(img);
 		return true;
+	} else if ( object.isFile && object.isClass ){
+		object.but.addEventListener("click",  function(){
+			var object = this.object;
+			var pobject = object.pobject
+			openPhotoGallery(pobject);
+		});
+	
 	}
+
 	return false;
 }
 
+function openPhotoGallery(pobject){
+	var lid = pobject.id;
+	var n = pobject.n;
+	var cid = pobject.cid;
+	
+	var frm = new Form(true);
+	frm.setVisible(true);
+	frm.getCaption().innerHTML = n;
+	var container = frm.getBody();
+
+	var tb = container.appendChild(cDom("TABLE"));
+	var tr = tb.appendChild(cDom("TR"));
+	tb.style.width = "100%";
+	var tdImg = tr.appendChild(cDom("TD"));
+	tdImg.setAttribute("align", "center");
+	tdImg.style.width = "100%";
+
+	var imgContainer = cDom("DIV");
+	tdImg.appendChild(imgContainer);
+
+	imgContainer.style.height = getWindowHeight() - 150 + "px";
+
+	var images = orm("gT2id",[[cid,classes["Фото"]],[],[],false,null,"and `id_o"+cid+"` ="+lid+" order by `id_o"+cid+"`"]);
+	var imgObject = new Image();
+	if (images && images.length) {
+		var imgInd = 0;
+		
+		imgObject.src = domain+images[imgInd][3];
+		imgObject.style.cursor = "pointer";
+		imgContainer.appendChild(imgObject);
+		
+		imgObject.style.maxWidth = "100%";
+		imgObject.style.maxHeight = "100%";
+		imgObject.title = "кликните для перехода на следующее фото";
+
+		if (parseInt(getComputedStyle(imgObject).width) / parseInt(getComputedStyle(imgObject).height) > 1) {
+			if (getComputedStyle(imgObject).width > getComputedStyle(imgContainer).width)
+				imgObject.style.width = getComputedStyle(imgContainer).width
+		} else {
+			if (getComputedStyle(imgObject).height > getComputedStyle(imgContainer).height)
+				imgObject.style.height = getComputedStyle(imgContainer).height
+		}
+		
+		imgObject.onclick = function(){
+			imgInd = (imgInd >= (images.length-1)) ? 0 : imgInd+1;
+			this.src = domain+images[imgInd][3];
+		}
+	}
+}
+
+////////
 function ifObjectIsMap(object){
 	var cid = object.isClass ? object.id : object.cid;
 	object.isMap = (cid == classes["Привязка к карте"] || cid == classes["Полигоны на карте"]);
@@ -1770,7 +1866,7 @@ function ifObjectIsMapLinked(object){
 	}
 	return false;
 }
-////////
+
 function getObjectMapLayer(object){
 	var layer;
 	if (object.layer) {
@@ -1902,10 +1998,7 @@ function objectMapLayer(object, callback){
 					callback(layer);
 				}
 			}
-
-			
 //console.timeEnd("id"+object.id);
-			//callback(layer);
 		}, _params1);
 }
 
@@ -1918,25 +2011,14 @@ function clearStorageMapLayers(){
 }
 
 function storageObjectsAdd(_object){
-	var objectInd = -1;
-
 	for (var i=0; i < storageObjects.length; i++){
 		var object = storageObjects[i];
 		if (_object.id == object.id) {
-			if (objectInd == -1) objectInd = i;
-			//storageObjects.splice(i);
-			//break;
+			storageObjects.splice(i);
+			break;
 		}
-		/*if (objectInd >= 0 && i >= objectInd && storageMapLayers["id"+object.id]) {
-			storageMapLayers["id"+object.id].forEach(function(layer){
-				layer.clearLayers();
-				layer.remove();
-			})
-			storageMapLayers["id"+object.id] = undefined;
-		}*/
 	}
 	
-	if (objectInd >= 0) storageObjects.splice(objectInd);
 	storageObjects.push(_object);
 	return _object
 }

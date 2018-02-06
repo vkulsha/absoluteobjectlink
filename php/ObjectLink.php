@@ -1158,7 +1158,21 @@ class ObjectLink {
 */	
 
 
+/*///Получаем объекты, которые связанны только со своим классом, больше ни с одним объектом
+select * from (
+	select * from (
+		select o1 from link where c>0 
+			and o1 not in (select o1 from link where o2 = 1)
+			and o2 in (select o1 from link where o2 = 1) 
+		union all
+		select o1 from link where c>0 
+			and o1 not in (select o1 from link where o2 = 1)
+			and o2 not in (select o1 from link where o2 = 1) 
+	)l group by o1 having count(o1)=1
+)l
+left join object o on o.id = l.o1 order by d desc
 
+*/
 
 
 

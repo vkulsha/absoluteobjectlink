@@ -92,7 +92,7 @@ function mapInit(map, frmsData){
 	});
 	map.addControl(new L.NewMenuControl);
 
-/*	L.NewPainLayersControl = L.Control.extend({
+	L.NewPainLayersControl = L.Control.extend({
 		options: {
 			position: 'topright',
 			callback: frmPaintLayers.setVisible,
@@ -117,7 +117,7 @@ function mapInit(map, frmsData){
 		}
 	});
 	map.addControl(new L.NewPainLayersControl);
-*/	
+	
 	L.NewPaintControl = L.Control.extend({
 		options: {
 			position: 'topright',

@@ -110,7 +110,7 @@ function uploadFile(file, func) {
 	xhr.send(formData);
 }
 
-function Form (isModal, closeFunc, zIndex, visible, opacity){
+function Form(isModal, closeFunc, zIndex, visible, opacity){
 	var that = this;
 	this.isModal = isModal == null ? true : isModal;
 	this.closeFunc = closeFunc;
@@ -119,6 +119,8 @@ function Form (isModal, closeFunc, zIndex, visible, opacity){
 	this.visible = visible;
 	this.left = "0px";
 	this.width = "0px";
+	this.top = "0px";
+	this.height = "0px";
 	var parentDom = document.body;
 
 	var dom = parentDom.appendChild(cDom("DIV"));
@@ -205,8 +207,8 @@ function Form (isModal, closeFunc, zIndex, visible, opacity){
 	this.getBody = function() { return that.body; }
 	this.getDom = function() { return that.frm; }
 	this.setWidth = function(val) {	that.width = val; that.frm.style.width = val; if (!that.isModal) that.dom.style.width = val; }
-	this.setHeight = function(val) { that.frm.style.height = val; if (!that.isModal) that.dom.style.height = val; }
-	this.setTop = function(val) { that.frm.style.top = val; if (!this.isModal) that.dom.style.top = val; }
+	this.setHeight = function(val) { that.height = val; that.frm.style.height = val; if (!that.isModal) that.dom.style.height = val; }
+	this.setTop = function(val) { that.top = val; that.frm.style.top = val; if (!this.isModal) that.dom.style.top = val; }
 	this.setLeft = function(val) { that.left = val; that.frm.style.left = val; if (!that.isModal) that.dom.style.left = val; }
 	this.getWidth = function(val) {	return (!that.isModal) ? that.dom.style.width : that.frm.style.width; }
 	this.getHeight = function(val) { return (!that.isModal) ? that.dom.style.height : that.frm.style.height; }

@@ -157,13 +157,14 @@ class ObjectLink {
 	}
 	
 	public function uO($params, $notPolicy=false){//update object name by id
-		if (!$notPolicy && !$this->getPolicy(["cL",1])) return 0;
 		try {
 			$id = $params[0];
 			$n = $params[1];
-			//$u = isset($params[2]) ? $params[2] : 1;
+			$pid = isset($params[2]) ? $params[2] : 1;
+			$u = $this->u;
 			
-			$ret = $this->sql->uT([$this->object, "n='$n'", "and id=$id"]);  
+			if (!$notPolicy && !$this->getPolicy(["cL",$pid])) return 0;
+			$ret = $this->sql->uT([$this->object, "n='$n',u=$u", "and id=$id"]);  
 			return $ret;
 			
 		} catch (Exception $e) {
@@ -251,6 +252,16 @@ class ObjectLink {
 			$ret[] = +$cid[0]; 
 		}
 		return $ret;
+	}
+	
+	public function getClassesWithParent($params, $notPolicy=false){
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
+		try {
+			return $this->sql->sT([$this->link, "o1,o2", " and c>0 and o1 in (select o1 from link where o2 = 1) and o2 in (select o1 from link where o2 = 1) and o1 <> o2 and o1 <> 1 and o2 <> 1", "", ""]);
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
 	}
 	
 	public function getTableQuery2($params, $notPolicy=false){//[{id:1331, n:"ик", parentCol:0, inClass:false}]
@@ -1024,6 +1035,8 @@ class ObjectLink {
 			return null;
 		}
 	}
+	
+//select o1,o2 from link where 	
 	
 }
 

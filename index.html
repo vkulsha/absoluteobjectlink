@@ -226,6 +226,7 @@ gDom("bLogin").onclick = function(){
 		for (var i=0; i < arr.length; i++) classes2.push(parseInt(arr[i][0]));
 		var arr = orm("gAnd",[[1,orm("gO",["Группа классов",true])],"id"]);
 		for (var i=0; i < arr.length; i++) classesGroup.push(parseInt(arr[i][0]));
+		refreshClassesObjects();
 		console.log("classes count: "+classes_.length);
 		gDom("pLoginMain").hidden = true;
 		///
@@ -1313,6 +1314,68 @@ function getClassChain(cid){
 	//console.log(cid)
 	return ret;
 }
+///////
+var classesObjects = new ClassesObject();
+function ClassesObject(cObjects){
+	var that = this;
+	this.classes = [];
+	
+	this.addClass = function(cObject){ that.classes.push(cObject); }
+	this.addClasses = function(cObjects){ 
+		for (var i=0; i < cObjects.length; i++){
+			that.addClass(cObjects[i]);
+		}
+	}
+	
+	this.getClass = function(cid){
+		var classes = that.classes;
+		for (var i=0; i < classes.length; i++){
+			var cObject = classes[i];
+			if (cObject.cid == +cid) {
+				return cObject;
+			}
+		}
+	}
+	if (cObjects && cObjects.length) {this.addClasses(cObjects)};
+	
+}
+
+function ClassObject(cid){
+	var that = this;
+	this.cid = +cid;
+	this.parent = [];
+	this.child = [];
+	
+	this.getChild = function(){	return new ClassesObject(that.child); }
+	this.setChild = function(cObject){	that.child.push(cObject); }
+
+	this.getParent = function(){ return new ClassesObject(that.parent); }
+	this.setParent = function(cObject){ that.parent.push(cObject);	}
+	
+	this.childExist = function(chain){
+	}
+}
+
+function refreshClassesObjects(){
+	var cls = orm("getClassesWithParent",[]);
+
+	for (var i=0; i < classes2.length; i++){
+		var cid = classes2[i];
+		var cObject = new ClassObject(cid);
+		classesObjects.addClass(cObject);
+	}
+	for (var i=0; i < cls.length; i++){
+		var c = cls[i];
+		var c1 = classesObjects.getClass(+c[0]);
+		var c2 = classesObjects.getClass(+c[1]);
+		if (c1 && c2) {
+			c1.setParent(c2);
+			c2.setChild(c1);
+		}
+	}
+	
+	return classesObjects;
+}
 
 function initializeMainForm(frm){
 	var cap = frm.getCaption();
@@ -1350,127 +1413,23 @@ function initializeMainForm(frm){
 				bMap.title = "Вкл отображение на карте";
 	
 	bAdd.onclick = function(){
-		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
-		if (!object) return;
-
-		var lid = (!object.isClass || object.isGroup) ? ( object.isGroup ? object.id : object.cid ) : ( object.pobject.isGroup ? object.pobject.pid : object.pobject.id) ;
-		if (!object.isClass || object.isGroup) {
-			if (getPolicy(1)) {
-				var oid = object.id;
-				var n;// = prompt("Добавить новый класс в класс '"+orm("gN",[lid])+"':","");
-				ObjectSelectForm(object, {caption: "Добавить новый класс в класс '"+orm("gN",[lid])+"':",defval:"",callback:function(n, object){
-					var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
-					var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
-					if (classes2.indexOf(newoid)==-1) classes2.push(+newoid);
-					object.but.click(true);
-				}});
-			} else { alert("У вас нет прав для добавления класса!"); }
-		} else {
-			var cid = object.id;
-			var classname = classes3(cid);
-			
-			if (getPolicy(cid) || getPolicy(lid)) {
-				if (object.isFile){
-					objectUploadFile(object); 
-				} else if (object.isMap) {
-					alert('Привязка к карте создается редактором линий на карте!');
-				} else {
-					var objname = orm("gN",[lid]);
-					var n;// = prompt("Добавить новое значение '"+classname+"'"+(lid ? " к записи '"+objname+"'" : "")+":",classname+(objname ? " "+objname : ""));
-					ObjectSelectForm(object, {caption: "Добавить новое значение '"+classname+"'"+(lid ? " к записи '"+objname+"'" : "")+":",defval:"",callback:function(n, object){
-						var newoid = n ? orm("cO",[n, cid]) : 0;
-						var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
-						if (newoid){
-							object.but.click(true);
-						}
-					}});
-				}
-			} else { alert("У вас нет прав для добавления в класс '"+classname+"'!") };
-			
-		}
-		
-		return false;
+		objectAdd();
 	}
 	
 	bUpd.onclick = function(){
-		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
-		if (!object) return;
-
-		var pobject = object.pobject;
-		var oid_ = pobject.id;
-		var cid_ = pobject.cid;
-		var o1 = object.id;
-		var o2 = object.isClass ? object.pcid : object.pid;
-		var cid = object.isClass ? 1 : object.cid;
-		var _n = object.n;
-
-		if (getPolicy(cid)) {
-			var n;// = prompt("Изменить запись", _n);
-			ObjectSelectForm(pobject, {caption: "Изменить запись",defval:_n, callback:function(n, pobject){
-				if ( n && n != _n ){
-					var newoid = orm("mO",[n, cid, o1]);
-					if (newoid) {
-						orm("cL",[newoid, o2]);
-						orm("nL",[o1, o2]);
-					}
-					console.log(n, cid, o1, o2);
-					if (pobject) pobject.but.click(true);
-				}
-			}});
-		} else { alert("У вас нет прав для изменения записи '"+_n+"'!") };
-	
+		objectUpd();
 	}
 	
 	bDel.onclick = function(){
-		var pobject;
-		
-		for (var i=0; i < selectedObjects.length; i++) {
-			var object = selectedObjects[i];
-			var oid_ = object.pobject.id;
-			var cid_ = object.pobject.cid;
-			var o1 = object.id;
-			var lid = !object.isClass ? object.pid : ( object.pobject.isGroup ? object.pobject.id : object.pobject.cid );
-			var n_ = orm("gN",[o1]);
-
-			if (getPolicy(o1)) {
-				//if (object.isMap) {
-				//	alert('Удаление привязки к карте необходимо делать в редакторе линий на карте!');
-				//} else {
-					if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[lid])+"'?") ){
-						var res = orm("nL",[o1, lid]);
-						if (res) { pobject = object.pobject; };
-					}
-				//}
-			} else { alert("У вас нет прав для удаления записи '"+n_+"'!") };
+		if (selectedObjects.length) {
+			objectsDel();
+		} else {
+			objectDel(null,true);
 		}
-		if (pobject) pobject.but.click(true);
 	}
 	
 	bTree.onclick = function(){
-		var objects = storageObjects;
-		var classes = [];
-		var links = [];
-		var cond = "";
-		var n = 0;
-		var n2 = 0;
-		for (var i=0; i < objects.length; i++){
-			var object = objects[i];
-			if (object.isClass && !object.isGroup) {
-				classes.push(object.n);
-				if (n > 0) links.push([n,n-1]);
-				n++;
-			} else if (!object.isClass) {
-				if (n2 > 0) cond += " and `"+classes[n2-1]+"` = '"+object.n+"' ";
-				n2++;
-			}
-		}
-		console.log(cond);
-		var ret = orm("gT2",[classes,links,[],false,decorateArr(classes, "`"),cond]);
-		var domtable = getOrmObject({columns:classes, data:ret}, "all2domtable");
-		domtable.setAttribute("border",1);
-		var frm = new Form(true);
-		frm.setVisible(true);
-		frm.getBody().appendChild(domtable);
+		objectsTree()
 	}
 	
 	bMap.checked = !!isMapLinkEnabled;
@@ -1490,6 +1449,209 @@ function initializeMainForm(frm){
 		}
 		refreshMapLinkForm(frmPaintLayers);
 	}
+}
+
+function objectAdd(object){
+	object = object || (storageObjects.length ? storageObjects.slice(-1)[0] : null);
+	if (!object) return;
+
+	var lid = (!object.isClass || object.isGroup) ? ( object.isGroup ? object.id : object.cid ) : ( object.pobject.isGroup ? object.pobject.pid : object.pobject.id) ;
+	if (!object.isClass || object.isGroup) {
+		if (getPolicy(1)) {
+			var oid = object.id;
+			var n;// = prompt("Добавить новый класс в класс '"+orm("gN",[lid])+"':","");
+			ObjectSelectForm(object, {caption: "Добавить новый класс в класс '"+orm("gN",[lid])+"':",defval:"",callback:function(n, object){
+				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
+				var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
+				if (classes2.indexOf(newoid)==-1) classes2.push(+newoid);
+				object.but.click(true);
+			}});
+		} else { alert("У вас нет прав для добавления класса!"); }
+	} else {
+		var cid = object.id;
+		var classname = classes3(cid);
+		
+		if (getPolicy(cid) || getPolicy(lid)) {
+			if (object.isFile){
+				objectUploadFile(object); 
+			} else if (object.isMap) {
+				alert('Привязка к карте создается редактором линий на карте!');
+			} else {
+				var objname = orm("gN",[lid]);
+				var n;// = prompt("Добавить новое значение '"+classname+"'"+(lid ? " к записи '"+objname+"'" : "")+":", classname+(objname ? " "+objname : ""));
+				/*ObjectSelectForm(object, {caption: "Добавить новое значение '"+classname+"'"+(lid ? " к записи '"+objname+"'" : "")+":",defval:"",callback:function(n, object){
+					var newoid = n ? orm("cO",[n, cid]) : 0;
+					var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
+					if (newoid){
+						object.but.click(true);
+					}
+				}});*/
+				n = classname+(objname ? " "+objname : "") + Date.now();
+				var newoid = n ? orm("cO",[n, cid]) : 0;
+				var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
+				if (newoid){
+					object.but.click(true);
+					var but = gDom("but.object.id"+newoid+"pid"+object.pid);
+					if (but) {
+						but.focus();
+						objectEdit(but.object, function(val, _object){
+							orm("uO", [_object.id, val, _object.pid]);
+							_object.pobject.but.click(true);
+						})
+					}
+				}
+				
+			}
+		} else { alert("У вас нет прав для добавления в класс '"+classname+"'!") };
+	}
+}
+
+function objectEdit(object, callback){
+	var but = object.but;
+	if (!but) return;
+	but.innerHTML = ""
+	
+	var defval = object.n;
+	but.innerHTML = "";
+	var objects = gAndObject(object.pobject, true);
+	var objectlist = ObjectListDom(objects);
+	var list = objectlist.list;
+	list.style.width = "300px";
+	list.classList.add("eobject");
+	var datalist = objectlist.datalist;
+	but.appendChild(list);
+	but.appendChild(datalist);
+	list.value = defval;
+	list.focus();
+	list.onkeydown = func;
+	list.onblur = func;
+
+	function func(e){
+		if (e.keyCode == 27) {
+			object.pobject.but.click(true);
+		} else if (!e.keyCode || e.keyCode == 13) {
+			callback(this.value, object)
+		}
+	}
+	
+}
+
+function objectUpd(object){
+	object = object || (storageObjects.length ? storageObjects.slice(-1)[0] : null);
+	if (!object) return;
+/*
+	var pobject = object.pobject;
+	var oid_ = pobject.id;
+	var cid_ = pobject.cid;
+	var o1 = object.id;
+	var o2 = object.isClass ? object.pcid : object.pid;
+	var cid = object.isClass ? 1 : object.cid;
+	var _n = object.n;
+*/
+	var cid = object.isClass ? 1 : object.cid;
+	if (getPolicy(cid)) {
+		var n;// = prompt("Изменить запись", _n);
+		/*ObjectSelectForm(pobject, {caption: "Изменить запись",defval:_n, callback:function(n, pobject){
+			if ( n && n != _n ){
+				var newoid = orm("mO",[n, cid, o1]);
+				if (newoid) {
+					orm("cL",[newoid, o2]);
+					orm("nL",[o1, o2]);
+				}
+				console.log(n, cid, o1, o2);
+				if (pobject) pobject.but.click(true);
+			}
+		}});*/
+		
+		objectEdit(object, function(val, _object){
+			var object = _object;
+			var pobject = object.pobject;
+			var oid_ = pobject.id;
+			var cid_ = pobject.cid;
+			var o1 = object.id;
+			var o2 = object.isClass ? object.pcid : object.pid;
+			var cid = object.isClass ? 1 : object.cid;
+			var _n = object.n;
+			var n = val;
+			
+			if ( n && n != _n ){
+				var newoid = orm("mO",[n, cid, o1]);
+				if (newoid) {
+					orm("cL",[newoid, o2]);
+					orm("nL",[o1, o2]);
+				}
+				console.log(n, cid, o1, o2);
+				if (pobject) pobject.but.click(true);
+			}
+		})
+	} else { alert("У вас нет прав для изменения записи '"+_n+"'!") };
+
+
+}
+
+function objectDel(object, refreshPObject){
+	object = object || (storageObjects.length ? storageObjects.slice(-1)[0] : null);
+	if (!object) return;
+	
+	var pobject = object.pobject;
+	var o1 = object.id;
+	var lid = !object.isClass ? object.pid : ( pobject.isGroup ? pobject.id : pobject.cid );
+	var n_ = orm("gN",[o1]);
+
+	if (getPolicy(o1)) {
+		if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[lid])+"'?") ){
+			var res = orm("nL",[o1, lid]);
+			if (res) { 
+				if (object.isMap && object.layer) object.layer.remove();
+				if (pobject && refreshPObject) pobject.but.click(true);
+			};
+		}
+	} else { alert("У вас нет прав для удаления записи '"+n_+"'!") };
+
+
+}
+
+function objectsDel(objects){
+	objects = objects || selectedObjects;
+	if (!objects || !objects.length) return;
+	
+	var pobject = objects[0].pobject; 
+
+	for (var i=0; i < objects.length; i++) {
+		var object = objects[i];
+		objectDel(object);
+	}
+
+	if (pobject) pobject.but.click(true);
+
+}
+
+function objectsTree(objects){
+	objects = objects || storageObjects;
+	var classes = [];
+	var links = [];
+	var cond = "";
+	var n = 0;
+	var n2 = 0;
+	for (var i=0; i < objects.length; i++){
+		var object = objects[i];
+		if (object.isClass && !object.isGroup) {
+			classes.push(object.n);
+			if (n > 0) links.push([n,n-1]);
+			n++;
+		} else if (!object.isClass) {
+			if (n2 > 0) cond += " and `"+classes[n2-1]+"` = '"+object.n+"' ";
+			n2++;
+		}
+	}
+	console.log(cond);
+	var ret = orm("gT2",[classes,links,[],false,decorateArr(classes, "`"),cond]);
+	var domtable = getOrmObject({columns:classes, data:ret}, "all2domtable");
+	domtable.setAttribute("border",1);
+	var frm = new Form(true);
+	frm.setVisible(true);
+	frm.getBody().appendChild(domtable);
+
 }
 
 function objectLoad(params, isNotCalsCount, notPadding){
@@ -1649,6 +1811,7 @@ function ifObjectIsObject(object){
 		}
 		object.sel.disabled = false;
 		object.sel.checked = false;
+		this.focus();
 	}
 	object.but.addEventListener("click", onclick);
 
@@ -1661,6 +1824,13 @@ function ifObjectIsObject(object){
 		object.isStandart = isStandart;
 		return false;
 	});
+	
+	object.but.onkeydown = function(e){
+		//if (e.key == "Insert") { objectAdd(this.object); return false;}
+		if (e.key == "Delete") { objectDel(this.object, true); return false;}
+		if (e.key == "F2") { objectUpd(this.object); return false; }
+	}
+	
 	return onclick;
 }
 
@@ -1868,15 +2038,6 @@ function getObjectMapLayer(object){
 	return layer;
 }
 
-function getRandomColor() {
-    var letters = '0123456789ABCDEF'.split('');
-    var color = '#';
-    for (var i = 0; i < 6; i++ ) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-}
-
 function drawClassMapLayer(object, isClassAllObjects){
 	var params;
 	var func;
@@ -1996,7 +2157,7 @@ function drawObjectMapLayer(object, callback){
 	var paintFuncCid = classes["Функции отрисовки"];
 	var paintFuncParamsCid = classes["Параметры функции отрисовки"];
 	mapLinkCid = (cid == classes["Земельные участки"] || cid == classes["Здания и сооружения"]) ? mapLinkCids[0] : mapLinkCids[1];
-	var color = object.color || getRandomColor();
+	var color = object.color;// || getRandomColor();
 	
 	var _params1 = {"cid":cid, "id":id, "ids":ids, "color":color};
 	orma("gT2id",[	[cid, mapLinkCid, paintFuncCid,paintFuncParamsCid], [[2,1],[3,1]],[],false,
@@ -2245,6 +2406,7 @@ function ObjectSelectForm(object, params){
 	var tb = cnt.appendChild(cDom("table"));
 	tb.style.width = "100%"
 	tb.style.textAlign = "center";
+
 	var tr = tb.appendChild(cDom("tr"));
 	var tdList = tr.appendChild(cDom("td"));
 	
@@ -2318,13 +2480,11 @@ function ObjectListDom(objects) {
 }
 
 window.onkeydown = function(e){
-	if (e.key == "F2") {
-		var object = storageObjects.length ? storageObjects.slice(-1)[0] : null;
-		ObjectSelectForm(object, {caption:"Изменить?", defval:"Здание", callback:function(val){ console.log(val); } });
-		
-		//frmsData[frmsData.length-1].setVisible(true);
-		//href(currentUser.oid, currentUser.cid, !!location.hash);
-	}
+	if (e.key == "Insert") { if (e.target.nodeName != "INPUT") {objectAdd(); return false}}
+	//if (e.key == "Delete") { if (e.target.nodeName != "INPUT") {objectDel(null, true); return false;} }
+	//if (e.key == "F2") { if (e.target.nodeName != "INPUT") {objectUpd(); return false;} }
+	//frmsData[frmsData.length-1].setVisible(true);
+	//href(currentUser.oid, currentUser.cid, !!location.hash);
 }
 
 

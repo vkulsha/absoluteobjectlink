@@ -1402,10 +1402,10 @@ function initializeMainForm(frm){
 				bDel.classList.add("eobject");
 				bDel.title = "Удаление выделенных элементов";
 			var td =  cDom("td","",tr);
-				var bTree =  cDom("button","",td);
-				bTree.innerHTML = "#";
-				bTree.classList.add("eobject");
-				bTree.title = "Таблица";
+				var bTable =  cDom("button","",td);
+				bTable.innerHTML = "#";
+				bTable.classList.add("eobject");
+				bTable.title = "Таблица";
 			var td =  cDom("td","",tr);
 				var bMap =  cDom("button","",td);
 				bMap.innerHTML = "🖈";
@@ -1428,8 +1428,8 @@ function initializeMainForm(frm){
 		}
 	}
 	
-	bTree.onclick = function(){
-		objectsTree()
+	bTable.onclick = function(){
+		objectsTable()
 	}
 	
 	bMap.checked = !!isMapLinkEnabled;
@@ -1459,7 +1459,6 @@ function objectAdd(object){
 	if (!object.isClass || object.isGroup) {
 		if (getPolicy(1)) {
 			var oid = object.id;
-			var n;// = prompt("Добавить новый класс в класс '"+orm("gN",[lid])+"':","");
 			ObjectSelectForm(object, {caption: "Добавить новый класс в класс '"+orm("gN",[lid])+"':",defval:"",callback:function(n, object){
 				var newoid = n ? orm("cO",[n, classes["Класс"]]) : 0;
 				var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
@@ -1478,15 +1477,7 @@ function objectAdd(object){
 				alert('Привязка к карте создается редактором линий на карте!');
 			} else {
 				var objname = orm("gN",[lid]);
-				var n;// = prompt("Добавить новое значение '"+classname+"'"+(lid ? " к записи '"+objname+"'" : "")+":", classname+(objname ? " "+objname : ""));
-				/*ObjectSelectForm(object, {caption: "Добавить новое значение '"+classname+"'"+(lid ? " к записи '"+objname+"'" : "")+":",defval:"",callback:function(n, object){
-					var newoid = n ? orm("cO",[n, cid]) : 0;
-					var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
-					if (newoid){
-						object.but.click(true);
-					}
-				}});*/
-				n = classname+(objname ? " "+objname : "") + Date.now();
+				var n = classname+(objname ? " "+objname : "") + Date.now();
 				var newoid = n ? orm("cO",[n, cid]) : 0;
 				var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
 				if (newoid){
@@ -1497,6 +1488,8 @@ function objectAdd(object){
 						objectEdit(but.object, function(val, _object){
 							orm("uO", [_object.id, val, _object.pid]);
 							_object.pobject.but.click(true);
+							var but = gDom("but.object.id"+_object.id+"pid"+_object.pid);
+							if (but) but.click(true);
 						})
 					}
 				}
@@ -1507,10 +1500,14 @@ function objectAdd(object){
 }
 
 function objectEdit(object, callback){
-	var but = object.but;
-	if (!but) return;
+	var _but = object.but;
+	if (!_but) return;
+	var but = cDom("button");
+	but.style.width = "100%";
+	_but.parentElement.appendChild(but);
+	_but.remove();
 	but.innerHTML = ""
-	
+	but.onclick = function(){ return false};
 	var defval = object.n;
 	but.innerHTML = "";
 	var objects = gAndObject(object.pobject, true);
@@ -1539,29 +1536,9 @@ function objectEdit(object, callback){
 function objectUpd(object){
 	object = object || (storageObjects.length ? storageObjects.slice(-1)[0] : null);
 	if (!object) return;
-/*
-	var pobject = object.pobject;
-	var oid_ = pobject.id;
-	var cid_ = pobject.cid;
-	var o1 = object.id;
-	var o2 = object.isClass ? object.pcid : object.pid;
-	var cid = object.isClass ? 1 : object.cid;
-	var _n = object.n;
-*/
+
 	var cid = object.isClass ? 1 : object.cid;
 	if (getPolicy(cid)) {
-		var n;// = prompt("Изменить запись", _n);
-		/*ObjectSelectForm(pobject, {caption: "Изменить запись",defval:_n, callback:function(n, pobject){
-			if ( n && n != _n ){
-				var newoid = orm("mO",[n, cid, o1]);
-				if (newoid) {
-					orm("cL",[newoid, o2]);
-					orm("nL",[o1, o2]);
-				}
-				console.log(n, cid, o1, o2);
-				if (pobject) pobject.but.click(true);
-			}
-		}});*/
 		
 		objectEdit(object, function(val, _object){
 			var object = _object;
@@ -1602,7 +1579,7 @@ function objectDel(object, refreshPObject){
 		if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[lid])+"'?") ){
 			var res = orm("nL",[o1, lid]);
 			if (res) { 
-				if (object.isMap && object.layer) object.layer.remove();
+				if ((object.isMap || object.isMapLinked) && object.layer) object.layer.remove();
 				if (pobject && refreshPObject) pobject.but.click(true);
 			};
 		}
@@ -1626,9 +1603,127 @@ function objectsDel(objects){
 
 }
 
-function objectsTree(objects){
+function ObjectButton(params){
+	this.id = params.id;
+	this.n = params.n;
+	this.cid = params.cid;
+	this.pid = params.pid;
+	this.isClass = params.isClass || false;
+	this.but = cDom("button");
+	this.but.innerHTML = this.n;
+	this.but.style.width = "100%";
+	this.but.style.textAlign = this.isClass ? "center" : "left";
+	this.but.style.fontWeight = this.isClass ? "bold" : "normal";
+	this.but.object = this;
+	this.but.onclick = function(){
+		console.log(this.object);
+	}
+	this.cobject = classesObjects.getClass(this.cid)
+}
+
+function ButTableClassAdd(object){
+	var that = this;
+	this.but = cDom("button");
+	this.object = object;
+	this.ind = object.ind;
+	this.but.innerHTML = "+";
+	this.but.title = "Добавить класс";
+	this.but.object = this.object;
+
+	this.selectcallback = function(value){
+		console.log(that.ind);
+		var _classes = that.frm.classes;
+		var _links = that.frm.links;
+		_classes.push(value);
+		_links.push([_classes.length-1, that.ind]);
+		//console.log(_classes, _links);
+		that.frm.setVisible(false);
+		objectsTable(_classes, _links);
+	}
+	this.select = cObjectChildSelectOptions(this.object.cobject, this.selectcallback);
+
+	this.div = cDom("DIV");
+	this.div.appendChild(this.but);
+	this.but.div = this.div;
+	this.but.select = this.select;
+	
+	this.but.onclick = function(){
+		this.div.appendChild(this.select);
+	}
+	
+	
+}
+
+function cObjectChildSelectOptions(cObject, callback){
+	var child = cObject ? cObject.child : [];
+	var selectDom = cDom("select");
+	var opt = cDom("option","",selectDom);
+	for (var i=0; i < child.length; i++){
+		var id = child[i].cid;
+		var n = classes3(id);
+		var opt = cDom("option",n,selectDom);
+		opt.value = n;
+	}
+	selectDom.callback = callback;
+	selectDom.onchange = function(){
+		this.callback(this.value);
+	}
+	return selectDom;
+}
+
+function objectsTable(_classes, _links){
+	var _object = storageObjects[storageObjects.length-1];
+	cid = (_object.islass ? _object.id : _object.cid);
+	_links = _links || [];
+	var cond = "";
+	_classes = _classes || [classes3(cid)];
+	
+	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);
+	
+	var tb = cDom("table");
+	tb.setAttribute("border",1);
+	var frm = new Form(true);
+	frm.setVisible(true);
+	frm.getBody().appendChild(tb);
+	frm.classes = _classes;
+	frm.links = _links;
+	
+	var tr = cDom("tr","",tb);
+	for (var i=0; i < _classes.length; i++){
+		var th = cDom("th","",tr);
+		var id = classes[_classes[i]]
+		var cid = id;
+		var n = _classes[i];
+		var pid = i>0 ? classes[_classes[i-1]] : 0;
+		var object = new ObjectButton({id:id,n:n,cid:cid,isClass:true,pid:pid});
+		object.ind = i;
+		th.appendChild(object.but);
+		var bAdd = new ButTableClassAdd(object);
+		bAdd.frm = frm;
+		th.appendChild(bAdd.div);
+		//th.appendChild(new ButTableClassDel(object));
+	}
+
+	for (var i=0; i < rows.length; i++){
+		var tr = cDom("tr","",tb);
+		var row = rows[i];
+		var cid = classes[_classes[i]];
+		for (var j=0; j < row.length/2; j++){
+			var ind = j*2;
+			var td = cDom("td","",tr);
+			var id = row[ind+0];
+			var n = row[ind+1];
+			var pid = j>0 ? row[(j-1)*2] : 0;
+			td.appendChild(new ObjectButton({id:id,n:n,cid:cid,isClass:false,pid:pid}).but);
+		}
+	}
+	
+
+}
+
+function objectsTableOld(objects){
 	objects = objects || storageObjects;
-	var classes = [];
+	var _classes = [];
 	var links = [];
 	var cond = "";
 	var n = 0;
@@ -1636,17 +1731,17 @@ function objectsTree(objects){
 	for (var i=0; i < objects.length; i++){
 		var object = objects[i];
 		if (object.isClass && !object.isGroup) {
-			classes.push(object.n);
+			_classes.push(object.n);
 			if (n > 0) links.push([n,n-1]);
 			n++;
 		} else if (!object.isClass) {
-			if (n2 > 0) cond += " and `"+classes[n2-1]+"` = '"+object.n+"' ";
+			if (n2 > 0) cond += " and `"+_classes[n2-1]+"` = '"+object.n+"' ";
 			n2++;
 		}
 	}
 	console.log(cond);
-	var ret = orm("gT2",[classes,links,[],false,decorateArr(classes, "`"),cond]);
-	var domtable = getOrmObject({columns:classes, data:ret}, "all2domtable");
+	var ret = orm("gT2",[_classes,links,[],false,decorateArr(_classes, "`"),cond]);
+	var domtable = getOrmObject({columns:_classes, data:ret}, "all2domtable");
 	domtable.setAttribute("border",1);
 	var frm = new Form(true);
 	frm.setVisible(true);
@@ -1711,7 +1806,7 @@ function objectLoad(params, isNotCalsCount, notPadding){
 	sel.object = object;
 	sel.disabled = true;
 	sel.checked = false;
-
+	sel.setAttribute("tabindex","-1");
 	if (object.isClass && !object.isGroup && !isNotCalsCount) {
 		var objectsCount = gAndObject(object).length;//speed 152ms vs 470ms in 16st => 3/1-2/1
 		but.innerHTML = but.caption + " ("+objectsCount+")";
@@ -1826,10 +1921,11 @@ function ifObjectIsObject(object){
 	});
 	
 	object.but.onkeydown = function(e){
-		//if (e.key == "Insert") { objectAdd(this.object); return false;}
-		if (e.key == "Delete") { objectDel(this.object, true); return false;}
-		if (e.key == "F2") { objectUpd(this.object); return false; }
-	}
+		if (e.key == "Insert") { if (e.target.nodeName != "INPUT") {objectAdd(this.object); return false}}
+		if (e.key == "Delete") { if (e.target.nodeName != "INPUT") {objectDel(this.object, true); return false;} }
+		if (e.key == "F2") { if (e.target.nodeName != "INPUT") {objectUpd(this.object); return false;} }
+
+	};
 	
 	return onclick;
 }
@@ -1992,6 +2088,10 @@ function ifObjectIsMap(object){
 		if (coord) {
 			map.setView([coord.lat, coord.lng], 18);
 		}
+		return true;
+	} else if ( object.isMap && !object.isClass ){
+		var p = getPaint(object.pid);
+		if (p) object.layer = p;
 		return true;
 	}
 	return false;
@@ -2480,7 +2580,8 @@ function ObjectListDom(objects) {
 }
 
 window.onkeydown = function(e){
-	if (e.key == "Insert") { if (e.target.nodeName != "INPUT") {objectAdd(); return false}}
+	if (e.key == "F4") { objectsTable(); }
+	//if (e.key == "Insert") { if (e.target.nodeName != "INPUT") {objectAdd(); return false}}
 	//if (e.key == "Delete") { if (e.target.nodeName != "INPUT") {objectDel(null, true); return false;} }
 	//if (e.key == "F2") { if (e.target.nodeName != "INPUT") {objectUpd(); return false;} }
 	//frmsData[frmsData.length-1].setVisible(true);

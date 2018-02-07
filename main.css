@@ -55,7 +55,7 @@ input.eobject, button.eobject {
 	color : #eee;
 }
 
-button:hover{
+button:hover, button:focus{
 	background-color: rgba(255,221,0,0.2);
 	color : #fff;
 	

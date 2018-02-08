@@ -1606,9 +1606,24 @@ function objectsDel(objects){
 ////////////////////
 function objectsTable(_classes, _links){
 	var _object = storageObjects[0];
-	cid = (_object.islass ? _object.id : _object.cid);
+	cid = (_object.isClass ? _object.id : _object.cid);
+	
 	_links = _links || [];
 	var cond = "";
+
+	if (!_classes) {
+		_classes = [];
+		var ind = -1;
+		for (var i=0; i < storageObjects.length; i++){
+			var object = storageObjects[i];
+			if (object.isClass) {
+				ind++;
+				_classes.push(classes3(object.id));
+				if (ind) _links.push([ind, ind-1]);
+			}
+		}
+	}
+
 	_classes = _classes || [classes3(cid)];
 	
 	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);

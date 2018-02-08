@@ -1343,6 +1343,7 @@ function ClassesObject(cObjects){
 function ClassObject(cid){
 	var that = this;
 	this.cid = +cid;
+	this.isClassGroup = classesGroup.indexOf(this.cid) >= 0;
 	this.parent = [];
 	this.child = [];
 	
@@ -1616,7 +1617,7 @@ function objectsTable(_classes, _links){
 		var ind = -1;
 		for (var i=0; i < storageObjects.length; i++){
 			var object = storageObjects[i];
-			if (object.isClass) {
+			if (object.isClass && !object.isGroup) {
 				ind++;
 				_classes.push(classes3(object.id));
 				if (ind) _links.push([ind, ind-1]);
@@ -1732,18 +1733,23 @@ function ButTableClassAdd(object){
 	this.but.title = "Добавить класс";
 	this.but.object = this.object;
 
-	this.selectcallback = function(value){
-		var _classes = that.frm.classes;
-		var _links = that.frm.links;
-		
-		if (_classes.indexOf(value) >= 0) {
-			var cells = that.frm.tb.getElementsByTagName("td");
-			for (var i=0; i < cells.length; i++){ if (cells[i].cid == classes[value] && cells[i].hidden) cells[i].hidden = false; }
+	this.selectcallback = function(value, cObject){
+		if (cObject && cObject.isClassGroup) {
+			alert("Вы выбрали группу классов, выберите класс внутри этой группы!")
+			cObjectChildSelectOptions(cObject, that.selectcallback, that.select);
 		} else {
-			_classes.push(value);
-			_links.push([_classes.length-1, that.ind]);
-			that.frm.setVisible(false);
-			objectsTable(_classes, _links);
+			var _classes = that.frm.classes;
+			var _links = that.frm.links;
+			
+			if (_classes.indexOf(value) >= 0) {
+				var cells = that.frm.tb.getElementsByTagName("td");
+				for (var i=0; i < cells.length; i++){ if (cells[i].cid == classes[value] && cells[i].hidden) cells[i].hidden = false; }
+			} else {
+				_classes.push(value);
+				_links.push([_classes.length-1, that.ind]);
+				that.frm.setVisible(false);
+				objectsTable(_classes, _links);
+			}
 		}
 	}
 	this.select = cObjectChildSelectOptions(this.object.cobject, this.selectcallback);
@@ -1779,9 +1785,10 @@ function ButTableClassDel(object){
 	}
 }
 
-function cObjectChildSelectOptions(cObject, callback){
+function cObjectChildSelectOptions(cObject, callback, select){
 	var child = cObject ? cObject.child : [];
-	var selectDom = cDom("select");
+	var selectDom = select || cDom("select");
+	if (select) selectDom.innerHTML = "";
 	var opt = cDom("option","Нажмите для выбора...",selectDom);
 	for (var i=0; i < child.length; i++){
 		var id = child[i].cid;
@@ -1790,8 +1797,9 @@ function cObjectChildSelectOptions(cObject, callback){
 		opt.value = n;
 	}
 	selectDom.callback = callback;
+	selectDom.cObjects = child;
 	selectDom.onchange = function(){
-		this.callback(this.value);
+		this.callback(this.value, this.cObjects[this.selectedIndex-1]);
 	}
 	return selectDom;
 }

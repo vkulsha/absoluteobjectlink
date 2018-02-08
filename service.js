@@ -1,21 +1,15 @@
 ﻿"use strict";
 var host = location.host;
 var domain = "http://"+host+"/";
-var objectsUri = "objectfiles"
-var imagesUri = "images"
 var currentUser = {uid:0, oid:0, cid:1};
 
-function getObjectsUri() {
-	return objectsUri;
-}
+function getWindowHeight(){
+   return window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
+}	
 
-function getObjectUri(oid) {
-	return domain+getObjectsDir()+"/"+oid;
-}
-
-function getImagesUri() {
-	return imagesUri;
-}
+function getWindowWidth(){
+   return window.innerWidth||document.documentElement.clientWidth||document.body.clientWidth||0;
+}	
 
 function openWindow(url, title, params) {
 	var w = window.open(url, title, params);
@@ -25,6 +19,24 @@ function openWindow(url, title, params) {
 		}
 	};
 	return w;
+}
+
+function cDom(type, innerHTML, parentDom){
+	var ret = document.createElement(type);
+	if (innerHTML)
+		ret.appendChild(typeof(innerHTML)=="object" ? innerHTML : document.createTextNode(innerHTML || ""));
+	if (parentDom && ret) parentDom.appendChild(ret);
+	return ret;
+}
+
+function gDom(id){
+	return document.getElementById(id);
+}
+
+function cInp(type, innerHTML, parentDom) {
+	var el = cDom("INPUT", innerHTML, parentDom);
+	el.setAttribute("type", type);
+	return el;
 }
 
 function orm(fName, fParams, func){
@@ -86,28 +98,18 @@ function getXmlHttpReq(func, uri, postdata, async, funcparams, isjson, funcError
 	
 }
 
-function uploadFile(file, func) {
-	var formData = new FormData();
-	formData.append("MAX_FILE_SIZE", 0);
-	formData.append("uploadPath", "../data/"+oid+"/");
-	formData.append("uploadId", oid);
-	formData.append("userfile[]", file);
-	formData.append("u", currentUser.uid);
-	
-	var xhr = new XMLHttpRequest();
-	xhr.upload.onprogress = function(event) {
-		//progress.max = event.total;
-		//progress.value = event.loaded;
-	}
-	xhr.onload = xhr.onerror = function() {
-		if (this.status == 200) {
-			func(xhr.response)
-		} else {
-			func(false)
+function $_GET(keyname, delimiter, uri){
+	var searchline = uri || location.search;
+	var search = searchline.split(delimiter || "?")
+	search = search.length > 1 ? search[1] : "";
+	var params = search.split("&");
+	for (var i=0; i < params.length; i++){
+		var param = params[i].split("=");
+		if (param[0] == keyname){
+			return param[1];
 		}
-	};
-	xhr.open("POST", "php/uploadFiles.php", true);
-	xhr.send(formData);
+	}
+	return undefined;
 }
 
 function Form(isModal, closeFunc, zIndex, visible, opacity){
@@ -231,6 +233,28 @@ function Form(isModal, closeFunc, zIndex, visible, opacity){
 	this.getCaption = function() { return that.caption; }
 	//return that;
 	
+}
+
+function getIconFile(filename){
+	var iconFile = 
+		(~filename.indexOf(".pdf")) ? "pdf.png" : 
+		(~filename.indexOf(".doc")) ? "word.png" : 
+		(~filename.indexOf(".docx")) ? "word.png" : 
+		(~filename.indexOf(".xls")) ? "excel.png" : 
+		(~filename.indexOf(".xlsx")) ? "excel.png" : 
+		(~filename.indexOf(".jpg")) ? "jpg.png" : 
+		(~filename.indexOf(".png")) ? "jpg.png" : 
+		(~filename.indexOf(".bmp")) ? "jpg.png" : 
+		(~filename.indexOf(".PDF")) ? "pdf.png" : 
+		(~filename.indexOf(".DOC")) ? "word.png" : 
+		(~filename.indexOf(".DOCX")) ? "word.png" : 
+		(~filename.indexOf(".XLS")) ? "excel.png" : 
+		(~filename.indexOf(".XLSX")) ? "excel.png" : 
+		(~filename.indexOf(".JPG")) ? "jpg.png" : 
+		(~filename.indexOf(".PNG")) ? "jpg.png" : 
+		(~filename.indexOf(".BMP")) ? "jpg.png" : 
+		"file.png";
+	return "images/"+iconFile;
 }
 
 /***	
@@ -518,14 +542,6 @@ function isDOM(val) {
 	return isObject(val) && val.toString().indexOf('HTML') > 0;
 }
 
-function getWindowHeight(){
-   return window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
-}	
-
-function getWindowWidth(){
-   return window.innerWidth||document.documentElement.clientWidth||document.body.clientWidth||0;
-}	
-
 function export2Excel(domTable){
 	var dom = domTable.cloneNode(true);
 	$(dom).find("IMG, DIV.other").each(function(){
@@ -550,28 +566,6 @@ function rgb(r,g,b)
 	color = "#"+color;
 
 	return color;
-}
-
-function getIconFile(filename){
-	var iconFile = 
-		(~filename.indexOf(".pdf")) ? "pdf.png" : 
-		(~filename.indexOf(".doc")) ? "word.png" : 
-		(~filename.indexOf(".docx")) ? "word.png" : 
-		(~filename.indexOf(".xls")) ? "excel.png" : 
-		(~filename.indexOf(".xlsx")) ? "excel.png" : 
-		(~filename.indexOf(".jpg")) ? "jpg.png" : 
-		(~filename.indexOf(".png")) ? "jpg.png" : 
-		(~filename.indexOf(".bmp")) ? "jpg.png" : 
-		(~filename.indexOf(".PDF")) ? "pdf.png" : 
-		(~filename.indexOf(".DOC")) ? "word.png" : 
-		(~filename.indexOf(".DOCX")) ? "word.png" : 
-		(~filename.indexOf(".XLS")) ? "excel.png" : 
-		(~filename.indexOf(".XLSX")) ? "excel.png" : 
-		(~filename.indexOf(".JPG")) ? "jpg.png" : 
-		(~filename.indexOf(".PNG")) ? "jpg.png" : 
-		(~filename.indexOf(".BMP")) ? "jpg.png" : 
-		"file.png";
-	return "images/"+iconFile;
 }
 
 ////////////codedecode charset
@@ -670,50 +664,7 @@ function url2cp1251(str) {
 		return str;
 	}
 }
-
-function cDom(type, innerHTML, parentDom){
-	var ret = document.createElement(type);
-	if (innerHTML)
-		ret.appendChild(typeof(innerHTML)=="object" ? innerHTML : document.createTextNode(innerHTML || ""));
-	if (parentDom && ret) parentDom.appendChild(ret);
-	return ret;
-}
-
-function gDom(id){
-	return document.getElementById(id);
-}
-
-function cInp(type, innerHTML, parentDom) {
-	var el = cDom("INPUT", innerHTML, parentDom);
-	el.setAttribute("type", type);
-	return el;
-}
-
-function $_GET(keyname, delimiter, uri){
-	var searchline = uri || location.search;
-	var search = searchline.split(delimiter || "?")
-	search = search.length > 1 ? search[1] : "";
-	var params = search.split("&");
-	for (var i=0; i < params.length; i++){
-		var param = params[i].split("=");
-		if (param[0] == keyname){
-			return param[1];
-		}
-	}
-	return undefined;
-}
-
-function fillSelectDom(dom, values) {
-	dom.appendChild(cDom("OPTION"));
-	for (var i=0; i < values.length; i++){
-		var opt = cDom("OPTION");
-		opt.innerHTML = values[i][1];
-		opt.value = values[i][0];
-		opt.oid = values[i][0];
-		opt.id = "opt"+values[i][0];
-		dom.appendChild(opt);
-	}
-}
+////////
 
 function d2str(d) {
 	var dt = d.getFullYear() + ("0"+(d.getMonth()+1)).slice(-2) + ("0" + d.getDate()).slice(-2) + ("0" + d.getHours()).slice(-2) + ("0" + d.getMinutes()).slice(-2) + ("0" + d.getSeconds()).slice(-2);
@@ -805,12 +756,4 @@ function getRandomColor() {
     }
     return color;
 }
-
-
-
-
-
-
-
-
 

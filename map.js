@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-function mapInit(map, frmsData){
+function mapInit(map){
 	L.EditControl = L.Control.extend({
 		options: {
 			position: 'topright',
@@ -137,7 +137,6 @@ function mapInit(map, frmsData){
 			L.DomEvent.on(link, 'click', L.DomEvent.stop)
 					  .on(link, 'click', function () {
 						isPaintMode = !isPaintMode;
-						frmsData.forEach(function(e){e.editLayer.hidden = !e.editLayer.hidden});
 						this.options.callback(map, [mc, lc, pc, cc], isPaintMode);
 						if (!isPaintMode && currentEditing) currentEditing.disableEdit();
 

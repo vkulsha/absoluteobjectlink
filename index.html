@@ -1603,6 +1603,63 @@ function objectsDel(objects){
 
 }
 
+////////////////////
+function objectsTable(_classes, _links){
+	var _object = storageObjects[0];
+	cid = (_object.islass ? _object.id : _object.cid);
+	_links = _links || [];
+	var cond = "";
+	_classes = _classes || [classes3(cid)];
+	
+	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);
+	
+	var tb = cDom("table");
+	tb.setAttribute("border",1);
+	var frm = new Form(true);
+	frm.setVisible(true);
+	frm.getBody().appendChild(tb);
+	frm.classes = _classes;
+	frm.links = _links;
+	frm.tb = tb;
+	
+	var tr = cDom("tr","",tb);
+	for (var i=0; i < _classes.length; i++){
+		var td = cDom("td","",tr);
+		var id = classes[_classes[i]]
+		var cid = id;
+		var n = _classes[i];
+		var pid = i>0 ? classes[_classes[i-1]] : 0;
+		var object = new ObjectButton({id:id,n:n,cid:cid,isClass:true,pid:pid});
+		object.ind = i;
+		var bAdd = new ButTableClassAdd(object);
+		var bDel = new ButTableClassDel(object);
+		bAdd.frm = frm;
+		bDel.frm = frm;
+		td.appendChild(bDel.div);
+		td.appendChild(bAdd.div);
+		td.appendChild(object.but);
+		td.style.textAlign = "right"
+		td.ind = i;
+		td.cid = cid;
+	}
+
+	for (var i=0; i < rows.length; i++){
+		var tr = cDom("tr","",tb);
+		var row = rows[i];
+		for (var j=0; j < row.length/2; j++){
+			var cid = classes[_classes[j]];
+			var ind = j*2;
+			var td = cDom("td","",tr);
+			var id = row[ind+0];
+			var n = row[ind+1];
+			var pid = j>0 ? row[(j-1)*2] : 0;
+			td.appendChild(new ObjectButton({id:id,n:n,cid:cid,isClass:false,pid:pid}).but);
+			td.ind = j;
+			td.cid = cid;
+		}
+	}
+}
+
 function ObjectButton(params){
 	this.id = params.id;
 	this.n = params.n;
@@ -1631,17 +1688,21 @@ function ButTableClassAdd(object){
 	this.but.object = this.object;
 
 	this.selectcallback = function(value){
-		console.log(that.ind);
 		var _classes = that.frm.classes;
 		var _links = that.frm.links;
-		_classes.push(value);
-		_links.push([_classes.length-1, that.ind]);
-		//console.log(_classes, _links);
-		that.frm.setVisible(false);
-		objectsTable(_classes, _links);
+		
+		if (_classes.indexOf(value) >= 0) {
+			var cells = that.frm.tb.getElementsByTagName("td");
+			for (var i=0; i < cells.length; i++){ if (cells[i].cid == classes[value] && cells[i].hidden) cells[i].hidden = false; }
+		} else {
+			_classes.push(value);
+			_links.push([_classes.length-1, that.ind]);
+			that.frm.setVisible(false);
+			objectsTable(_classes, _links);
+		}
 	}
 	this.select = cObjectChildSelectOptions(this.object.cobject, this.selectcallback);
-
+	
 	this.div = cDom("DIV");
 	this.div.appendChild(this.but);
 	this.but.div = this.div;
@@ -1650,14 +1711,33 @@ function ButTableClassAdd(object){
 	this.but.onclick = function(){
 		this.div.appendChild(this.select);
 	}
+}
+
+function ButTableClassDel(object){
+	var that = this;
+	this.but = cDom("button");
+	this.object = object;
+	this.ind = object.ind;
+	this.but.innerHTML = "&times;";
+	this.but.title = "Убрать класс";
+	this.but.object = this.object;
+
+	this.div = cDom("DIV");
+	this.div.appendChild(this.but);
+	this.but.div = this.div;
 	
-	
+	this.but.onclick = function(){
+		var _classes = that.frm.classes;
+		var _links = that.frm.links;
+		var cells = that.frm.tb.getElementsByTagName("td");
+		for (var i=0; i < cells.length; i++){ if (cells[i].ind == that.ind) cells[i].hidden = true; }
+	}
 }
 
 function cObjectChildSelectOptions(cObject, callback){
 	var child = cObject ? cObject.child : [];
 	var selectDom = cDom("select");
-	var opt = cDom("option","",selectDom);
+	var opt = cDom("option","Нажмите для выбора...",selectDom);
 	for (var i=0; i < child.length; i++){
 		var id = child[i].cid;
 		var n = classes3(id);
@@ -1670,84 +1750,7 @@ function cObjectChildSelectOptions(cObject, callback){
 	}
 	return selectDom;
 }
-
-function objectsTable(_classes, _links){
-	var _object = storageObjects[0];
-	cid = (_object.islass ? _object.id : _object.cid);
-	_links = _links || [];
-	var cond = "";
-	_classes = _classes || [classes3(cid)];
-	
-	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);
-	
-	var tb = cDom("table");
-	tb.setAttribute("border",1);
-	var frm = new Form(true);
-	frm.setVisible(true);
-	frm.getBody().appendChild(tb);
-	frm.classes = _classes;
-	frm.links = _links;
-	
-	var tr = cDom("tr","",tb);
-	for (var i=0; i < _classes.length; i++){
-		var th = cDom("th","",tr);
-		var id = classes[_classes[i]]
-		var cid = id;
-		var n = _classes[i];
-		var pid = i>0 ? classes[_classes[i-1]] : 0;
-		var object = new ObjectButton({id:id,n:n,cid:cid,isClass:true,pid:pid});
-		object.ind = i;
-		th.appendChild(object.but);
-		var bAdd = new ButTableClassAdd(object);
-		bAdd.frm = frm;
-		th.appendChild(bAdd.div);
-		//th.appendChild(new ButTableClassDel(object));
-	}
-
-	for (var i=0; i < rows.length; i++){
-		var tr = cDom("tr","",tb);
-		var row = rows[i];
-		var cid = classes[_classes[i]];
-		for (var j=0; j < row.length/2; j++){
-			var ind = j*2;
-			var td = cDom("td","",tr);
-			var id = row[ind+0];
-			var n = row[ind+1];
-			var pid = j>0 ? row[(j-1)*2] : 0;
-			td.appendChild(new ObjectButton({id:id,n:n,cid:cid,isClass:false,pid:pid}).but);
-		}
-	}
-	
-
-}
-
-function objectsTableOld(objects){
-	objects = objects || storageObjects;
-	var _classes = [];
-	var links = [];
-	var cond = "";
-	var n = 0;
-	var n2 = 0;
-	for (var i=0; i < objects.length; i++){
-		var object = objects[i];
-		if (object.isClass && !object.isGroup) {
-			_classes.push(object.n);
-			if (n > 0) links.push([n,n-1]);
-			n++;
-		} else if (!object.isClass) {
-			if (n2 > 0) cond += " and `"+_classes[n2-1]+"` = '"+object.n+"' ";
-			n2++;
-		}
-	}
-	console.log(cond);
-	var ret = orm("gT2",[_classes,links,[],false,decorateArr(_classes, "`"),cond]);
-	var domtable = getOrmObject({columns:_classes, data:ret}, "all2domtable");
-	domtable.setAttribute("border",1);
-	var frm = new Form(true);
-	frm.setVisible(true);
-	frm.getBody().appendChild(domtable);
-
-}
+//////////////////////////
 
 function objectLoad(params, isNotCalsCount, notPadding){
 	var object = {};//new Object();

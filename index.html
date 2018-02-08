@@ -1629,6 +1629,7 @@ function objectsTable(_classes, _links){
 	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);
 	
 	var tb = cDom("table");
+	var tbstr = ["<table>"];
 	tb.setAttribute("border",1);
 	var frm = new Form(true);
 	frm.setVisible(true);
@@ -1636,8 +1637,23 @@ function objectsTable(_classes, _links){
 	frm.classes = _classes;
 	frm.links = _links;
 	frm.tb = tb;
-	
+
 	var tr = cDom("tr","",tb);
+	var td = cDom("td","",tr);
+	td.setAttribute("colspan",_classes.length);
+	var bExcel = cDom("button");
+	var img = cDom("img");
+	bExcel.appendChild(img)
+	img.src = "images/excel.png";
+	img.style.width = "32px";
+	bExcel.tbstr = tbstr;
+	td.appendChild(bExcel).onclick = function(){
+		tableToExcel(this.tbstr.join(""), "Отчет"+Date.now())
+	}
+	td.style.textAlign = "left";
+
+	var tr = cDom("tr","",tb);
+	tbstr.push("<tr>");
 	for (var i=0; i < _classes.length; i++){
 		var td = cDom("td","",tr);
 		var id = classes[_classes[i]]
@@ -1656,10 +1672,13 @@ function objectsTable(_classes, _links){
 		td.style.textAlign = "right"
 		td.ind = i;
 		td.cid = cid;
+		tbstr.push("<th>"+n+"</th>");
 	}
+	tbstr.push("</tr>");
 
 	for (var i=0; i < rows.length; i++){
 		var tr = cDom("tr","",tb);
+		tbstr.push("<tr>");
 		var row = rows[i];
 		for (var j=0; j < row.length/2; j++){
 			var cid = classes[_classes[j]];
@@ -1671,8 +1690,19 @@ function objectsTable(_classes, _links){
 			td.appendChild(new ObjectButton({id:id,n:n,cid:cid,isClass:false,pid:pid}).but);
 			td.ind = j;
 			td.cid = cid;
+			tbstr.push("<td>"+n+"</td>");
 		}
+		tbstr.push("</tr>");
 	}
+	tbstr.push("</table>");
+}
+
+function tableToExcel(html, filename) {
+	let uri = 'data:application/vnd.ms-excel,'+encodeURIComponent( html );
+	var link = document.createElement('a');
+	link.download = filename;
+	link.href = uri;
+	link.click();
 }
 
 function ObjectButton(params){

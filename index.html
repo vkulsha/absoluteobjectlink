@@ -1474,6 +1474,7 @@ window.onkeydown = function(e){
 	}
 	if (e.ctrlKey && e.key == "Home") {
 		loadNewForm(currentUser.uid, classes["Пользователи"]);
+		runonclasses();
 	}
 	//if (e.key == "Insert") { if (e.target.nodeName != "INPUT") {objectAdd(); return false}}
 	//if (e.key == "Delete") { if (e.target.nodeName != "INPUT") {objectDel(null, true); return false;} }
@@ -1810,6 +1811,45 @@ function reportZatrat(params){///exec from ifObjectScript (as eval)
 	return true;
 }
 
+function getAllClassesGraph(){
+	var arr1 = [];
+	var arr2 = [];
+	var arr3 = [];
+	for (var i=0; i < classesObjects.classes.length; i++){
+		var cObject = classesObjects.classes[i];
+		if (!cObject.child.length) arr1.push(cObject);//without child
+		if (!cObject.parent.length) arr2.push(cObject);//without parent - not actual
+		if (cObject.child.length && cObject.parent.length) arr3.push(cObject);
+	}
+	return [arr1, arr2, arr3];
+}
+
+function runonclasses(frm, child, current){
+	var child = child ? child : getAllClassesGraph()[2];
+	if (frm) frm.getBody().innerHTML = "";
+	frm = frm || new Form();
+	frm.setVisible(true);
+	var tb = cDom("table","",frm.getBody());
+	var but = cDom("button", "<<<<<<<<<<<<", cDom("td","",cDom("tr","",tb)));
+	but.current = current;
+	but.frm = frm;
+	but.onclick = function(){
+		if (this.current) runonclasses(this.frm, this.current);
+	}
+	
+	for (var i=0; i < child.length; i++){
+		var cObject = child[i];
+		var but = cDom("button", classes3(cObject.cid), cDom("td","",cDom("tr","",tb)));
+		but.onclick = onclick;
+		but.cObject = cObject;
+		but.frm = frm;
+		but.current = child;
+	}
+	
+	function onclick(){
+		runonclasses(this.frm, this.cObject.getChild().classes, this.current);
+	}
+}
 
 </script>
 	</body>

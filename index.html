@@ -960,23 +960,18 @@ function ifObjectIsFile(object){
 			object.but.addEventListener("click",  function(){
 				var object = this.object;
 				var pobject = object.pobject
-				openPhotoGallery(pobject);
+				objectPhotoGallery(pobject);
 			});
 		}
-	
 	}
 
 	return false;
 }
 
-function openPhotoGallery(pobject){
-	var lid = pobject.id;
-	var n = pobject.n;
-	var cid = pobject.cid;
-	
+function imagesPhotoGallery(images, caption){
 	var frm = new Form(true);
 	frm.setVisible(true);
-	frm.getCaption().innerHTML = n;
+	frm.getCaption().innerHTML = caption;
 	var container = frm.getBody();
 
 	var tb = container.appendChild(cDom("TABLE"));
@@ -991,12 +986,11 @@ function openPhotoGallery(pobject){
 
 	imgContainer.style.height = getWindowHeight() - 150 + "px";
 
-	var images = orm("gT2id",[[cid,classes["Фото"]],[],[],false,null,"and `id_o"+cid+"` ="+lid+" order by `id_o"+cid+"`"]);
 	var imgObject = new Image();
 	if (images && images.length) {
 		var imgInd = 0;
 		
-		imgObject.src = domain+images[imgInd][3];
+		imgObject.src = domain+images[imgInd];
 		imgObject.style.cursor = "pointer";
 		imgContainer.appendChild(imgObject);
 		
@@ -1014,10 +1008,28 @@ function openPhotoGallery(pobject){
 		
 		imgObject.onclick = function(){
 			imgInd = (imgInd >= (images.length-1)) ? 0 : imgInd+1;
-			this.src = domain+images[imgInd][3];
+			this.src = domain+images[imgInd];
 		}
 	}
 }
+
+function objectPhotoGallery(pobject){
+	var lid = pobject.id;
+	var n = pobject.n;
+	var cid = pobject.cid;
+	var photoCid = classes["Фото"];
+	var images = orm("gT2id",[[cid,photoCid],[],[],false,["`o"+photoCid+"`"],"and `id_o"+cid+"` ="+lid+" order by `id_o"+cid+"`"]);
+	imagesPhotoGallery(col2array(images), n)
+}
+
+function col2array(data){
+	result = [];
+	data.forEach(function(value) {
+		result.push(value[0]);
+	});
+	return result;
+}
+
 
 ////////
 function ifObjectIsMap(object){
@@ -1143,8 +1155,10 @@ function drawClassAllObjectMapLayer(object, callback){
 	var _params1 = {"cid":cid};
 	orma("gT2id",[	[cid, mapLinkCid, coordsCid, paintFuncCid,paintFuncParamsCid], [[2,1],[3,1], [4,1]],[],false,
 		["`o"+coordsCid+"`","`id_o"+mapLinkCid+"`","`id_o"+cid+"`","`o"+paintFuncCid+"`","`o"+paintFuncParamsCid+"`"],
-		" and `id_o"+coordsCid+"` is not null order by `id_o"+mapLinkCid+"`, `id_o"+coordsCid+"`" ], function(coords, params1)
+		" and `id_o"+coordsCid+"` is not null order by `id_o"+mapLinkCid+"`, `id_o"+coordsCid+"`" ], function(result)
 		{
+			var coords = result.data;
+			var params1 = result.params;
 			if (!coords || !coords.length) return;
 			var latlngs = [];
 			var polyId = coords[0][1];
@@ -1212,9 +1226,11 @@ function drawObjectMapLayer(object, callback){
 	orma("gT2id",[	[cid, mapLinkCid, paintFuncCid,paintFuncParamsCid], [[2,1],[3,1]],[],false,
 		["`id_o"+mapLinkCid+"`","`o"+paintFuncCid+"`","`o"+paintFuncParamsCid+"`","`id_o"+cid+"`"],
 		(ids && ids.length ? "and `id_o"+cid+"` in ("+ids.join(",")+")" : (id ? "and `id_o"+cid+"` = "+id : "") )+
-		" and `id_o"+mapLinkCid+"` is not null order by `id_o"+mapLinkCid+"`" ], function(maplinks, params1)
+		" and `id_o"+mapLinkCid+"` is not null order by `id_o"+mapLinkCid+"`" ], function(result)
 		{
 //console.time("id"+object.id);
+			var maplinks = result.data;
+			var params1 = result.params;
 			var layer = L.layerGroup();
 
 			var res = 0;
@@ -1233,7 +1249,9 @@ function drawObjectMapLayer(object, callback){
 				var _params2 = {"layer":layer, "mapLinkId": mapLinkId, "oid": oid, "cid":params1.cid, "id":params1.id, "paintFunc":paintFunc, "paintFuncParams":paintFuncParams,
 					"color":params1.color, "onmouseover":onmouseover, "onmouseout":onmouseout, "onclick":onclick, "oncontextmenu":oncontextmenu};
 
-				orma("gAnd",[[mapLinkId, classes["Координаты на карте"]],"n",true], function(coords, params2){
+				orma("gAnd",[[mapLinkId, classes["Координаты на карте"]],"n",true], function(result){
+					var coords = result.data;
+					var params2 = result.params;
 					res++;
 					if (!params2.paintFunc) {//Полигоны на карте
 						if (coords.length == 1){
@@ -1893,32 +1911,92 @@ function ClassesChains(cObject){
 	}
 	this.go(cObject);
 	
-	this.find = function(cid){
+	this.find = function(cid, maxlength){
+		maxlength = maxlength || 20;
 		var chains = that.chains;
 		var _chains = [];
 		for (var i=0; i < chains.length; i++){
-			if (chains[i].indexOf(cid) >= 0) _chains.push(chains[i]);
+			if (chains[i].indexOf(cid) >= 0 && chains[i].length <= maxlength) _chains.push(chains[i]);
 		}
+		_chains.sort( function (a, b) { if (a.length > b.length) return 1; if (a.length < b.length) return -1; } );
 		return _chains;
 	}
 	
-	this.gT2 = function(cid){
-		var find = that.find(cid);
+	this.getStorageChainCond = function(){
+		var cond = [];
+		var cid = 0;
+		var n = "";
+		for (var i=0; i < storageObjects.length; i++){
+			var object = storageObjects[i];
+			if (cid) {
+				if (!object.isClass) {
+					n = object.n;
+					cond.push("'"+n+"'");
+				} else {
+					cond.splice(-1);
+				}
+				cid = 0;
+			}
+			if (object.isClass && !object.isGroup && i < storageObjects.length-1) {
+				cid = object.id;
+				cond.push(" and `o"+cid+"` = ");
+			}
+		}
+		return cond.join("");
+	}
+	
+	this.gAndCounter = Object.create(null);
+	this.gAnd = function(cid, asynccallback, asynccallbackparams){
+		var find = that.find(cid, 10);//length of chain links cid=1423 (~5s)
+		var cond = this.getStorageChainCond();
+		console.log("gAnd filter:", cond);
+		var chainscount = find.length;
+		this.gAndCounter.value = 0;
+
 		for (var i=0; i < find.length; i++){
-		console.time("gT2");
 			var cids = find[i];
-			if (cids.length > 7) continue;
 			var links = [];
 			for (var j=0; j < cids.length; j++){
 				if (j>0) links.push([j, j-1]);
 			}
-			if (globalstopFunction) return;
-			var gT2 = orm("gT2id", [cids, links, [],false,null, "and `id_o"+cid+"` is not null"]);
-			if (gT2.length) console.log(gT2.length, cids);
-		console.timeEnd("gT2");
+			var gAnd = orma("gT2id", [cids, links, [],false,["`o"+cid+"`"], " and `id_o"+cid+"` is not null "+cond], function(result){
+				var _asynccallback = result.params.func;
+				var data = result.data;
+				result.params.counter.value++;
+				var islast = result.params.counter.value == result.params.chainscount;
+				if ((data && data.length) || islast) _asynccallback(data, islast, result.params.funcparams);
+				if (result.params.func && result.params.func.error) console.log("gAnd ajax error:",result.params.func.error);
+			}, {func:asynccallback, funcparams:asynccallbackparams, chainscount:chainscount, counter:that.gAndCounter});
+			
 		}
+		console.log("gAnd: run");
 		return true;
 	}
+//classesChains.chains.reduce(function(max, e){return max = e.length > max.length ? e : max},[]) //максимальная цепочка
+}
+
+function getSpecObjectFromStorageObjects(cid){
+	cid = cid || classes["Файлы"];
+	frm = new Form(false);
+	frm.setLeft("800px");
+	var onclick	= function(){
+		
+	}
+	
+	classesChains.gAnd(cid, function(data, islast, params){ 
+		//console.log(islast ? "last" : data)
+		var frm = params.frm;
+		var onclick = params.onclick;
+		for (var i=0; i < data.length; i++){
+			var n = data[i][0];
+			var but = cDom("buton",n,frm.getBody());
+			but.onclick = onclick;
+			//col2array//imagesPhotoGallery
+		
+		}
+		if (islast) alert("Поиск и загрузка информации завершена!");
+	}, {frm:frm, onclick:onclick})	
+
 }
 
 </script>

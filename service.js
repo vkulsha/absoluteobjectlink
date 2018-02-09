@@ -39,20 +39,23 @@ function cInp(type, innerHTML, parentDom) {
 	return el;
 }
 
-function orm(fName, fParams, func){
-	var ret;
-	if (!func) func = function(data){ ret = data; };
-	getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !func);
-	return ret;
+function orm(fName, fParams, func, funcparams, timeout){
+	var ret = Object.create(null);
+	var _func = func || function(result){ return result.params.data = result.data; };
+	getXmlHttpReq(_func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !!func, funcparams || ret, timeout || 10);
+	return ret.data;
 }
 
-function orma(fName, fParams, func, funcparams){
-	getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, true, funcparams);
+function orma(fName, fParams, func, funcparams, timeout){
+	//getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, true, funcparams);
+	orm(fName, fParams, func, funcparams, timeout || 10);
+	return true;
 }
 
-function getXmlHttpReq(func, uri, postdata, async, funcparams, isjson, funcError, funcFinnaly) {
+function getXmlHttpReq(func, uri, postdata, async, funcparams, timeout, isjson, funcError, funcFinnaly) {
 	if (async === undefined) async = true;
 	if (isjson === undefined) isjson = true;
+	timeout = timeout || 30000;
 	var getpost = (uri.indexOf("?")>=0 && !postdata) ? "get" : "post";
 	
 	var req = null;
@@ -78,11 +81,12 @@ function getXmlHttpReq(func, uri, postdata, async, funcparams, isjson, funcError
 			}
 		}
 		req.open(getpost, encodeURI(uri), async);
+
 		req.onreadystatechange = function(){
 			try {
 			if (req.readyState == 4) {
 				if (req.status == 200) {
-					func((isjson ? JSON.parse(req.response) : req.response), funcparams);
+					func({data:(isjson ? JSON.parse(req.response) : req.response), params:funcparams});
 				} else {
 					console.log("Не удалось получить данные:\n"+req.statusText);
 				}
@@ -93,6 +97,7 @@ function getXmlHttpReq(func, uri, postdata, async, funcparams, isjson, funcError
 				if (funcFinnaly && typeof funcFinnaly == 'function') funcFinnaly();
 			}							
 		};
+		req.ontimeout = function(){ func( {data:null, params:{error:"timeout"}} ) }
 		req.send(getpost=="post" ? formData : null);
 	}
 	
@@ -298,7 +303,7 @@ function getOrmObject(data, type) {
 	function col2object() {
 		result = {};
 
-		$.each(data.data, function(ind, value) {
+		data.data.forEach(function(value,ind) {
 			result[value[0]] = {"id" : value[0], "ind" : ind};
 		})
 	}
@@ -329,7 +334,7 @@ function getOrmObject(data, type) {
 
 	function col2array(){
 		result = [];
-		$.each(data.data, function(ind, value) {
+		data.data.forEach(function(value, ind) {
 			result.push(value[0]);
 		})
 	}

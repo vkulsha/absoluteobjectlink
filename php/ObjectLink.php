@@ -732,19 +732,19 @@ class ObjectLink {
 			$maplink_cid = $this->gO(["Привязка к карте", true]);
 			$caption = "привязка к карте объекта $oid ".$timestamp;
 			$maplink_oid = $this->cO([$caption, $maplink_cid]);
-			$this->cL([$maplink_oid, $oid]);
+			$this->cL([$maplink_oid, $oid], true);
 			
 			$func_cid = $this->gO(["Функции отрисовки", true]);
 			$func_oid = $this->gO([$func, [$func_cid]]);
-			$this->cL([$func_oid, $maplink_oid]);
+			$this->cL([$func_oid, $maplink_oid], true);
 
 			$params_cid = $this->gO(["Параметры функции отрисовки", true]);
-			$params_oid = $this->cO([$param, $params_cid]);
+			$params_oid = $this->cO([$param, $params_cid], true);
 			$this->cL([$params_oid, $maplink_oid]);
 			
 			$coords_cid = $this->gO(["Координаты на карте", true]);
-			$coords_oid = $this->cO([$coords, $coords_cid]);
-			$this->cL([$coords_oid, $maplink_oid]);
+			$coords_oid = $this->cO([$coords, $coords_cid], true);
+			$this->cL([$coords_oid, $maplink_oid], true);
 			
 			return $maplink_oid;
 			

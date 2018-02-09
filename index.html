@@ -924,7 +924,7 @@ function ifObjectIsFile(object){
 	object.isFile = ((cid == classes["Файлы"]) || (cid == classes["Фото"]));
 
 	if ( object.isFile && !object.isClass ){
-		var txt = {value: orm("gN",[object.id])};
+		var txt = {value: object.n/*orm("gN",[object.id])*/};
 		var img = new Image();
 		var fn = txt.value;
 
@@ -1977,25 +1977,25 @@ function ClassesChains(cObject){
 
 function getSpecObjectFromStorageObjects(cid){
 	cid = cid || classes["Файлы"];
-	frm = new Form(false);
+	frm = new Form(true);
+	frm.setVisible(true);
 	frm.setLeft("800px");
-	var onclick	= function(){
-		
-	}
+	//var onclick	= function(){	}
 	
-	classesChains.gAnd(cid, function(data, islast, params){ 
+	classesChains.gAnd(cid, function(data, islast, params){
 		//console.log(islast ? "last" : data)
 		var frm = params.frm;
-		var onclick = params.onclick;
+		//var onclick = params.onclick;
 		for (var i=0; i < data.length; i++){
 			var n = data[i][0];
 			var but = cDom("buton",n,frm.getBody());
-			but.onclick = onclick;
+			var object = {isFile:true, isClass:false, n:n, cid:cid, but:but};
+			ifObjectIsFile(object);
+			//but.onclick = onclick;
 			//col2array//imagesPhotoGallery
-		
 		}
 		if (islast) alert("Поиск и загрузка информации завершена!");
-	}, {frm:frm, onclick:onclick})	
+	}, {frm:frm/*, onclick:onclick*/})
 
 }
 

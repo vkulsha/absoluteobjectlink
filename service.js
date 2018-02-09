@@ -42,13 +42,13 @@ function cInp(type, innerHTML, parentDom) {
 function orm(fName, fParams, func, funcparams, timeout){
 	var ret = Object.create(null);
 	var _func = func || function(result){ return result.params.data = result.data; };
-	getXmlHttpReq(_func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !!func, funcparams || ret, timeout || 10);
+	getXmlHttpReq(_func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !!func, funcparams || ret, timeout || 30);
 	return ret.data;
 }
 
 function orma(fName, fParams, func, funcparams, timeout){
 	//getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, true, funcparams);
-	orm(fName, fParams, func, funcparams, timeout || 10);
+	orm(fName, fParams, func, funcparams, timeout || 30);
 	return true;
 }
 

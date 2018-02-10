@@ -42,13 +42,13 @@ function cInp(type, innerHTML, parentDom) {
 function orm(fName, fParams, func, funcparams, timeout){
 	var ret = Object.create(null);
 	var _func = func || function(result){ return result.params.data = result.data; };
-	getXmlHttpReq(_func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !!func, funcparams || ret, timeout || 30);
+	getXmlHttpReq(_func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, !!func, funcparams || ret, timeout || 10000);
 	return ret.data;
 }
 
 function orma(fName, fParams, func, funcparams, timeout){
 	//getXmlHttpReq(func,"php/olp.php",{"f":fName,"p":JSON.stringify(fParams), "u" : currentUser.uid}, true, funcparams);
-	orm(fName, fParams, func, funcparams, timeout || 30);
+	orm(fName, fParams, func, funcparams, timeout || 10000);
 	return true;
 }
 
@@ -80,15 +80,15 @@ function getXmlHttpReq(func, uri, postdata, async, funcparams, timeout, isjson, 
 				formData.append(key, postdata[key]);
 			}
 		}
+		if (async) req.timeout = timeout;
 		req.open(getpost, encodeURI(uri), async);
-
 		req.onreadystatechange = function(){
 			try {
 			if (req.readyState == 4) {
 				if (req.status == 200) {
 					func({data:(isjson ? JSON.parse(req.response) : req.response), params:funcparams});
 				} else {
-					console.log("Не удалось получить данные:\n"+req.statusText);
+					console.log("timeout: "+timeout+"; Не удалось получить данные:\n"+req.statusText);
 				}
 			}
 			} catch( e ) {
@@ -97,7 +97,7 @@ function getXmlHttpReq(func, uri, postdata, async, funcparams, timeout, isjson, 
 				if (funcFinnaly && typeof funcFinnaly == 'function') funcFinnaly();
 			}							
 		};
-		req.ontimeout = function(){ func( {data:null, params:{error:"timeout"}} ) }
+		req.ontimeout = function(){ /*func( {data:null, params:{error:"timeout"}} )*/ }
 		req.send(getpost=="post" ? formData : null);
 	}
 	

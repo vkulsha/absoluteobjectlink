@@ -17,8 +17,9 @@ $arr = array(
 
 $host = $_SERVER['SERVER_NAME'];
 $prefix = getDbPrefix($arr, $host);
-$conn = new DB("localhost",$prefix."absoluteobjectlink",$prefix."root","Rekmif1983",0);;
-$explDb = $conn->db;
-$explDbType = $explDb->getAttribute(PDO::ATTR_DRIVER_NAME);
-$sql = new SQL($explDb);
-$objectlink = new ObjectLink($sql, "object", "link");
+$dbType = ($host == "185.117.155.80") ? "pgsql" : "mysql";
+$conn = new DB($dbType, "localhost",$prefix."absoluteobjectlink",$prefix."root","Rekmif1983",0);;
+$db = $conn->db;
+//$explDbType = $explDb->getAttribute(PDO::ATTR_DRIVER_NAME);
+$sql = new SQL($db);
+$objectlink = new ObjectLink($sql, "object", "link", $dbType);

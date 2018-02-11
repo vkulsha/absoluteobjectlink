@@ -1,6 +1,7 @@
 <?php
 class DB { 
 	private $host   = 'localhost';
+	private $dbtype = 'mysql';
 	private $dbname = 'mysql';
 	private $user   = 'root';
 	private $pass   = 'password';
@@ -10,14 +11,15 @@ class DB {
 							 PDO::ATTR_PERSISTENT => true);
 	public $db;
 
-	public function __construct($host, $dbname, $user, $pass, $options) {
+	public function __construct($dbtype, $host, $dbname, $user, $pass, $options) {
 		$this->host = $host ? $host : $this->host;
+		$this->dbtype = $dbtype ? $dbtype : $this->dbtype;
 		$this->dbname = $dbname ? $dbname : $this->dbname;
 		$this->user = $user ? $user : $this->user;
 		$this->pass = $pass ? $pass : $this->pass;
 		
 		try {
-			$this->db = new PDO('mysql:host='. $this->host .';dbname='. $this->dbname. ';charset=utf8',
+			$this->db = new PDO($dbtype.':host='. $this->host .';dbname='. $this->dbname. ';',
 								$this->user,
 								$this->pass,
 								$this->options

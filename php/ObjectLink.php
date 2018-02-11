@@ -4,11 +4,13 @@ class ObjectLink {
 	public $u;
 	public $object;
 	public $link;
+	public $dbFieldSep;
 	
-    public function __construct(SQL &$sql, $object, $link){
+    public function __construct(SQL &$sql, $object, $link, $dbType){
 		$this->sql = $sql;
 		$this->object = isset($object) ? $object : "object";
 		$this->link = isset($link) ? $link : "link";
+		$this->dbFieldSep = $dbType == "mysql" ? "`" : "\"";
     }
 
 	public function cD(){//create database
@@ -286,10 +288,14 @@ class ObjectLink {
 					$col = isset($cc["n"]) ? $cc["n"] : "o".$id;
 					$pcol = isset($cc["parentCol"]) ? $cc["parentCol"] : null;
 					$inClass = isset($cc["inClass"]) ? $cc["inClass"] : null;
+					$fid = $this->decor("id_".$col, $this->dbFieldSep);
+					$fo = $this->decor($col, $this->dbFieldSep);
+					$fd = $this->decor("d_".$col, $this->dbFieldSep);
+					$fc = $this->decor("c_".$col, $this->dbFieldSep);
 					if ($i==0){
-						$h = "select o".$i.".id `id_".$col."`, o".$i.".n `".$col."` \n";
+						$h = "select o".$i.".id ".$fid.", o".$i.".n ".$fo." \n";
 						if ($includeLinkDate) {
-							$h = $h.", o".$i.".id `d_".$col."` \n";
+							$h = $h.", o".$i.".id ".$fd." \n";
 						}
 						$l = $id ? $id : "(select id from $object where n='".$col."' limit 1)";
 						$b = 
@@ -308,15 +314,15 @@ class ObjectLink {
 					} else {
 						$h = "";
 						if ($groupbyind !== false) {///*order by o".$i.".id desc*/
-							$h = ",case when count(distinct o".$i.".id) <= 2 then group_concat(distinct o".$i.".id SEPARATOR ';') else concat(o".$i.".id,';..') end `id_".$col."` ".
-								",case when count(distinct o".$i.".id) <= 2 then group_concat(distinct o".$i.".n SEPARATOR ';') else concat(o".$i.".n,';..') end `".$col."` ".
-								",count(distinct o".$i.".id) `кол-во ".$col."` \n";
+							$h = ",case when count(distinct o".$i.".id) <= 2 then group_concat(distinct o".$i.".id SEPARATOR ';') else concat(o".$i.".id,';..') end ".$fid." ".
+								",case when count(distinct o".$i.".id) <= 2 then group_concat(distinct o".$i.".n SEPARATOR ';') else concat(o".$i.".n,';..') end ".$fo." ".
+								",count(distinct o".$i.".id) ".$fc." \n";
 						} else {
-							$h = ",o".$i.".id `id_".$col."` ".
-								",o".$i.".n `".$col."` ";
+							$h = ",o".$i.".id ".$fid." ".
+								",o".$i.".n ".$fo." ";
 							if ($includeLinkDate) {
-								$h = $h.",l".$i.".d `d_".$col."` ".
-										",l".$i.".c `c_".$col."` ";
+								$h = $h.",l".$i.".d ".$fd." ".
+										",l".$i.".c ".$fc." ";
 							}
 						}
 						$l = $id ? $id : "(select id from $object where n='".$col."' limit 1)";
@@ -1014,7 +1020,7 @@ class ObjectLink {
 			$setViewZoom = $cid ? $this->gAnd([[$oid, $cid], "n", true], true) : null;
 			$setViewZoom = $setViewZoom && count($setViewZoom)? $setViewZoom[0][0] : "3";
 
-			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"],[],[],false,null,"order by `Функции отрисовки`"], true);
+			$mapFunctionsArr = $this->gT2([["Функции отрисовки","Функции получения координат"],[],[],false,null,"order by ".$this->decor("Функции отрисовки",$this->dbFieldSep).""], true);
 			$mapFunctions = Array();
 			if ($mapFunctionsArr && count($mapFunctionsArr)){
 				foreach ($mapFunctionsArr as $obj){
@@ -1034,6 +1040,12 @@ class ObjectLink {
 			print($e);
 			return null;
 		}
+	}
+	
+	private function decor($val, $sep){
+		$sep = $sep ? $sep : $this->$dbFieldSep;
+		return "".$sep.$val.$sep;
+		
 	}
 	
 //select o1,o2 from link where 	

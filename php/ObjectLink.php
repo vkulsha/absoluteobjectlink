@@ -506,6 +506,38 @@ class ObjectLink {
 		}
 	}	
 	
+	public function gT($params, $notPolicy=false){//[ [1251,2,1425,1424], [0,1,2,2], "and id1425=115", "id2, n2,n1425,n1424" ] 
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
+		try {
+		$cids = $params[0];
+		$links = isset($params[1]) ? $params[1] : [];
+		$cond = isset($params[2]) ? $params[2] : "";
+		$fields = isset($params[3]) && $params[3] ? $params[3] : "*";
+		$returnquery = isset($params[4]);
+
+		$sel = "";
+		$ff = [];
+		for ($i=0; $i < count($cids); $i++){
+			$cid = $cids[$i];
+			$link = count($links)-1 >= $i ? $links[$i]-1 : $i-1;
+			$ff[] = "o$i.id id".$cid.", o$i.n n".$cid;
+			$sel .= $i==0 ? 
+				"	select o1, o2 from link where c>0 and o2 = $cid and o1 not in (select o1 from link where o2 = 1)".
+				")l$i left join object o$i on o$i.id = l$i.o1 " :
+				"	left join ( select o1, o2 from link where c>0 and o1 in ( select o1 from link where c>0 and o2 = $cid and o1 not in (select o1 from link where o2 = 1) )  ".
+				"	)l$i on l$i.o2 = o$link.id left join object o$i on o$i.id = l$i.o1 ";
+			
+			
+		}
+		$sel = "select ".join(",",$ff)." from (".$sel;
+		return $returnquery ? $sel : ($sel ? $this->sql->sT(["(".$sel.")x", $fields, $cond]) : []);
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+		
+	}
+	
 	public function gAnd($params, $notPolicy=false){
 		if (!$notPolicy && !$this->getPolicyLazy()) return [];
 		try {

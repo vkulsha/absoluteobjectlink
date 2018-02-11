@@ -72,10 +72,9 @@ gDom("bLogin").onclick = function(){
 
 	var openview = function() {
 		console.time("initialization...");
-		classes_ = orm("gT2",[["Класс"],[],[0],false,["Класс","id_Класс"]]);
+		classes_ = orm("gAnd",[[1],"n,id",false,"",false,true]);
 		classes = hash4arr(classes_);
-		var arr = orm("gAnd",[[1],"id"]);
-		for (var i=0; i < arr.length; i++) classes2.push(parseInt(arr[i][0]));
+		for (var i=0; i < classes_.length; i++) classes2.push(parseInt(classes_[i][1]));
 		var arr = orm("gAnd",[[1,orm("gO",["Группа классов",true])],"id"]);
 		for (var i=0; i < arr.length; i++) classesGroup.push(parseInt(arr[i][0]));
 		refreshClassesObjects();

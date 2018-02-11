@@ -83,7 +83,6 @@ gDom("bLogin").onclick = function(){
 		frmPaintLayers.setCaption(cDom("LABEL","Слои привязки объектов к карте:")).style.color = "#ffdd00";
 		mapInit(map);
 		frmMainSetVisibleTrue();
-		classesChains = new ClassesChains(classesObjects.getClass(1383));
 		console.timeEnd("initialization...");
 		console.log("classes count: "+classes_.length);
 	}
@@ -224,6 +223,17 @@ function initializeMainForm(frm){
 				var eFilter =  cInp("edit","",td);
 				eFilter.classList.add("eobject");
 				eFilter.placeholder = "поиск по базе данных";
+				eFilter.style.width = "135px";
+			var td =  cDom("td","",tr);
+				var bSetup =  cDom("button","",td);
+				bSetup.innerHTML = "🛠";
+				bSetup.classList.add("eobject");
+				bSetup.title = "настройки пользователя";
+			var td =  cDom("td","",tr);
+				var bFiles =  cDom("button","",td);
+				bFiles.innerHTML = "❏";
+				bFiles.classList.add("eobject");
+				bFiles.title = "найти все файлы внутри текущей записи";
 			var td =  cDom("td","",tr);
 				var bAdd =  cDom("button","",td);
 				bAdd.innerHTML = "+";
@@ -250,6 +260,14 @@ function initializeMainForm(frm){
 				bMap.innerHTML = "🖈";
 				bMap.classList.add("eobject");
 				bMap.title = "Вкл отображение на карте";
+	
+	bSetup.onclick = function(){
+		userSetup();
+	}
+	
+	bFiles.onclick = function(){
+		objectsGetFiles();
+	}
 	
 	bAdd.onclick = function(){
 		objectAdd();
@@ -288,6 +306,16 @@ function initializeMainForm(frm){
 		}
 		refreshMapLinkForm(frmPaintLayers);
 	}
+}
+
+function userSetup(){
+	loadNewForm(currentUser.uid, classes["Пользователи"]);
+	//runonclasses();
+
+}
+
+function objectsGetFiles(){
+	getSpecObjectFromStorageObjects(1410);
 }
 
 function objectAdd(object){
@@ -1494,8 +1522,7 @@ window.onkeydown = function(e){
 		loadNewForm(+_oid, +_cid);
 	}
 	if (e.ctrlKey && e.key == "Home") {
-		loadNewForm(currentUser.uid, classes["Пользователи"]);
-		runonclasses();
+		userSetup()
 	}
 	if (e.ctrlKey && e.key == "F1") {
 		globalstopFunction = true;
@@ -1938,6 +1965,7 @@ function ClassesChains(cObject){
 			}
 			if (object.isClass && !object.isGroup && i < storageObjects.length-1) {
 				cid = object.id;
+				cond.push(" and id_o"+cid+" is not null ");
 				cond.push(" and o"+cid+" = ");
 			}
 		}
@@ -1954,11 +1982,21 @@ function ClassesChains(cObject){
 
 		for (var i=0; i < find.length; i++){
 			var cids = find[i];
+			var contin = false;
+			storageObjects.forEach(function(o){ if (o.isClass && cids.indexOf(o.id)<0 ) contin = true; });
+			if (contin) continue;
 			var links = [];
+			var _cids = [];
+			var ind = -1;
 			for (var j=0; j < cids.length; j++){
-				if (j>0) links.push([j, j-1]);
+				var _cid = cids[j];
+				if (classesGroup.indexOf(_cid)<0) {
+					ind++;
+					_cids.push(_cid);
+					if (ind>0) links.push([ind, ind-1]);
+				}
 			}
-			var gAnd = orma("gT2id", [cids, links, [],false,["o"+cid+""], " and id_o"+cid+" is not null "+cond], function(result){
+			var gAnd = orma("gT2id", [_cids, links, [],false,["o"+cid+""], " and id_o"+cid+" is not null "+cond], function(result){
 				var _asynccallback = result.params.func;
 				var data = result.data;
 				result.params.counter.value++;
@@ -1976,22 +2014,29 @@ function ClassesChains(cObject){
 
 function getSpecObjectFromStorageObjects(cid){
 	cid = cid || classes["Файлы"];
-	frm = new Form(true);
+	frm = new Form(false);
 	frm.setVisible(true);
-	frm.setLeft("800px");
-	//var onclick	= function(){	}
+	frm.setWidth("400px");
 	
+	cap = [];
+	for (var i=0; i < storageObjects.length; i++){
+		var object = storageObjects[i];
+		if (!object.isClass) { cap.push(object.n); }
+	}
+					
+	frm.getCaption().appendChild(cDom("label",classes3(cid)+": "+cap.join(", ")));
+	
+	if (!classesChains) classesChains = new ClassesChains(classesObjects.getClass(1383));
 	classesChains.gAnd(cid, function(data, islast, params){
-		//console.log(islast ? "last" : data)
 		var frm = params.frm;
-		//var onclick = params.onclick;
+		var cnt = frm.getBody();
+		var tb = cDom("table","",cnt);
 		for (var i=0; i < data.length; i++){
 			var n = data[i][0];
-			var but = cDom("buton",n,frm.getBody());
+			var but = cDom("button",n, cDom("tr","",cDom("tr","",tb)) );
 			var object = {isFile:true, isClass:false, n:n, cid:cid, but:but};
+			but.object = object;
 			ifObjectIsFile(object);
-			//but.onclick = onclick;
-			//col2array//imagesPhotoGallery
 		}
 		if (islast) alert("Поиск и загрузка информации завершена!");
 	}, {frm:frm/*, onclick:onclick*/})

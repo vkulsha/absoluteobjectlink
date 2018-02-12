@@ -88,13 +88,15 @@ gDom("bLogin").onclick = function(){
 	}
 	
 	var getLDAP = function() {
-		getXmlHttpReq(function(responce) {
-			var resp = JSON.parse(responce);
+		var callback = function(resp) {
+			var resp = JSON.parse(resp.data);
 			if (resp) {
 				openview();
 			} else {
 			}
-		}, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
+		}
+		console.log("php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
+		getXmlHttpReq(callback, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru", null, true);
 	}
 	
 	var auth = orm("gLogin",[eUser, md5(password)]);

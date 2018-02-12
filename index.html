@@ -225,16 +225,6 @@ function initializeMainForm(frm){
 				eFilter.placeholder = "поиск по базе данных";
 				eFilter.style.width = "135px";
 			var td =  cDom("td","",tr);
-				var bSetup =  cDom("button","",td);
-				bSetup.innerHTML = "🛠";
-				bSetup.classList.add("eobject");
-				bSetup.title = "настройки пользователя";
-			var td =  cDom("td","",tr);
-				var bFiles =  cDom("button","",td);
-				bFiles.innerHTML = "❏";
-				bFiles.classList.add("eobject");
-				bFiles.title = "найти все файлы внутри текущей записи";
-			var td =  cDom("td","",tr);
 				var bAdd =  cDom("button","",td);
 				bAdd.innerHTML = "+";
 				bAdd.classList.add("eobject");
@@ -260,13 +250,23 @@ function initializeMainForm(frm){
 				bMap.innerHTML = "🖈";
 				bMap.classList.add("eobject");
 				bMap.title = "Вкл отображение на карте";
+			var td =  cDom("td","",tr);
+				var bFiles =  cDom("button","",td);
+				bFiles.innerHTML = "❏";
+				bFiles.classList.add("eobject");
+				bFiles.title = "найти все файлы внутри текущей записи";
+			var td =  cDom("td","",tr);
+				var bSetup =  cDom("button","",td);
+				bSetup.innerHTML = "🛠";
+				bSetup.classList.add("eobject");
+				bSetup.title = "настройки пользователя";
 	
 	bSetup.onclick = function(){
 		userSetup();
 	}
 	
-	bFiles.onclick = function(){
-		objectsGetFiles();
+	bFiles.onmousedown = function(e){
+		objectsGetFiles(e);
 	}
 	
 	bAdd.onclick = function(){
@@ -314,8 +314,11 @@ function userSetup(){
 
 }
 
-function objectsGetFiles(){
-	getSpecObjectFromStorageObjects(1410);
+function objectsGetFiles(e){
+	new ContextMenu([
+		new ContextMenuItem("Файлы", function(){ getSpecObjectFromStorageObjects(1410);	}, this), 
+		new ContextMenuItem("Фото", function(){ getSpecObjectFromStorageObjects(1423);	}, this), 
+	], e.pageX, e.pageY);
 }
 
 function objectAdd(object){

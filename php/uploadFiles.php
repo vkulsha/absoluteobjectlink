@@ -1,5 +1,8 @@
 <?php
 require('conn.php');
+header('Content-Type: text/html; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+
 if (isset($_GET['u'])) {
 	$u = isset($_GET['u']) ? $_GET['u'] : 0;
 } else if (isset($_POST['u'])) {
@@ -7,15 +10,16 @@ if (isset($_GET['u'])) {
 };
 $objectlink->u = $u;
 
-header('Content-Type: text/html; charset=utf-8');
 $uploaddir = $_POST['uploadPath'];
 $uploadid = $_POST['uploadId'];
 $uploadcids = json_decode($_POST['uploadCids']);
 
-mkdir($uploaddir);
 $typePhoto = ["image/jpeg", "image/png"];
 $files = [];
 $oids = [];
+$ret;
+
+if (!file_exists($uploaddir)) {mkdir($uploaddir);};
 
 try{
 	for($i=0; $i<count($_FILES['userfile']['name']); $i++){
@@ -45,9 +49,7 @@ try{
 			$oid = $objectlink->cO([$filename, $uploadid], true);
 			
 			if ($oid) {
-				//for ($j=0; $j<count($uploadcids); $j++){
 					if ($cidFile) {	$objectlink->cL([$oid, $cidFile], true); }
-					//if ($uploadcids[j]) { $objectlink->cL([$oid, $uploadcids[j]], true); }
 					if ($cidPhoto && array_key_exists("photo", $files[$i])) { $objectlink->cL([$oid, $cidPhoto], true);	}
 				//}
 			}
@@ -57,19 +59,15 @@ try{
 				unlink(basename(mb_convert_encoding($filename, "cp1251", "UTF-8"))); 
 				return; 
 			} catch(Exception $e) { 
-				echo json_encode(false); 
+				echo json_encode(false, JSON_UNESCAPED_UNICODE); 
 			} 
 		};
 	}
 
-	//header('Location: ' . $_SERVER['HTTP_REFERER']);
-	//header("location:javascript://history.go(-1)");
-	//echo "<script>window.close();</script>";
-	//if (count($oids))
-	echo json_encode($oids);
-
+	$ret = $oids;
 } catch (Exception $e) {
-	echo json_encode(false);
+	$ret = null;
 }
+echo json_encode($ret, JSON_UNESCAPED_UNICODE);
 
 ?>

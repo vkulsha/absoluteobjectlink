@@ -95,7 +95,6 @@ gDom("bLogin").onclick = function(){
 			} else {
 			}
 		}
-		console.log("php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru");
 		getXmlHttpReq(callback, "php/ldap.php?p1="+eUser+"&p2="+password+"&p3=guss.ru", null, true);
 	}
 	
@@ -319,7 +318,15 @@ function userSetup(){
 function objectsGetFiles(e){
 	new ContextMenu([
 		new ContextMenuItem("Файлы", function(){ getSpecObjectFromStorageObjects(1410);	}, this), 
-		new ContextMenuItem("Фото", function(){ getSpecObjectFromStorageObjects(1423);	}, this), 
+		new ContextMenuItem("Фото", function(){ getSpecObjectFromStorageObjects(1423, function(data){
+			var frm = data;
+			var objects = frm.objects;
+			var images = [];
+			for (var i=0; i < objects.length; i++){
+				images.push(objects[i].n);
+			}
+			imagesPhotoGallery(images, frm.getCaption().innerHTML);
+		});	}, this), 
 	], e.pageX, e.pageY);
 }
 
@@ -484,12 +491,16 @@ function objectUploadFile(object){
 	bSend.object = object;
 	bSend.onclick = function(){
 		var oid = this.object.pobject.id;
-		for (var i=0; i < this.domSelFiles.files.length; i++) {
+		var files = this.domSelFiles.files;
+		var count = 0;
+		for (var i=0; i < files.length; i++) {
 			var formData = {"MAX_FILE_SIZE": 0, "uploadPath": "../data/"+oid+"/", "uploadId": oid, "uploadCids": JSON.stringify([cids]), "userfile[]": this.domSelFiles.files[i], "u": currentUser.uid};
 			getXmlHttpReq(function(result){
-				console.log(result);
-			}, "php/uploadFiles.php", formData, false, true)
+				if (result.data && result.data.length) count++;
+				console.log("fileupload",result);
+			}, "php/uploadFiles.php", formData, false)
 		};
+		if (count < files.length) alert ("Были загружены не все выбранные файлы!");
 		object.but.click(true);
 	}
 	domSelFiles.click();
@@ -1982,14 +1993,19 @@ function ClassesChains(cObject){
 		var find = that.find(cid, 10);//length of chain links cid=1423 (~5s)
 		var cond = this.getStorageChainCond();
 		console.log("gAnd filter:", cond);
-		var chainscount = find.length;
 		this.gAndCounter.value = 0;
-
+		var _find = [];
 		for (var i=0; i < find.length; i++){
-			var cids = find[i];
 			var contin = false;
+			var cids = find[i];
 			storageObjects.forEach(function(o){ if (o.isClass && cids.indexOf(o.id)<0 ) contin = true; });
 			if (contin) continue;
+			_find.push(find[i]);
+		}
+		var chainscount = _find.length;
+		
+		for (var i=0; i < _find.length; i++){
+			var cids = _find[i];
 			var links = [];
 			var _cids = [];
 			var ind = -1;
@@ -2017,11 +2033,12 @@ function ClassesChains(cObject){
 //classesChains.chains.reduce(function(max, e){return max = e.length > max.length ? e : max},[]) //максимальная цепочка
 }
 
-function getSpecObjectFromStorageObjects(cid){
+function getSpecObjectFromStorageObjects(cid, callback){
 	cid = cid || classes["Файлы"];
 	frm = new Form(false);
 	frm.setVisible(true);
 	frm.setWidth("400px");
+	frm.objects = [];
 	
 	cap = [];
 	for (var i=0; i < storageObjects.length; i++){
@@ -2042,8 +2059,12 @@ function getSpecObjectFromStorageObjects(cid){
 			var object = {isFile:true, isClass:false, n:n, cid:cid, but:but};
 			but.object = object;
 			ifObjectIsFile(object);
+			frm.objects.push(object);
 		}
-		if (islast) alert("Поиск и загрузка информации завершена!");
+		if (islast) {
+			alert("Поиск и загрузка информации завершена!");
+			callback(frm);
+		}
 	}, {frm:frm/*, onclick:onclick*/})
 
 }

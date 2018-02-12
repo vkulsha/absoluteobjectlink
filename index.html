@@ -351,33 +351,7 @@ function objectAdd(object, bAdd){
 			if (object.isFile){
 				objectUploadFile(object); 
 			} else if (object.isMap) {
-				//alert('Привязка к карте создается редактором линий на карте!');
-				var layer;
-				var cidMapLink = object.id;
-				var cidMapLinkFunc = +classes["Функции отрисовки"];
-				var cidMapLinkFuncParams = +classes["Параметры функции отрисовки"];
-				var res = orm("gT",[[object.pcid,cidMapLink,cidMapLinkFunc,cidMapLinkFuncParams],[0,1,2,2],"and id"+cidMapLink+" is not null and id"+cidMapLinkFunc+" is not null limit 1"]);
-				if (res && res.length){
-					var layer = res[0];
-					var funcPaint = layer[5];
-					var funcPaintParams = layer[7];
-					console.log(funcPaint, funcPaintParams);
-					var func = map.editTools["start"+funcPaint];
-					layer = func.call(map.editTools);
-					layer.on("click", function(){console.log(this)});
-					
-				} else {
-					var x = bAdd.getBoundingClientRect().left;
-					var y = bAdd.getBoundingClientRect().top;
-					console.log(x,y)
-					new ContextMenu([
-						new ContextMenuItem("Marker", function(){ }, this), 
-						new ContextMenuItem("Polyline", function(){ }, this), 
-						new ContextMenuItem("Polygon", function(){ }, this), 
-						new ContextMenuItem("Circle", function(){ }, this), 
-					], x, y);
-				}
-
+				objectMapAdd(object, bAdd);
 			} else {
 				var objname = orm("gN",[lid]);
 				var n = classname+(objname ? " "+objname : "") + Date.now();
@@ -399,6 +373,40 @@ function objectAdd(object, bAdd){
 				
 			}
 		} else { alert("У вас нет прав для добавления в класс '"+classname+"'!") };
+	}
+}
+
+function objectMapAdd(object, bAdd){
+	//alert('Привязка к карте создается редактором линий на карте!');
+	var layer;
+	var cidMapLink = object.id;
+	var cidMapLinkFunc = +classes["Функции отрисовки"];
+	var cidMapLinkFuncParams = +classes["Параметры функции отрисовки"];
+	var res = orm("gT",[[object.pcid,cidMapLink,cidMapLinkFunc,cidMapLinkFuncParams],[0,1,2,2],"and id"+cidMapLink+" is not null and id"+cidMapLinkFunc+" is not null limit 1"]);
+	if (res && res.length){
+		var layer = res[0];
+		var funcPaint = layer[5];
+		var funcPaintParams = layer[7];
+		console.log(funcPaint, funcPaintParams);
+		var func = map.editTools["start"+funcPaint];
+		L.DomEvent.stop;
+		isPaintMode = true;
+		currentEditingType = funcPaint;
+		window.LAYER = func.call(map.editTools);
+		//layer.on("editable:drawing:end", function(){
+			//console.log(this)//endPaint
+		//});
+		
+	} else {
+		var x = bAdd.getBoundingClientRect().left;
+		var y = bAdd.getBoundingClientRect().top;
+		console.log(x,y)
+		new ContextMenu([
+			new ContextMenuItem("Marker", function(){ }, this), 
+			new ContextMenuItem("Polyline", function(){ }, this), 
+			new ContextMenuItem("Polygon", function(){ }, this), 
+			new ContextMenuItem("Circle", function(){ }, this), 
+		], x, y);
 	}
 }
 
@@ -1288,7 +1296,7 @@ function drawClassAllObjectMapLayer(object, callback){
 				}
 			}
 
-			function endPaint(latlngs){
+			function _endPaint(latlngs){
 				if (latlngs) {
 					var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
 					p.cid = params1.cid;
@@ -1302,7 +1310,7 @@ function drawClassAllObjectMapLayer(object, callback){
 				var latlng = coords[i][0];
 				
 				if (polyId != coords[i][1] && latlngs) {
-					endPaint(latlngs);
+					_endPaint(latlngs);
 					latlngs = [];
 				}
 				if (latlng && latlng[0] == "{" || latlng[0] == "[") {
@@ -1312,7 +1320,7 @@ function drawClassAllObjectMapLayer(object, callback){
 				}
 				polyId = coords[i][1];
 				if (i == coords.length-1){
-					endPaint(latlngs);
+					_endPaint(latlngs);
 					callback(layer);
 				}
 
@@ -1526,11 +1534,12 @@ function refreshMapLinkForm(frm){
 }
 
 function endPaint(layer){
-	var frm = { cid:storageObjects.slice(-1)[0].cid, oid:storageObjects.slice(-1)[0].id, isPaint:storageObjects.slice(-1)[0].isMapLinked };
-	var cid = layer.cid ? layer.cid : frm.cid;
-	var oid = layer.lid ? layer.lid : frm.oid;
+	var object = { cid:storageObjects.slice(-1)[0].pcid, oid:storageObjects.slice(-1)[0].pid, isMap:storageObjects.slice(-1)[0].isMap };
+	var cid = layer.cid ? layer.cid : object.cid;
+	var oid = layer.lid ? layer.lid : object.oid;
 	var isPaint = orm("gL",[cid, classes["Привязка к карте"]]);
-
+	isPaintMode = false;
+	
 	if (!isPaint || !getPolicy(oid)) {
 		alert(!isPaint ? "Элемент '"+orm("gN",[cid])+": "+orm("gN",[oid])+"' нельзя привязать к карте!" : "У вас нет прав для привязки к карте!");
 		layer.remove();
@@ -1548,7 +1557,7 @@ function endPaint(layer){
 
 	mapProps.mapFunctions.forEach(function(prop){
 		if (currentEditingType == prop.drawFunc){
-			if (!frm.isPaint) {
+			if (!object.isMap) {
 				alert("Данный объект не привязан к карте!");
 				layer.remove();
 				return;

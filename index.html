@@ -316,15 +316,25 @@ function userSetup(){
 function objectsGetFiles(e){
 	new ContextMenu([
 		new ContextMenuItem("Файлы", function(){ getSpecObjectFromStorageObjects(+classes["Файлы"]);	}, this), 
-		new ContextMenuItem("Фото", function(){ getSpecObjectFromStorageObjects(+classes["Фото"], function(data){
-			var frm = data;
-			var objects = frm.objects;
-			var images = [];
-			for (var i=0; i < objects.length; i++){
-				images.push(objects[i].n);
-			}
-			imagesPhotoGallery(images, frm.getCaption().innerHTML);
-		});	}, this), 
+		new ContextMenuItem("Фото", function(){ 
+			getSpecObjectFromStorageObjects(+classes["Фото"], function(data){
+				var frm = data;
+				var objects = frm.objects;
+				var images = [];
+				for (var i=0; i < objects.length; i++){
+					images.push(objects[i].n);
+				}
+				imagesPhotoGallery(images, frm.getCaption().innerHTML);
+				
+				var but = frm.getCaption().appendChild(cDom("button","Открыть фотобуклет"));
+				but.images = images;
+				but.style.height = "30px";
+				but.onclick = function(){
+					var data = {"caption":"г. Москва, Кирпичный пер., 17", "data":[{"caption":"Фото первого этажа", "images":images}]};
+					openWindow(domain+"php/booklet.php?data="+JSON.stringify(data));
+				}
+			});	
+		}, this), 
 	], e.pageX, e.pageY);
 }
 

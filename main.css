@@ -1,3 +1,8 @@
+@font-face {
+    font-family: geometria;
+    src: url(geometria.otf);
+}
+
 html, body {
 	height: 100%;
 	overflow: hidden;
@@ -5,7 +10,7 @@ html, body {
 	margin: 0px;
 	color: #fff;
 	background-color: #000;
-	font-family: Arial;
+	font-family: geometria;
 	font-size: 12px;
 
 	scrollbar-base-color: rgba(50,50,50,0.3);
@@ -24,6 +29,7 @@ table.tbobject
     border: 0px;
     border-collapse: collapse;
     border-spacing: 0px;
+	font-family: geometria;
 }
 
 table.tbobject td
@@ -44,12 +50,14 @@ table.tbobjectnotpadding td
 }
 
 button, select, option {
+	font-family: geometria;
 	background-color: rgba(0,0,0,0.3);
 	border: none;
 	color : #eee;
 }
 
 input.eobject, button.eobject {
+	font-family: geometria;
 	background-color: rgba(0,0,0,0.3);
 	border: 1px solid #555;
 	color : #eee;

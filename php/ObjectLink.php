@@ -730,9 +730,22 @@ class ObjectLink {
 	
 	public function test($params){
 		$t = microtime(true);
-		//$this->gT2([["Объекты","Здания и сооружения"]]);
-		//$func = debug_backtrace()[0]['function'];
-		$func = "function";
+
+		$coords = $params[0];
+		if (is_array($coords)) {
+			$coords = count($coords) == 1 ? $coords[0] : $coords;
+		} else {
+			$coords = Array($coords);
+		}
+		
+		for ($i=0; $i < count($coords); $i++){
+			$coord = $coords[$i];
+			$coord = isset($coord->lat) && isset($coord->lng) ? json_encode($coords[$i]) : "error...";
+			echo $coord."<br>";
+		}
+
+		return $coords;
+		
 		return microtime(true)-$t;
 	}
 	
@@ -763,8 +776,8 @@ class ObjectLink {
 			$func = (isset($params[1]) && $params[1]) ? $params[1] : "Marker";
 			$param = (isset($params[2]) && $params[2]) ? $params[2] : ($func == "Marker" ? '' : '{"weight":1, "color":"#ffff00"}');
 			$coords = (isset($params[3]) && $params[3]) ? $params[3] : "";
-			if (!$oid) return 0;
-			
+			if (!$oid || !$coords) return 0;
+
 			$date = new DateTime();
 			$timestamp = $date->getTimestamp();
 			$maplink_cid = $this->gO(["Привязка к карте", true]);
@@ -780,10 +793,20 @@ class ObjectLink {
 			$params_oid = $this->cO([$param, $params_cid], true);
 			$this->cL([$params_oid, $maplink_oid]);
 			
-			$coords_cid = $this->gO(["Координаты на карте", true]);
-			$coords_oid = $this->cO([$coords, $coords_cid], true);
-			$this->cL([$coords_oid, $maplink_oid], true);
 			
+			if (is_array($coords)) {
+				$coords = count($coords) == 1 ? $coords[0] : $coords;
+			} else {
+				$coords = Array($coords);
+			}
+			
+			for ($i=0; $i < count($coords); $i++){
+				$coord = $coords[$i];
+				$coord = isset($coord->lat) && isset($coord->lng) ? json_encode($coords[$i]) : "";
+				$coords_cid = $this->gO(["Координаты на карте", true]);
+				$coords_oid = $this->cO([$coord, $coords_cid], true);
+				$this->cL([$coords_oid, $maplink_oid], true);
+			}
 			return $maplink_oid;
 			
 		} catch (Exception $e){

@@ -12,11 +12,11 @@
 	try {
 		if (isset($_GET['f'])) {
 			$f = $_GET['f'];
-			$p = $_GET['p'];
+			$p = isset($_GET['p']) ? $_GET['p'] : 0;
 			$u = isset($_GET['u']) ? $_GET['u'] : 0;
 		} else if (isset($_POST['f'])) {
 			$f = $_POST['f'];
-			$p = $_POST['p'];
+			$p = isset($_POST['p']) ? $_POST['p'] : 0;
 			$u = isset($_POST['u']) ? $_POST['u'] : 0;
 		};
 		$objectlink->u = $u;

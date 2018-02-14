@@ -47,7 +47,6 @@ L.tileLayer(mapProps.tileLayer, mapProps.tileLayerParams).addTo(map);
 map.setView(mapProps.setViewLatLng, mapProps.setViewZoom);
 map.editTools.on('editable:drawing:end editable:vertex:contextmenu',function(e){ if (isPaintMode) endPaint(e.layer); })
 var isPaintMode = false;
-var selectedPoly;
 var currentEditing;
 var currentEditingType;
 
@@ -144,7 +143,7 @@ function loadNewForm(id, cid){
 	frm.getBody().innerHTML = "";
 	frm.getCaption().innerHTML = "";
 	frm.setVisible(true);
-	frm.setWidth("400px");
+	frm.setWidth("450px");
 	initializeMainForm(frm);
 	
 	var n = orm("gN",[id]);
@@ -387,7 +386,14 @@ function objectAdd(object, bAdd){
 }
 
 function objectMapAdd(object, bAdd){
-	//alert('Привязка к карте создается редактором линий на карте!');
+	function startPaint(funcPaint){
+		L.DomEvent.stop;
+		var func = map.editTools["start"+funcPaint];
+		isPaintMode = true;
+		currentEditingType = funcPaint;
+		window.LAYER = func.call(map.editTools);
+	}
+
 	var layer;
 	var cidMapLink = object.id;
 	var cidMapLinkFunc = +classes["Функции отрисовки"];
@@ -398,24 +404,16 @@ function objectMapAdd(object, bAdd){
 		var funcPaint = layer[5];
 		var funcPaintParams = layer[7];
 		console.log(funcPaint, funcPaintParams);
-		var func = map.editTools["start"+funcPaint];
-		L.DomEvent.stop;
-		isPaintMode = true;
-		currentEditingType = funcPaint;
-		window.LAYER = func.call(map.editTools);
-		//layer.on("editable:drawing:end", function(){
-			//console.log(this)//endPaint
-		//});
+		startPaint(funcPaint);
 		
 	} else {
 		var x = bAdd.getBoundingClientRect().left;
 		var y = bAdd.getBoundingClientRect().top;
-		console.log(x,y)
 		new ContextMenu([
-			new ContextMenuItem("Marker", function(){ }, this), 
-			new ContextMenuItem("Polyline", function(){ }, this), 
-			new ContextMenuItem("Polygon", function(){ }, this), 
-			new ContextMenuItem("Circle", function(){ }, this), 
+			new ContextMenuItem("Marker", function(){ startPaint("Marker"); }, this), 
+			new ContextMenuItem("Polyline", function(){ startPaint("Polyline"); }, this), 
+			new ContextMenuItem("Polygon", function(){ startPaint("Polygon"); }, this), 
+			new ContextMenuItem("Circle", function(){ startPaint("Circle"); }, this), 
 		], x, y);
 	}
 }
@@ -575,7 +573,6 @@ function objectsTable(_classes, _links, _hidden){
 	_classes = _classes || [classes3(cid)];
 	
 	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);
-	console.log(rows);
 	var tb = cDom("table");
 	var tbstr = ["<table>"];
 	tb.setAttribute("border",1);
@@ -1172,7 +1169,7 @@ function ifObjectIsMap(object){
 			if (coord && coord.length) coord = coord[0];
 		}
 		
-		if (coord) {
+		if (coord && coord.lat) {
 			map.setView([coord.lat, coord.lng], 18);
 		}
 		return true;
@@ -1288,6 +1285,7 @@ function drawClassAllObjectMapLayer(object, callback){
 			if (!coords || !coords.length) return;
 			var latlngs = [];
 			var polyId = coords[0][1];
+			var objId = coords[0][2];
 			var layer = L.layerGroup();
 
 			var paintFunc = coords[0][3] ? coords[0][3] : "";
@@ -1307,12 +1305,22 @@ function drawClassAllObjectMapLayer(object, callback){
 			}
 
 			function _endPaint(latlngs){
-				if (latlngs) {
+				if (latlngs && latlngs.length) {
+					if (latlngs.length == 1) latlngs = latlngs[0];
 					var p = L[paintFunc.toLowerCase()](latlngs, paintFuncParams).addTo(layer);
 					p.cid = params1.cid;
 					layer.cid = params1.cid;
 					p.paintFunc = paintFunc;
 					p.paintFuncParams = paintFuncParams;
+					
+					p.oid = polyId;
+					p.cid = cid;
+					p.lid = objId;
+					p.pid = objId;
+					p.on('mouseover', mapLayerOnMouseOver);
+					p.on('mouseout', mapLayerOnMouseOut);
+					p.on('click', mapLayerOnClick);
+					p.on('contextmenu', mapLayerOnContextMenu);
 				}
 			}
 			
@@ -1324,11 +1332,12 @@ function drawClassAllObjectMapLayer(object, callback){
 					latlngs = [];
 				}
 				if (latlng && latlng[0] == "{" || latlng[0] == "[") {
-					latlngs = JSON.parse(latlng);
+					latlngs.push(JSON.parse(latlng));
 				} else {
 					latlngs.push(latlng.split(" "));
 				}
 				polyId = coords[i][1];
+				objId = coords[i][2];
 				if (i == coords.length-1){
 					_endPaint(latlngs);
 					callback(layer);
@@ -1366,7 +1375,7 @@ function drawObjectMapLayer(object, callback){
 				var paintFunc = mapLink[1];
 				var paintFuncParams = JSON.parse(mapLink[2]);
 				var oid = params1.ids && params1.ids.length ? +mapLink[3] : params1.id;
-				
+
 				if (paintFunc == "Marker") paintFuncParams = paintFuncParams ? {"icon":L.icon(paintFuncParams)} : 
 					(params1.cid == classes["Арендаторы"] ? {"icon":L.icon({"iconUrl":"images/arendator.png"})} : null) ;
 				if (paintFunc == "Circle") {paintFuncParams = {"radius":1, "color":"#ffff00"}; }
@@ -1395,12 +1404,13 @@ function drawObjectMapLayer(object, callback){
 					for (var latLngInd=0; latLngInd < coords.length; latLngInd++){
 						var latlng = coords[latLngInd][0];
 						if (latlng && latlng[0] == "{" || latlng[0] == "[") {
-							latlngs = JSON.parse(latlng);
+							latlngs.push(JSON.parse(latlng));
 						} else {
 							latlngs.push(latlng.split(" "));
 						}
 					}
-					if (latlngs) {
+					if (latlngs && latlngs.length) {
+						if (latlngs.length == 1) latlngs = latlngs[0];
 						var p = L[params2.paintFunc.toLowerCase()](latlngs, params2.paintFuncParams).addTo(params2.layer);
 						p.oid = params2.mapLinkId;
 						p.lid = params2.oid;
@@ -1408,56 +1418,14 @@ function drawObjectMapLayer(object, callback){
 						p.pid = params2.id;
 						p.paintFunc = params2.paintFunc;
 						p.paintFuncParams = params2.paintFuncParams;
-						p.on('mouseover', params2.onmouseover);
-						p.on('mouseout', params2.onmouseout);
-						p.on('click', params2.onclick);
-						p.on('contextmenu', params2.oncontextmenu);
+						p.on('mouseover', mapLayerOnMouseOver);
+						p.on('mouseout', mapLayerOnMouseOut);
+						p.on('click', mapLayerOnClick);
+						p.on('contextmenu', mapLayerOnContextMenu);
 						callbacklayerinner(res);
 					}
 				}, _params2);
 				
-				function onmouseover(e) {
-					if (this.paintFunc != "Marker") 
-						this.setStyle({color:"#ff0000", weight:2}); 
-					
-					var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
-					if (cell) cell.style.color = "#ff9999";
-				}
-				function onmouseout(e) { 
-					if (this.paintFunc != "Marker")
-						this.setStyle(this.paintFuncParams); 
-						
-					var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
-					if (cell) cell.style.color = "#fff";
-				}
-				function onclick(){
-					if (isPaintMode && this.paintFunc != "Marker") {
-						if (selectedPoly) {
-							selectedPoly.disableEdit();
-						}
-						selectedPoly = this;
-						selectedPoly.enableEdit();
-					} else {
-						loadNewForm(this.lid, this.cid);
-					}
-				}
-				function oncontextmenu(e) { 
-					if (this.paintFunc != "Marker" && isPaintMode && selectedPoly) {
-						new ContextMenu([
-							new ContextMenuItem("Удалить", function(){ 
-								if (confirm("Удалить выделенную линию класса "+classes3(this.ctx.cid)+" ?")){
-									var res = orm("nL",[selectedPoly.oid, selectedPoly.lid]);
-									if (res) {
-										selectedPoly.disableEdit();
-										selectedPoly.remove();
-										selectedPoly = this.ctx;
-									}
-								}
-							}, this), 
-							], e.containerPoint.x, e.containerPoint.y);
-						return false;
-					}
-				}
 			}
 			function callbacklayerinner(res){
 				if (res == maplinks.length){
@@ -1467,6 +1435,54 @@ function drawObjectMapLayer(object, callback){
 			}
 //console.timeEnd("id"+object.id);
 		}, _params1);
+}
+
+function mapLayerOnMouseOver(e) {
+	if (this.paintFunc != "Marker") 
+		this.setStyle({color:"#ff0000", weight:2}); 
+	
+	var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
+	if (cell) cell.style.color = "#ff9999";
+}
+function mapLayerOnMouseOut(e) { 
+	if (this.paintFunc != "Marker")
+		this.setStyle(this.paintFuncParams); 
+		
+	var cell = gDom("but.object.id"+this.lid+"pid"+this.pid);
+	if (cell) cell.style.color = "#fff";
+}
+function mapLayerOnClick(){
+	console.log(this);
+	if (isPaintMode && this.paintFunc != "Marker") {
+		if (currentEditing) {
+			currentEditing.disableEdit();
+		}
+		currentEditing = this;
+		currentEditing.enableEdit();
+	} else {
+		if (confirm("Перейти к объекту, связанному с линией?")) loadNewForm(this.lid, this.cid);
+	}
+}
+function mapLayerOnContextMenu(e) { 
+	if (this.paintFunc != "Marker") {
+		new ContextMenu([
+			new ContextMenuItem("Удалить", function(){ 
+				currentEditing = this.ctx;
+				if (getPolicy(currentEditing.oid)){
+					if (confirm("Удалить выделенную линию класса "+classes3(this.ctx.cid)+" ?")){
+						var res = orm("nL",[currentEditing.oid, currentEditing.lid]);
+						if (res) {
+							currentEditing.disableEdit();
+							currentEditing.remove();
+							currentEditing = null;//this.ctx;
+						}
+					}
+				} else { alert("У вас недостаточно прав для удаления линии данного класса!"); }
+				currentEditing = null;
+			}, this), 
+			], e.containerPoint.x, e.containerPoint.y);
+		return false;
+	}
 }
 
 function clearStorageMapLayers(){
@@ -1547,7 +1563,7 @@ function endPaint(layer){
 	var object = { cid:storageObjects.slice(-1)[0].pcid, oid:storageObjects.slice(-1)[0].pid, isMap:storageObjects.slice(-1)[0].isMap };
 	var cid = layer.cid ? layer.cid : object.cid;
 	var oid = layer.lid ? layer.lid : object.oid;
-	var isPaint = orm("gL",[cid, classes["Привязка к карте"]]);
+	var isPaint = orm("gL",[cid, classes["Привязка к карте"]]) || orm("gL",[cid, classes["Полигоны на карте"]]);
 	isPaintMode = false;
 	
 	if (!isPaint || !getPolicy(oid)) {
@@ -1576,26 +1592,20 @@ function endPaint(layer){
 			var params = cid == classes["Арендаторы"] ? '{"iconUrl":"images/arendator.png"}' : "";
 			var latlngs = layer[prop.getLatLngFunc]();
 			var coords = JSON.stringify(latlngs,["lat","lng"]);
-			if (coords.length > 1024) {
-				window.alert("Количество координат превышает допустимое количество (20)!");
-				layer.remove();
-			} else {
-				if (confirm((layer.oid ? "Изменить" : "Привязать")+" отрисовку к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
-					var _oid = orm("createPolygonObject",[oid, func, params, coords]);
-					console.log("create drawing:",_oid);
-					
-					if (layer.oid && layer.lid) {
-						orm("nO",[layer.oid]);
-						console.log("delete old drawing:", layer.oid);
-					} else {
-						layer.remove();
-					}
+			if (confirm((layer.oid ? "Изменить" : "Привязать")+" отрисовку к объекту '"+orm("gN",[cid])+": "+orm("gN",[oid])+"'")) {
+				var _oid = orm("createPolygonObject",[oid, func, params, JSON.parse(coords)]);
+				console.log("create drawing:",_oid);
+				
+				if (layer.oid && layer.lid) {
+					orm("nO",[layer.oid]);
+					console.log("delete old drawing:", layer.oid);
 				} else {
 					layer.remove();
 				}
+			} else {
+				layer.remove();
 			}
 			currentEditingType = "";
-			//var ll = L[prop.drawFunc.toLowerCase()](latlngs);
 		}
 	})
 }

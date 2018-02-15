@@ -363,7 +363,7 @@ function objectAdd(object, bAdd){
 				objectMapAdd(object, bAdd);
 			} else {
 				var objname = orm("gN",[lid]);
-				var n = classname+(objname ? " "+objname : "") + Date.now();
+				var n = classname+(objname ? " "+objname : "");// + " " + Date.now();
 				var newoid = n ? orm("cO",[n, cid]) : 0;
 				var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
 				if (newoid){

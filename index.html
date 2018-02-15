@@ -499,7 +499,7 @@ function objectDel(object, refreshPObject){
 		if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[lid])+"'?") ){
 			var res = orm("nL",[o1, lid]);
 			if (res) { 
-				if ((object.isMap || object.isMapLinked) && object.layer) object.layer.remove();
+				if ((object.isMap || object.isMapLinked) && object.layers && object.layers.length) { object.layers.forEach( function(layer){ layer.remove(); } ) };
 				if (pobject && refreshPObject) pobject.but.click(true);
 			};
 		}
@@ -551,27 +551,37 @@ function objectUploadFile(object){
 }
 
 ////////////////////
-function objectsTable(_classes, _links, _hidden){
-	var _object = storageObjects[0];
-	cid = (_object.isClass ? _object.id : _object.cid);
+function objectsTable(_classes, _links, _hidden, _cond){
+//	var _object = storageObjects[0];
+//	cid = (_object.isClass ? _object.id : _object.cid);
 	_links = _links || [];
 	_hidden = _hidden || [];
-	var cond = "";
+	var cond = _cond || "";
 
 	if (!_classes) {
-		_classes = [];
-		var ind = -1;
-		for (var i=0; i < storageObjects.length; i++){
-			var object = storageObjects[i];
-			if (object.isClass && !object.isGroup) {
-				ind++;
-				_classes.push(classes3(object.id));
-				if (ind) _links.push([ind, ind-1]);
-			}
+		var _object = storageObjects[storageObjects.length-1];
+		var _pobject = _object;
+		var cn = "";
+		
+		if (_object.isClass) {
+			cn = _object.isGroup ? "" : classes3(_object.isClass ? _object.id : _object.cid);
+			_pobject = storageObjectsGet(_object.pid);
 		}
+		_classes = [classes3(_pobject.cid)];
+		if (cn) _classes.push(cn);
+		cond = " and `id_"+classes3(_pobject.cid)+"` = "+_pobject.id;
+		
+		/*if (!_object.isClass) {
+			objects = gAndObject(_object);
+			for (var i=0; i < objects.length; i++){
+				if (classesGroup.indexOf(+objects[i][0])>=0) continue;
+				_classes.push(objects[i][1]);
+				if (ind) _links.push([_classes.length-1, _classes.length-2]);
+			}
+		}*/
 	}
 
-	_classes = _classes || [classes3(cid)];
+//	_classes = _classes || [classes3(cid)];
 	
 	var rows = orm("gT2",[_classes,_links,[],false,null,cond]);
 	var tb = cDom("table");
@@ -584,6 +594,7 @@ function objectsTable(_classes, _links, _hidden){
 	frm.links = _links;
 	frm.tb = tb;
 	frm.hiddenclasses = _hidden;
+	frm.cond = cond;
 	
 	var tr = cDom("tr","",tb);
 	var td = cDom("td","",tr);
@@ -701,7 +712,7 @@ function ButTableClassAdd(object){
 				_classes.push(value);
 				_links.push([_classes.length-1, that.ind]);
 				that.frm.setVisible(false);
-				objectsTable(_classes, _links, that.frm.hiddenclasses);
+				objectsTable(_classes, _links, that.frm.hiddenclasses, that.frm.cond);
 			}
 		}
 	}
@@ -966,7 +977,7 @@ function ifObjectIsObject(object){
 		object.sel.checked = false;
 		this.focus();
 		
-		if (!e.isNotCalsCount) console.log("id:",object.id,",cid:",object.cid);
+		if (!e.isNotCalsCount) console.log("id:",object.id,",cid:",object.cid,",pid:",object.pid,",pcid:",object.pcid);
 	}
 	object.but.addEventListener("click", onclick);
 
@@ -1001,6 +1012,15 @@ function storageObjectsAdd(_object){
 	
 	storageObjects.push(_object);
 	return _object
+}
+
+function storageObjectsGet(id){
+	for (var i=0; i < storageObjects.length; i++){
+		var object = storageObjects[i];
+		if (object.id == id) {
+			return object;
+		}
+	}
 }
 
 function ifObjectIsScript(object){
@@ -1163,7 +1183,7 @@ function ifObjectIsMap(object){
 	if ( object.isMap && object.isClass ){
 		setViewObject = object;
 		var coord;
-		var p = getPaint(object.pid);
+		var p = getPaint(object.pid)[0];
 		if (p) {
 			mapProps.mapFunctions.forEach(function(prop){ if (p.paintFunc == prop.drawFunc) coord = p[prop.getLatLngFunc](); })
 			if (coord && coord.length) coord = coord[0];
@@ -1176,7 +1196,10 @@ function ifObjectIsMap(object){
 		return true;
 	} else if ( object.isMap && !object.isClass ){
 		var p = getPaint(object.pid);
-		if (p) object.layer = p;
+		if (p) {
+			//object.layer = p[0];
+			object.layers = p;
+		}
 		return true;
 	}
 	return false;
@@ -1189,18 +1212,21 @@ function ifObjectIsMapLinked(object){
 	if ( object.isMapLinked && !object.isClass ) {//speed test without specialLinkedClasses with gAnd ~ 150ms vs 400ms in 8st and 400ms vs 800ms in 16st => 1/2-1/3
 		object.but.onmouseover = function(){
 			var object = this.object;
-			var layer = getObjectMapLayer(object);
-			if (layer && layer.paintFunc != "Marker") {
-				object.layer = layer;
-				layer.setStyle({color:"#ff0000", weight:2});
+			var layers = getObjectMapLayer(object);
+			if (layers && layers.length && layers[0].paintFunc != "Marker") {
+				object.layers = layers;
+				for (var i=0; i < layers.length; i++)
+					layers[i].setStyle({color:"#ff0000", weight:2});
 			}
 		}
 		
 		object.but.onmouseout = function(){
 			var object = this.object;
-			var layer = getObjectMapLayer(object);
-			if (layer && layer.paintFunc != "Marker") {
-				layer.setStyle(layer.paintFuncParams);
+			var layers = getObjectMapLayer(object);
+			if (layers && layers.length && layers[0].paintFunc != "Marker") {
+				object.layers = layers;
+				for (var i=0; i < layers.length; i++)
+					layers[i].setStyle(layers[i].paintFuncParams);
 			}
 		}
 		
@@ -1213,14 +1239,15 @@ function ifObjectIsMapLinked(object){
 }
 
 function getObjectMapLayer(object){
-	var layer;
-	if (object.layer) {
-		layer = object.layer;
+	var layers;
+	if (object.layers) {
+		layers = object.layers;
 	} else {
-		layer = getPaint(object.id);
-		object.layer = layer;
+		layers = getPaint(object.id);
+		//object.layer = layers[0];
+		object.layers = layers;
 	}
-	return layer;
+	return layers;
 }
 
 function drawClassMapLayer(object, isClassAllObjects){
@@ -1621,15 +1648,15 @@ function endPaint(layer){
 }
 
 function getPaint(oid){
-	var findLayer = null;
+	var findLayers = [];
 	map.eachLayer(function(layer){
 		var lid = layer.lid || layer.oid;
 		if (lid && lid == oid) {
-			findLayer = layer;
-			return;
+			findLayers.push(layer);
+			//return;
 		}
 	});
-	return findLayer;
+	return findLayers;
 }
 
 //////////

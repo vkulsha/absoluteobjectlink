@@ -804,8 +804,8 @@ class ObjectLink {
 				$coord = $coords[$i];
 				$coord = isset($coord->lat) && isset($coord->lng) ? json_encode($coords[$i]) : "";
 				$coords_cid = $this->gO(["Координаты на карте", true]);
-				$coords_oid = $this->cO([$coord, $coords_cid], true);
-				$this->cL([$coords_oid, $maplink_oid], true);
+				$coords_oid = $this->cO([$coord, $maplink_oid], true);
+				$this->cL([$coords_oid, $coords_cid], true);
 			}
 			return $maplink_oid;
 			

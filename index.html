@@ -196,13 +196,6 @@ function getLinkedClasses(id){
 	return ret;
 }
 
-function getAllObjectsFromClassLinkedObject(object, cid){
-	if (!object.isClass){
-		var pcid = object.id;
-		
-	}
-}
-
 function getClassChain(cid){
 	var ret = [cid];
 	var arr = orm("gAnd",[[cid],"id",false,"and id <> 1",false,true]);
@@ -1829,9 +1822,9 @@ function ClassesObject(cObjects){
 	
 }
 
-function ClassObject(cid){
+function ClassObject(id){
 	var that = this;
-	this.cid = +cid;
+	this.cid = +id;
 	this.isClassGroup = classesGroup.indexOf(this.cid) >= 0;
 	this.parent = [];
 	this.child = [];
@@ -1954,6 +1947,54 @@ function ClassesChains(cObject){
 		return true;
 	}
 //classesChains.chains.reduce(function(max, e){return max = e.length > max.length ? e : max},[]) //максимальная цепочка
+}
+
+////////////////////////////////
+////////////////////////////////
+////////////////////////////////
+function Objects(params){
+	this.id = params.id;
+	this.n = params.n;
+	this.c = params.c;
+	this.d = params.d;
+	this.u = params.u;
+
+	this.isClass = !!~classes2.indexOf(this.id);
+
+	this.pObject = params.pObject;
+	this.cObject = params.cObject;
+	this.child = [];
+
+//	this.but = null;
+//	this.edit = null;
+//	this.layer = null;
+}
+Objects.prototype = {
+	getPObject: function(){	return this.pObject; },
+	setPObject: function(object){ this.pObject = object; },
+	getCObject: function(){	return this.cObject; },
+	setCObject: function(object){ this.cObject = object; },
+
+	getChild: function(){
+		var child = orm("gChild",[this.id]);
+		for (var i=0; i < child.length; i++){
+			var params = {
+				id: child[i][0];
+				n: child[i][1];
+				c: child[i][2];
+				d: child[i][3];
+				u: child[i][4];
+				//pObject: this;
+				//pcObject: this;
+			}
+			this.child.push(new Objects(params));
+		}
+		return this.child;
+	},
+	
+	add: function() { },
+	del: function() { },
+	upd: function() { },
 }
 
 /////////////////ifObjectScript SCRIPTS//////////////////

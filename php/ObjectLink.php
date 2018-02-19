@@ -574,6 +574,19 @@ class ObjectLink {
 		}
 	}
  
+	public function gChild($params, $notPolicy=false){
+		if (!$notPolicy && !$this->getPolicyLazy()) return [];
+		try {
+			$id = isset($params[0]) ? $params[0] : 1;
+			$sel = "select id, n, c, d, u from (select o1, d, c, u from link where c>0 and o2 = 1 and o1 <> 1)l left join (select id, n from object) o on o.id = l.o1 order by c desc, id";
+			return $sel ? $this->sql->sT(["(".$sel.")x ", "*", ""]) : [];
+		
+		} catch (Exception $e){
+			print($e);
+			return null;
+		}
+	}
+ 
 	public function gLogin($params){
 		try {
 			$login = isset($params[0]) ? $params[0] : "";

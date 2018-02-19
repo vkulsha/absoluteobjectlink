@@ -29,7 +29,7 @@ $images = $data[0]->images;
 $caption = $data[0]->caption;
 for ($i=0; $i < count($images); $i++ ){
 	$fn = $images[$i];
-	$n = split("/",$fn);
+	$n = explode("/",$fn);
 	if ($n[0] != "..") $n[0] = "../".$n[0];
 	$fn = join("/",$n);
 	$fn = mb_convert_encoding($fn, "cp1251", "UTF-8");

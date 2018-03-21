@@ -358,19 +358,21 @@ function objectAdd(object, bAdd){
 			} else {
 				var objname = orm("gN",[lid]);
 				var n = "пусто";//classname+(objname ? " "+objname + " " + Date.now() : "");// + " " + Date.now();
-				var newoid = n ? orm("cO",[n, cid]) : 0;
+				var newoid = n ? orm("cO",[n, 0]) : 0;
+				var newlink = newoid && cid ? orm("cL",[newoid, cid]) : 0;
 				var newlink = newoid && lid ? orm("cL",[newoid, lid]) : 0;
 				if (newoid){
 					object.but.click(true);
 					var but = gDom("but.object.id"+newoid+"pid"+object.pid);
 					if (but) {
 						but.focus();
-						objectEdit(but.object, function(val, _object){
+						objectUpd(but.object);
+						/*objectEdit(but.object, function(val, _object){
 							orm("uO", [_object.id, val, _object.pid]);
 							_object.pobject.but.click(true);
 							var but = gDom("but.object.id"+_object.id+"pid"+_object.pid);
 							if (but) but.click(true);
-						})
+						})*/
 					}
 				}
 				
@@ -434,14 +436,19 @@ function objectEdit(object, callback){
 	list.value = defval;
 	list.focus();
 	list.onkeydown = func;
-	list.onblur = func;
+	list.onblur = funcblur;
 
 	function func(e){
 		if (e.keyCode == 27) {
 			object.pobject.but.click(true);
 		} else if (!e.keyCode || e.keyCode == 13) {
-			callback(this.value, object)
+			//callback(this.value, object)
+			object.pobject.but.click(true);
 		}
+	}
+
+	function funcblur(){
+		callback(this.value, object)
 	}
 	
 }
@@ -474,7 +481,7 @@ function objectUpd(object){
 				if (pobject) pobject.but.click(true);
 			}
 		})
-	} else { alert("У вас нет прав для изменения записи '"+_n+"'!") };
+	};// else { alert("У вас нет прав для изменения записи '"+_n+"'!") };
 
 
 }
@@ -995,6 +1002,11 @@ function ifObjectIsObject(object){
 		if (e.key == "F2") { if (e.target.nodeName != "INPUT") {objectUpd(this.object); return false;} }
 
 	};
+	
+	object.but.ondblclick = function(){
+		objectUpd(this.object); 
+		return false;
+	}
 	
 	return onclick;
 }

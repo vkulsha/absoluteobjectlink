@@ -45,7 +45,7 @@ class ObjectLink {
 			$n = $params[0];
 			$pid = isset($params[1]) ? $params[1] : 1;
 			$u = $this->u;
-			if ($notPolicy || $this->getPolicy(["cL", $pid])) {} else {return 0;};
+			if ($notPolicy || $this->getPolicy(["cL", $pid]) || !$pid) {} else {return 0;};
 
 			$id = 0;
 			if ($n && $u) {
@@ -183,7 +183,8 @@ class ObjectLink {
 			$mid = $params[2];
 			if (!$notPolicy && !$this->getPolicy(["cL",$mid])) return 0;
 			
-			$oid = $this->cO([$n, $pid],true);
+			$oid = $this->cO([$n, 0],true);//$oid = $this->cO([$n, $pid],true);
+			$this->cL([$oid, $pid],true);//
 			$linksArr = $this->gAnd([[$mid],"id,n",true,"",false], true);
 			
 			forEach ($linksArr as $link) {

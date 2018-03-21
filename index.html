@@ -488,6 +488,11 @@ function objectDel(object, refreshPObject){
 	var lid = !object.isClass ? object.pid : ( pobject.isGroup ? pobject.id : pobject.cid );
 	var n_ = orm("gN",[o1]);
 
+	if (object.isClass && currentUser.uid != 1577) {
+		alert("У вас нет прав для удаления записи '"+n_+"'!");
+		return;
+	}
+	
 	if (getPolicy(o1)) {
 		if ( confirm("Удалить запись '"+n_+"' из '"+orm("gN",[lid])+"'?") ){
 			var res = orm("nL",[o1, lid]);

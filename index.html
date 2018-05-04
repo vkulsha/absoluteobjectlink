@@ -366,13 +366,21 @@ function objectAdd(object, bAdd){
 					var but = gDom("but.object.id"+newoid+"pid"+object.pid);
 					if (but) {
 						but.focus();
-						objectUpd(but.object);
-						/*objectEdit(but.object, function(val, _object){
+						/*objectEdit(but.object, function(val, _object){///1
 							orm("uO", [_object.id, val, _object.pid]);
 							_object.pobject.but.click(true);
 							var but = gDom("but.object.id"+_object.id+"pid"+_object.pid);
 							if (but) but.click(true);
 						})*/
+
+						//objectUpd(but.object);///2
+
+						objectEdit(but.object, function(val, _object){///3
+							orm("uO", [_object.id, val, _object.cid]);
+							_object.pobject.but.click(true);
+							var but = gDom("but.object.id"+_object.id+"pid"+_object.pid);
+							if (but) but.click(true);
+						})
 					}
 				}
 				

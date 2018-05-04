@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 def sendmail(address_book, body):
-	address_book = ['kulshavi@guov.ru', 'kulshavi@guov.ru']
+	#address_book = ['kulshavi@guov.ru', 'kulshavi@guov.ru']
 	msg = MIMEMultipart()    
 	sender = 'AnaliticInformationSystem@guov.ru (don`t reply)'
 	subject = "Аналитическая Информационная Система - Календарь - Напоминание..."

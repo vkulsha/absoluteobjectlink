@@ -4,7 +4,7 @@ import urllib.parse
 import json
 import ais_mail
 
-base_url = 'http://reutov-srv01.guss.ru/php/olp.php?'
+base_url = 'http://localhost/php/olp.php?'
 today = str(date.today().strftime('%d.%m.%Y'))
 params = urllib.parse.urlencode({'f':'gT2' ,'p':'[["Календарь","Дата","Дата напоминания","Описание","Email"],[],[],false,null,"and (`Дата напоминания` =\''+today+'\' or `Дата` =\''+today+'\') "]', 'u':1577})
 

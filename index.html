@@ -58,7 +58,7 @@ var objectStorageFields = ["id", "n", "cid", "pid", "isClass"];
 var specialLinkedClasses;
 var frmObject = new Form(false);;
 var storageMapLayers = [];
-var isMapLinkEnabled = (window.localStorage && window.localStorage.isMapLinkEnabled) ? true : false;
+var isMapLinkEnabled = (window.localStorage && (window.localStorage.isMapLinkEnabled || window.localStorage.isMapLinkEnabled === undefined)) ? true : false;
 var setViewObject;
 var classesObjects = new ClassesObject();
 var classesChains;
